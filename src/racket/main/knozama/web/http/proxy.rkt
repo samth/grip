@@ -1,0 +1,73 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Knozama's Amazon API Library
+;; Copyright (C) 2007,2008,2009,2010  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#lang racket
+
+(provide set-http-proxy!
+	 add-proxy-proc!
+	 remove-proxy-proc!
+	 http-proxy?
+	 http-proxy-host
+	 http-proxy-port)
+
+(require)
+
+(define proxy-host #f)
+(define proxy-port #f)
+
+;; alistof (symbol? . authority? * uri? -> boolean?)
+;; We pass that authority as its already been
+;; parsed in http-invoke.
+(define proxy-escape '())
+
+(define http-proxy-host
+  (lambda ()
+    proxy-host))
+
+(define http-proxy-port
+  (lambda ()
+    proxy-port))
+
+(define set-http-proxy!
+  (lambda (host port)
+    (set! proxy-host host)
+    (set! proxy-port port)))
+
+(define add-proxy-proc!
+  (lambda (symbol proc)
+    (set! proxy-escape (cons (cons symbol proc) 
+			  proxy-escape))))
+
+(define remove-proxy-proc!
+  (lambda (symbol)
+    (set! proxy-escape (filter (lambda (esc)
+			      (not (eq? symbol (car esc))))
+			    proxy-escape))))
+
+;; Determine if a http request should use the proxy or not.
+;; true -> do not use proxy
+;; false -> use proxy
+(define http-proxy?
+  (lambda (authority uri)
+    (let loop ((escapes proxy-escape))
+      (if (null? escapes)
+	 #f
+	 (if ((cdr (car escapes)) authority uri)
+	    #t
+	    (loop (cdr escapes)))))))
+
