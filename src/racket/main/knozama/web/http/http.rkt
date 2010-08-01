@@ -294,7 +294,6 @@
 (define http-pipe-chunks
   (lambda (chunk-size socket-ip out-pipe)
     (let loop ((chunk-size chunk-size))
-      (display (format "Chunk size: ~s" chunk-size))
       (if (zero? chunk-size)
           (begin (flush-output out-pipe)
 	     (close-output-port out-pipe))

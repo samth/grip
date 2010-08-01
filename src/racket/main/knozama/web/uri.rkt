@@ -31,7 +31,8 @@
 
 (require (only-in knozama/std/prelude
 		  fx1+)
-	 knozama/web/uri/charset)
+	 knozama/web/uri/uricharset)
+;;	 knozama/web/uri/charset)
 
 ;; (import
 ;;  (rnrs base)

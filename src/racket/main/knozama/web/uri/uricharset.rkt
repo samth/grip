@@ -23,10 +23,6 @@
 	 scheme-start-ch? scheme-tail-ch? sub-delim-char? unreserved-char?
 	 unsafe-char?)
 
-;; (only (rnrs unicode)
-;; 	string-upcase
-;;       char-ci>=? char-ci<=? char-downcase))
-
 ;; Amazon requires upcase letters in their signed URLs.
 (define encode-char
   (lambda (ch)

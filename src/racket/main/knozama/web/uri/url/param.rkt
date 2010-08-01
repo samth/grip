@@ -21,7 +21,7 @@
 (provide parse-parms encode-parm
 	 parms->query)
 
-(require knozama/web/uri/charset
+(require knozama/web/uri/uricharset
 	 (only-in knozama/text/util
 		  weave-string-separator)
 	 (only-in srfi/14
