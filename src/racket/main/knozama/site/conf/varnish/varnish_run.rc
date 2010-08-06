@@ -1,0 +1,15 @@
+#!/bin/sh
+# Start a varnish instance
+
+rm -f *.core
+date -u
+varnishd \
+        -T 127.0.0.1:81 \
+        -s file,/opt/varnish_disk/V,10g \
+        -f vg.vcl \
+        -p thread_pool_max=1500 \
+        -p thread_pools=5 \
+        -p listen_depth=512 \
+        -p client_http11=on \
+        -p default_ttl=3600 \
+        -a 0.0.0.0:80

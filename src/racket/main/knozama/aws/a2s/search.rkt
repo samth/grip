@@ -1,5 +1,7 @@
 #lang racket
 
+(provide keyword-search)
+
 (require knozama/aws/credentials
 	 knozama/aws/configuration
 	 knozama/web/uri
@@ -29,11 +31,6 @@
 			    (else '("SearchIndex" . "Books")))))))
       (let ((uri (uri "http" #f a2s-host #f "/onca/xml" (parms->query parms) "")))
 	uri))))
-
-
-
-
-
 
 ;; (let-values (((hdrs hip) (http-invoke 'GET uri `(,a2s-host-header) #f)))
 ;;   (let ((tip (transcoded-port hip (make-transcoder (utf-8-codec)))))

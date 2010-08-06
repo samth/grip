@@ -26,15 +26,15 @@
          ;;make-http-binary-input-port
          get-header header-value
          content-length-or-chunked?
-         parse-http-header
          parse-http-response-line
          response-line-code
          response-line-msg
          http-send-response
          http-301-moved-permanently
-         http-header-method 
-         http-header-path 
-         http-header-version)
+	 parse-request-line
+         request-line-method 
+         request-line-path 
+         request-line-version)
 
 (provide/contract (http-invoke (-> symbol? uri? any/c (or/c boolean? bytes?) any)))
 
@@ -88,19 +88,19 @@
 ;; "GET /a/b/c/d.txt HTTP/V1.1" -> ("GET" "a/b/c/d.txt" "HTTP/V1.1") ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define parse-http-header
+(define parse-request-line
   (lambda (sline)
     (string-tokenize sline (char-set-complement char-set:blank))))
 
-(define http-header-method
+(define request-line-method
   (lambda (parsed-start-line)
     (car parsed-start-line)))
 
-(define http-header-path
+(define request-line-path
   (lambda (parsed-start-line)
     (cadr parsed-start-line)))
 
-(define http-header-version
+(define request-line-version
   (lambda (parsed-start-line)
     (caddr parsed-start-line)))
 

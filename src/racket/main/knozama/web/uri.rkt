@@ -364,6 +364,8 @@
 	   (if (not (parse-char ip #\:))
 	      (error "Invalid URI.  scheme must be delimited by a ':'.")
 	      (let-values (((authority path) (parse-hier ip)))
+		(display "Auth: ") (display authority)(newline)
+		(display "Path: ") (display path)(newline)
 		(let ((query (parse-query-or-fragment ip #\?)))
 		  (let ((fragment (parse-query-or-fragment ip #\#)))
 		    (uri scheme authority path query fragment))))))))))
