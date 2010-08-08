@@ -60,14 +60,14 @@
 			    proxy-escape))))
 
 ;; Determine if a http request should use the proxy or not.
-;; true -> do not use proxy
-;; false -> use proxy
-(define http-proxy?
+(define http-proxy? 
   (lambda (authority uri)
-    (let loop ((escapes proxy-escape))
-      (if (null? escapes)
-	 #f
-	 (if ((cdr (car escapes)) authority uri)
-	    #t
-	    (loop (cdr escapes)))))))
+    #f))
+  ;; (lambda (authority uri)
+  ;;   (let loop ((escapes proxy-escape))
+  ;;     (if (null? escapes)
+  ;; 	 #f
+  ;; 	 (if ((cdr (car escapes)) authority uri)
+  ;; 	    #t
+  ;; 	    (loop (cdr escapes)))))))
 

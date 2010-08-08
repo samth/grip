@@ -18,5 +18,5 @@
 (define aws-creds
   (load-credentials "/home/rpr/awsaccount.txt"))
 
-(www-root-set! "/code/rl3/repo/bravais/static")
+(www-root-set! "/code/knozama/src/racket/main/knozama/static")
 

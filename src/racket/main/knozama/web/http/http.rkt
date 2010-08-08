@@ -61,14 +61,14 @@
   (lambda (src-str start end)
     (let ((s-pos (do ((s-pos start (fx1+ s-pos)))
                    ((or (fx= s-pos end)
-                        (not (eqv? (string-ref src-str s-pos) #\space)))
+		       (not (eqv? (string-ref src-str s-pos) #\space)))
                     s-pos)))
-          (e-pos (do ((e-pos end (fx1- e-pos)))
+	(e-pos (do ((e-pos end (fx1- e-pos)))
                    ((or (fx= e-pos start)
-                        (not (eqv? (string-ref src-str e-pos) #\space)))
+		       (not (eqv? (string-ref src-str e-pos) #\space)))
                     (if (fx< e-pos end)
-                        (fx1+ e-pos)
-                        e-pos)))))
+		       (fx1+ e-pos)
+		       e-pos)))))
       (substring src-str s-pos e-pos))))
 
 ;;-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -168,24 +168,24 @@
                   (next ip))))  ;; linefeed
           (let loop ((ch (next ip)))
             (cond 
-              ((eof-object? ch)         
-               0)
-              ((char=? ch #\space) ;; yahoo for one right pads chunk value with spaces.
-               (loop (next ip)))   ;; skip them.
-              ((char-hex? ch)
-               (begin
-                 (write-char ch osp )
-                 (loop (next ip))))
-              ((eqv? #\return ch)
-               (let ((ch (peek ip)))
-                 (if (eof-object? ch)
-                     0
-                     (if (eqv? ch #\linefeed)
-                         (begin
-                           (next ip)
-                           (string->number (get-output-string osp) 16))
-                         0))))
-              (else 0))))))
+	     ((eof-object? ch)         
+	      0)
+	     ((char=? ch #\space) ;; yahoo for one right pads chunk value with spaces.
+	      (loop (next ip)))   ;; skip them.
+	     ((char-hex? ch)
+	      (begin
+		(write-char ch osp )
+		(loop (next ip))))
+	     ((eqv? #\return ch)
+	      (let ((ch (peek ip)))
+		(if (eof-object? ch)
+		    0
+		    (if (eqv? ch #\linefeed)
+			(begin
+			  (next ip)
+			  (string->number (get-output-string osp) 16))
+			0))))
+	     (else 0))))))
     
     
     (read-chunk-length ip read-char peek-char)))
@@ -281,65 +281,65 @@
                                (read-byte inp)
                                caret
                                (if (and (fx= colon -1)
-                                        (eqv? ch #\:))
-                                   cnt                ;; found a colon at position cnt
-                                   colon)
+				     (eqv? ch #\:))
+				  cnt                ;; found a colon at position cnt
+				  colon)
                                headers))))))))))))
 
-(define space (string->bytes/utf-8 " "))
-(define version (string->bytes/utf-8  "HTTP/1.1"))
-(define terminate (string->bytes/utf-8 "\r\n"))
+(define space " ")
+(define version "HTTP/1.1")
+(define terminate "\r\n")
 
 ;; Used by the chunk reader thread to pipe the chunks.
 (define http-pipe-chunks
   (lambda (chunk-size socket-ip out-pipe)
     (let loop ((chunk-size chunk-size))
       (if (zero? chunk-size)
-          (begin (flush-output out-pipe)
-	     (close-output-port out-pipe))
-          (begin
-            (write-bytes (read-bytes chunk-size socket-ip) out-pipe)
-            (loop (get-chunk-length socket-ip)))))))
+	 (begin (flush-output out-pipe)
+	    (close-output-port out-pipe))
+	 (begin
+	   (write-bytes (read-bytes chunk-size socket-ip) out-pipe)
+	   (loop (get-chunk-length socket-ip)))))))
 
 (define http-invoke
   (lambda (action url headers payload)
     (let ((authority (uri-authority url)))
       (let ((host (authority-host authority))
-            (port (let ((port (authority-port authority)))
-                    (if port (string->number port) 80)))		    
-            (verb (lambda (action)
-                    ;; this is wrong string->ascii??
-                    (case action
-                      ((GET)  (string->bytes/utf-8 "GET"))
-                      ((PUT)  (string->bytes/utf-8 "PUT"))
-                      ;;  ((POST) (string->utf8 "POST"))
-                      ;;  ((HEAD) (string->utf8 "HEAD")))))
-                      (else (error 'http-invoke "HTTP method not support." action)))))
-            (proxy? (http-proxy? authority url)))	 
+	  (port (let ((port (authority-port authority)))
+		  (if port (string->number port) 80)))		    
+	  (verb (lambda (action)
+		  ;; this is wrong string->ascii??
+		  (case action
+		    ((GET) "GET")
+		    ((PUT) "PUT")
+		    ;;  ((POST) (string->utf8 "POST"))
+		    ;;  ((HEAD) (string->utf8 "HEAD")))))
+		    (else (error 'http-invoke "HTTP method not support." action)))))
+	  (proxy? (http-proxy? authority url)))	 
         (let ((conn-host (if proxy?
-                             host
-                             (aif (http-proxy-host) it host)))
-              (conn-port (if proxy?
-                             port
-                             (aif (http-proxy-port) it port))))
+			  (aif (http-proxy-host) it host)
+			  host))
+	    (conn-port (if proxy?
+			  (aif (http-proxy-port) it port)
+			  port)))
           (let-values (((ip op) (tcp-connect conn-host conn-port)))
             (let ((send (lambda (s)
-                          (write-bytes s op))))
+			(write-string s op))))
               ;; header line
               (send (verb action))
               (send space)
-              (send (string->bytes/utf-8 (uri->start-line-path-string url))) 
+              (send (uri->start-line-path-string url))
               (send space)
               (send version)
               (send terminate)
               ;; headers
               (for-each (lambda (h)
-                          (send (string->bytes/utf-8 h))
+                          (send h)
                           (send terminate))
                         headers)
               (when payload
-                (send (string->bytes/utf-8 (string-append "Content-Length: " 
-                                                          (number->string (bytes-length payload)))))
+                (send (string-append "Content-Length: " 
+				     (number->string (bytes-length payload))))
                 (send terminate))
               (send terminate)
               (when payload
@@ -368,8 +368,8 @@
     (let ((preamble   "HTTP/1.1 ")
           (code       code-str)
           (colon-sp    ": ")
-          (send (lambda (bstr) 
-                  (write-string socket-output-port bstr))))
+          (send (lambda (str) 
+                  (write-string str socket-output-port))))
       (let ((send-header
              (lambda (hdr)
                (send (car hdr))
@@ -388,7 +388,7 @@
         (if (input-port? content-input-port)
             (let ((buffsz 1024))
               (let ((buffer (make-bytes buffsz)))
-                (let loop ((cnt (read-bytes content-input-port buffer 0 buffsz)))
+                (let loop ((cnt (read-bytes! buffer content-input-port 0 buffsz)))
                   (if (eof-object? cnt)
                       (begin
                         (send "0")
@@ -396,9 +396,9 @@
                       (begin
                         (send (number->string cnt 16))
                         (send terminate)
-                        (write-bytes socket-output-port buffer 0 cnt)
+                        (write-bytes buffer socket-output-port 0 cnt)
                         (send terminate)
-                        (loop  (read-bytes content-input-port buffer 0 buffsz)))))))
+                        (loop  (read-bytes! buffer content-input-port 0 buffsz)))))))
             (send terminate))))))
 
 

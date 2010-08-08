@@ -21,23 +21,29 @@
  
  (define http-server-task
    (lambda (dispatch-tree port)
-     (let ((s (tcp-listen port)))
+     (let ((s (tcp-listen port 25 #t)))
        ;;(socket/nonblock (socket-representation-sock s))
        (let accept-loop ()
 	 (let-values (((inp outp) (tcp-accept s)))
 	   (www-log "Accept: ~s ~%" s)
 	   (flush-output (current-output-port))
 	   (thread (lambda ()
-		     (http-service-task dispatch-tree inp outp)))
+		     (call-with-exception-handler
+		      (lambda (e)
+			(display "Error in handling request: ")
+			(displayln e)
+			(close-input-port inp)
+			(close-output-port outp))
+		      (lambda ()
+			(http-service-task dispatch-tree inp outp)))))
 	   (accept-loop))))))
  
  (define http-service-task
    (lambda (dispatch-tree inp outp)
-     (www-log  "Got in port ~s~%" in-port)
+     ;; (www-log  "Got in port ~s~%" in-port)
      (let ((request (http-header-from-socket-input-port inp)))
        (www-log "Request ~s~%" request)
        (dispatch request inp outp dispatch-tree)
-       ;; (www-log "Socket Close ~s.~%" socket)
        (close-input-port inp)
        (close-output-port outp))))
 

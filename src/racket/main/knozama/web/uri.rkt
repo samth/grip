@@ -64,13 +64,13 @@
       (let loop ((ch (read-char is)))
 	(cond
 	 ((eof-object? ch) (get-output-string os))
-	 ((unreserved-char? ch) (begin (write-char os ch)
+	 ((unreserved-char? ch) (begin (write-char ch os)
 				   (loop (read-char is))))
 	 (else (if (and space-as-plus
 		     (char=? ch #\space))
-		  (begin (write-char os #\+)
+		  (begin (write-char #\+ os)
 		     (loop (read-char is)))
-		  (begin (write-string os (encode-char ch))
+		  (begin (write-string (encode-char ch) os)
 		     (loop (read-char is))))))))))
 
 ;; Read from the input port until eof or delim char
@@ -91,25 +91,26 @@
 		     (if (and (not (eof-object? ch2))
 			   (hex-char? ch2))
 			(begin
-			  (write-char op (integer->char (string->number (list->string (list ch1 ch2)) 16))) ;; use (let ((buff (make-string 2))) ???
+			  (write-char (integer->char (string->number (list->string (list ch1 ch2)) 
+								     16)) op) ;; use (let ((buff (make-string 2))) ???
 			  (loop (read-char ip)))
 			(begin              ;; got %d? so write '%' and digit and carryon
-			  (write-char op #\%)
-			  (write-char op ch1)
+			  (write-char #\% op)
+			  (write-char ch1 op)
 			  (unless (eof-object? ch2)
-			    (write-char op ch2))
+			    (write-char ch2 op))
 			  (loop (read-char ip)))))
 		   (begin                   ;; got %? so write them and carryon
-		     (write-char op #\%)
+		     (write-char #\% op)
 		     (unless (eof-object? ch1)
-		       (write-char op ch1))
+		       (write-char ch1 op))
 		     (loop (read-char ip)))))
 	      (begin
 		(unless (eof-object? ch)
 		  (if (and decode-plus?
 			(char=? ch #\+))
-		     (write-char op #\space)
-		     (write-char op ch)))
+		     (write-char #\space op)
+		     (write-char ch op)))
 		(loop (read-char ip)))))))))
 
 ;; all strings or #f

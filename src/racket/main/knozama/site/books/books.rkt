@@ -43,7 +43,7 @@
 	  extract-item-attrs)
  (only-in knozama/site/books/utils
 	  select-single-node-text)
- (only-in knozama/aws/a2s/search
+ (only-in knozama/aws/a2s/a2s
 	  keyword-search))
 
 ;; (only (rl3 xml sxml serializer)
@@ -164,17 +164,17 @@
 		(group  (item-attrs-group attr))
 		(title-val (item-attrs-title attr)))
 	      (let ((knozama-url (string-append "/books/book/" asin-value)))
-		`(div (* (class "booklistitem"))
-		      (image (* (class "booklistimage")
+		`(div (@ (class "booklistitem"))
+		      (image (@ (class "booklistimage")
 				(width "72px")
 				(height "110px")
 				(src ,item-image)) "")
-		      (span (* (class "booklistitemcontent"))
-			    (span (* (class "booklistitemtitle"))
-				  (a (* (class "booklistitemtitle")
+		      (span (@ (class "booklistitemcontent"))
+			    (span (@ (class "booklistitemtitle"))
+				  (a (@ (class "booklistitemtitle")
 					(href ,knozama-url)) ,title-val))
 			    (br) " by "
-			    (span (* (class "booklistitemauthor")),author)
+			    (span (@ (class "booklistitemauthor")),author)
 			    " Sales Rank: "
 			    ,rank))))))))))
 
@@ -189,13 +189,10 @@
 
 (define books-content
   (lambda (kindle-index terms)
-    ;; (pretty-print "KEYWORD")
-    ;; (let ((search-results (keyword-search aws-creds (if kindle-index 'KINDLE 'BOOK) terms)))
-    ;;   (pretty-print search-results)
-    ;;   (let ((items (sx-items search-results)))
-    ;; 	(let ((item-rows (extract-items-data-table items)))
-    ;; 	  item-rows)))))
-    empty-search))
+     (let* ((search-results (keyword-search aws-creds (if kindle-index 'KINDLE 'BOOK) terms))
+	  (items (sx-items search-results))
+	  (item-rows (extract-items-data-table items)))
+       item-rows)))
 
 ;; is kindle search index specified in the 'si=k' cookie?
 (define (cookie-kindle-search-index? cookies)
@@ -239,13 +236,10 @@
 			(let ((kindle-checked (if query form-kindle cookie-kindle)))
 			  (let ((datarows (books-content kindle-checked search-terms)))
 			    ;; if no query we came in from outside the search form 
-			    (displayln (books-html datarows
-						   kindle-checked
-						   terms))
 			    (let ((content (srl:sxml->html (books-html datarows  
-								 kindle-checked
-								 terms))))
-			      (www-log "Sending Response for books-resource GET~%")
+								     kindle-checked
+								     terms))))
+			      ;; (www-log "Sending Response for books-resource GET~%")
 			      (http-send-response "200 OK" response-headers output-port
 						  (open-input-string content) 0)))))))))))))))
 
@@ -279,42 +273,42 @@
 	,@head-links
 	,@head-scripts
 	
-	(style (* (type "text/css"))
+	(style (@ (type "text/css"))
 	  ".yui-skin-sam .yui-dt-liner { white-space:nowrap; } "))
        
-       (body (* (class "yui-skin-sam"))
-	     (div (* (id "doc3") (class "yui-t1"))
+       (body (@ (class "yui-skin-sam"))
+	     (div (@ (id "doc3") (class "yui-t1"))
 		  
 		  ,knozama-header
 		  
-		  (div (* (id "bd"))
+		  (div (@ (id "bd"))
 		       
-		       (div (* (id "yui-main"))
-			    (div (* (class "yui-b"))
-				 (div ;;(* (class "yui-gc"))
+		       (div (@ (id "yui-main"))
+			    (div (@ (class "yui-b"))
+				 (div ;;(@ (class "yui-gc"))
 				  
-				  (div (* 
+				  (div (@ 
 					;;(class "yui-u-first") 
 					(style "text-align: center") (id "mainsearch"))
-				       (div (* (id "tagline"))
-					    (span (strong "knozama.com") " just wants to find you a good book to read."))
+				       (div (@ (id "tagline"))
+					    (span (strong "Knozama") " just wants to find you a good book to read."))
 				       (h1 "")
-				       (form (* (action "/books") (method "GET") (id "searchform"))
+				       (form (@ (action "/books") (method "GET") (id "searchform"))
 					     (h2  "Find a good book to read.")
 					     (p (strong "search words ")
-						(input (* (type "text")  (name "terms") (style "width: 34%")
+						(input (@ (type "text")  (name "terms") (style "width: 34%")
 							  (value ,terms)))
-						(input (* (type "checkbox") (id "checkbox1") (name "kindlecb") (value "k") 
+						(input (@ (type "checkbox") (id "checkbox1") (name "kindlecb") (value "k") 
 							  ,(if kindlecb '(checked) '())) "Kindle")
-						(input (* (type "submit") (value "Search"))))
-					     (p (* (class "explain")) 
-						(em "Examples:") (a (* (href "/books/?terms=scifi")) "scifi")))
+						(input (@ (type "submit") (value "Search"))))
+					     (p (@ (class "explain")) 
+						(em "Examples:") (a (@ (href "/books/?terms=scifi")) "scifi")))
 				       
-				       (div (* (class "booklist"))
+				       (div (@ (class "booklist"))
 					    ,@items)))))
 		       
 		       
-		       (div (* (class "yui-b"))
+		       (div (@ (class "yui-b"))
 			    ,amazon-left-vertical))
 		  
 		  ,knozama-footer)

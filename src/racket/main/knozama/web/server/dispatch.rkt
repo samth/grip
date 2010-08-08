@@ -92,16 +92,10 @@
 
 (define dispatch-path-on-tree
   (lambda (path node-list mnode)
-    (displayln "Path")
-    (displayln path)
-    (displayln "====")
-    (displayln node-list)
-    (displayln mnode)
-    (displayln "---")
     (if (or (null? node-list)
 	  (null? path))
        (begin
-	 (www-log "Handler: ~s Remainder: ~s~%" (node-dispatch mnode) path)
+	 ;; (www-log "Handler: ~s Remainder: ~s~%" (node-dispatch mnode) path)
 	 (values (node-dispatch mnode) path))
        (let ((node (car node-list)))
 	 (if (string=? (car path) (node-segment node))
@@ -111,12 +105,12 @@
 (define dispatch 
   (lambda (request input-port output-port dispatch-tree)
     (let ((http-path (parse-http-path (cadr (parse-request-line (car request))))))
-      (www-log "Full Request: ~s~%" request)
-      (www-log "HTTP Path: ~s~%" http-path)
+      ;; (www-log "Full Request: ~s~%" request)
+      ;; (www-log "HTTP Path: ~s~%" http-path)
       (let ((path (path-split (car http-path))))
-	(www-log "URI Path: ~s~%" path)
+	;; (www-log "URI Path: ~s~%" path)
 	(let-values (((resource-handler path-remainder) (dispatch-path-on-tree path dispatch-tree #f)))	  
 	  (let ((remainder (cons path-remainder (cdr http-path))))
-	    (www-log "Handler: ~s~% Remainder: ~s~%" resource-handler remainder)
+	    ;; (www-log "Handler: ~s~% Remainder: ~s~%" resource-handler remainder)
 	    (resource-handler request remainder input-port output-port )))))))
 

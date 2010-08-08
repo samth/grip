@@ -17,19 +17,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #lang racket
-  
-(require aws/misc
-	 net/base64
-	 net/uri-codec
-	 file/md5
-	 (only-in srfi/13
-		  string-trim-both)
-	 web-server/stuffers/hmac-sha1)
 
 (provide md5-file 
 	 aws-s3-auth-str
 	 aws-s3-auth-mac
 	 aws-s3-auth-mac-encode)
+  
+(require net/base64
+	 net/uri-codec
+	 (only-in knozama/type/list
+		  weave)
+	 file/md5
+	 (only-in srfi/13
+		  string-trim-both)
+	 web-server/stuffers/hmac-sha1)
+
 
 (define (md5-file fname)
   (let ((inf (open-input-file fname 'binary)))

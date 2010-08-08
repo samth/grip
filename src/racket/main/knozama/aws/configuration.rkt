@@ -20,7 +20,7 @@
 (define s3-host "s3.amazonaws.com")
 
 ;; Amazon Associate Services namespace
-(define a2s-namespace "http://webservices.amazon.com/AWSECommerceService/2008-06-26")
+(define a2s-namespace "http://webservices.amazon.com/AWSECommerceService/2010-06-01")
 
 (define a2s-ns
   (cons 'a2s a2s-namespace))

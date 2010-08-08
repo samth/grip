@@ -21,21 +21,20 @@
 	  PORT)
  (only-in knozama/site/books/books
 	  books-resource)
-;; (only-in knozama/site/books/book
-;;	  book-resource)
-;; (only-in knozama/site/carts/cart
-;;	  cart-resource)
-;; (only-in knozama/site/tours/tours
-;;	  tours-resource)
-;; (only-in knozama/site/feedback
-;;	  feedback-resource)
-;; (only-in knozama/site/reviews/reviews
-;;	  reviews-resource)
-;; (only-in knozama/site/awards/awards
-;;	  awards-resource)
-;; (only-in knozama/site/about
-;;	  about-resource))
- )
+ (only-in knozama/site/books/book
+	  book-resource)
+ (only-in knozama/site/carts/cart
+	  cart-resource)
+ (only-in knozama/site/tours/tours
+	  tours-resource)
+ (only-in knozama/site/feedback
+	  feedback-resource)
+ (only-in knozama/site/reviews/reviews
+	  reviews-resource)
+ (only-in knozama/site/awards/awards
+	  awards-resource)
+ (only-in knozama/site/about
+	  about-resource))
 
 (define redirect-resource
   (rest-resource
@@ -52,17 +51,17 @@
 	       (serve-static-resource path-remainder output-port)))))))
 
 (define dispatch-configure
-  (lambda ()
-    `((""          ,root-resource
-       ("static"   ,static-resource)
-       ("books"    ,books-resource)))))
-       ;; 	("book"    ,book-resource))
-       ;; ("cart"     ,cart-resource)
-       ;; ("reviews"  ,reviews-resource)
-       ;; ("tours"    ,tours-resource)
-       ;; ("awards"   ,awards-resource)
-       ;; ("feedback" ,feedback-resource)
-       ;; ("about"    ,about-resource)))))
+   (lambda ()
+     `((""          ,root-resource
+	("static"   ,static-resource)
+	("books"    ,books-resource
+	 ("book"    ,book-resource))
+	("cart"     ,cart-resource)
+	("reviews"  ,reviews-resource)
+	("tours"    ,tours-resource)
+	("awards"   ,awards-resource)
+	("feedback" ,feedback-resource)
+	("about"    ,about-resource)))))
 
 (define proxy-escape
   (lambda (symbol host)
@@ -75,5 +74,5 @@
     (proxy-escape 'aws "ecs.amazonaws.com")
     (proxy-escape 'booktour "booktour.com")
     (proxy-escape 'blippr "blippr.com")
-    ;; (proxy-escape 'feedproxy "feedproxy.feedburner.com")		       
+    (proxy-escape 'feedproxy "feedproxy.feedburner.com")		       
     (web-server dispatch-configure PORT)))
