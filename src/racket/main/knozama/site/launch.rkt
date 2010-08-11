@@ -23,6 +23,8 @@
 	  books-resource)
  (only-in knozama/site/books/book
 	  book-resource)
+ (only-in knozama/site/books/bookgrid
+	  bookgrid-resource)
  (only-in knozama/site/carts/cart
 	  cart-resource)
  (only-in knozama/site/tours/tours
@@ -55,7 +57,8 @@
      `((""          ,root-resource
 	("static"   ,static-resource)
 	("books"    ,books-resource
-	 ("book"    ,book-resource))
+	 ("book"    ,book-resource)
+	 ("grid"    ,bookgrid-resource))
 	("cart"     ,cart-resource)
 	("reviews"  ,reviews-resource)
 	("tours"    ,tours-resource)

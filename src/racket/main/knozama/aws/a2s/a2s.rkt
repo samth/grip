@@ -46,7 +46,7 @@
 	  fetch-resource-xml))
 
 (define empty-response
-  (lambda () '()))
+  (lambda () '(*TOP*)))
 
 (define a2s-host-header (host-header a2s-host))
 
@@ -69,6 +69,23 @@
       ("AssociateTag"   . ,(aws-credentials-associate-tag creds))
       ("AWSAccessKeyId" . ,(aws-credentials-access-key creds)))))
 
+(define fetch-parse
+  (lambda (uri headers error)
+    (let-values (((hdrs ip) (http-invoke 'GET uri `(,a2s-host-header) #f)))
+      (call-with-exception-handler
+       (lambda (e)
+	 (pretty-print "ERROR in browse.")
+	 (pretty-print uri)
+	 (pretty-print hdrs)
+	 (close-input-port ip)
+	 (if error
+	    (error e)
+	    '(*TOP*)))
+       (lambda ()
+	 (let ((results (ssax:xml->sxml ip '())))
+	   (close-input-port ip)
+	   results))))))
+
 (define browse-node
   (lambda (creds node-id)
     (let ((parms (append browse-parms (ecs-parms creds)
@@ -77,18 +94,8 @@
       (let* ((sig (sign-request creds "GET" a2s-host "/onca/xml" parms))
 	   (parms (cons (cons "Signature" (url-encode-string sig #f)) parms))
 	   (uri (make-uri "http" #f a2s-host #f "/onca/xml" (parms->query parms) "")))
-	(let-values (((hdrs ip) (http-invoke 'GET uri `(,a2s-host-header) #f)))
-	  (call-with-exception-handler
-	   (lambda (ec)
-	     (pretty-print "ERROR in browse.")
-	     (pretty-print uri)
-	     (pretty-print hdrs)
-	     (close-input-port ip)
-	     empty-response)
-	   (lambda ()
-	     (let ((results (ssax:xml->sxml ip '())))
-	       (close-input-port ip)
-	       results))))))))
+	
+	(fetch-parse uri `(,a2s-host-header) #f)))))
 
 (define keyword-search
   (lambda (creds index-sym words) 
@@ -139,7 +146,8 @@
     (let ((parms (append itemlookup-parms (ecs-parms creds)
 		       `(("IdType" . "ASIN")
 			 ("ItemId" . ,asin)
-			 ("ResponseGroup" . ,(url-encode-string "SalesRank,Small,ItemAttributes,EditorialReview,Images,Reviews,Offers,Similarities" #f))
+			 ("ResponseGroup" . ,(url-encode-string "Small,ItemAttributes" #f))
+			 ;;("ResponseGroup" . ,(url-encode-string "SalesRank,Small,ItemAttributes,EditorialReview,Images,Reviews,Offers,Similarities" #f))
 			 ("Timestamp" . ,(url-encode-string (current-time-iso-8601) #f))))))
       (let ((sig (sign-request creds "GET" a2s-host "/onca/xml" parms)))
 	(let* ((parms (cons (cons "Signature" (url-encode-string sig #f)) parms))

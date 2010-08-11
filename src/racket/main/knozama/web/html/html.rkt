@@ -1,9 +1,14 @@
 #lang racket
 
 (provide
- links scripts)
+ links scripts stylesheets)
 
 (require)
+
+(define-syntax stylesheets
+  (syntax-rules ()
+    ((_ alink ...)
+     '((link (@ (rel "stylesheet") (type "text/css") (href alink)) "")...))))
 
 (define-syntax links
   (syntax-rules ()
