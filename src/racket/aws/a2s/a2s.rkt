@@ -44,8 +44,6 @@
 	  aws-s3-auth-str
 	  aws-s3-auth-mac))
 
-
-
 (define empty-response
   (lambda () '(*TOP*)))
 

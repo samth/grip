@@ -13,16 +13,16 @@
 	  sxpath)
  (only-in (planet lizorkin/ssax:2:0/ssax)
 	  ssax:xml->sxml)
- (only-in knozama/xml/sxml/utils
+ (only-in (planet knozama/xml:1:0/util)
 	  select-single-node-text)
- (only-in knozama/web/uri
+ (only-in (planet knozama/webkit:1:0/web/uri)
 	  uri-authority authority-host
 	  make-uri uri->string) 
- (only-in knozama/web/http/http
+ (only-in (planet knozama/webkit:1:0/web/http/http11)
 	  parse-http-response-line
 	  response-line-code
 	  http-invoke)
- (only-in knozama/web/http/headers
+ (only-in (planet knozama/webkit:1:0/web/http/headers)
 	  agent-header
 	  host-header))
 
