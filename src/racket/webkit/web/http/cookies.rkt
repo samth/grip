@@ -18,7 +18,7 @@
 
 #| HTTP Cookies |#
 
-#lang racket
+#lang racket/base
 
 (provide  make-cookie
 	  parse-cookie)

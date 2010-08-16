@@ -21,7 +21,7 @@
 ;; Simple helper procedures to create commonly used S3 http REST headers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket
+#lang racket/base
 
 (provide
  ;; Headers

@@ -16,9 +16,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket
+#lang racket/base
 
 (provide aif)
+
+(require (for-syntax racket/base))
 
 (define-syntax aif 
   (lambda (stx) 

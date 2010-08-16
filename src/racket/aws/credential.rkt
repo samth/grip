@@ -18,16 +18,16 @@
 
 ;; Load AWS credentials from a protected file.
 
-#lang racket
+#lang racket/base
 
 
 (provide
- aws-credentials?
- aws-credentials-account-id
- aws-credentials-access-key
- aws-credentials-secret-key
- aws-credentials-associate-tag
- load-credentials)
+ aws-credential?
+ aws-credential-account-id
+ aws-credential-access-key
+ aws-credential-secret-key
+ aws-credential-associate-tag
+ load-credential)
 
 ;; (require
 ;;  (only (rnrs lists)
@@ -36,19 +36,19 @@
 ;;        read call-with-input-file) 
 ;;  (err5rs records syntactic))
 
-(struct aws-credentials (account-id access-key 
-				    secret-key 
-				    associate-tag))
+(struct aws-credential (account-id access-key 
+				   secret-key 
+				   associate-tag))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Read in aws properties from a protected file.
 ;; string? -> aws-credentials?
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (load-credentials fpath)
+(define (load-credential fpath)
   (call-with-input-file fpath
     (lambda (ip)
       (let ((props (read ip)))
-	(aws-credentials (cdr (assoc 'account-id props))
-			 (cdr (assoc 'access-key props))
-			 (cdr (assoc 'secret-key props))
-			 (cdr (assoc 'associate-tag props)))))))
+	(aws-credential (cdr (assoc 'account-id props))
+			(cdr (assoc 'access-key props))
+			(cdr (assoc 'secret-key props))
+			(cdr (assoc 'associate-tag props)))))))

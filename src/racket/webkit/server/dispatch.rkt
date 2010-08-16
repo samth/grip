@@ -2,7 +2,7 @@
 ;; REST dispatch for HTTP ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket
+#lang racket/base
 
 (provide
  dispatch

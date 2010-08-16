@@ -16,12 +16,14 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket
+#lang racket/base
 
 (provide encode-char
 	 digit-char? hex-char? pchar? pct-encoded-char?
 	 scheme-start-ch? scheme-tail-ch? sub-delim-char? unreserved-char?
 	 unsafe-char?)
+
+(require)
 
 ;; Amazon requires upcase letters in their signed URLs.
 (define encode-char

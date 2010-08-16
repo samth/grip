@@ -1,5 +1,5 @@
 
-#lang racket
+#lang racket/base
 
 (provide www-log)
  

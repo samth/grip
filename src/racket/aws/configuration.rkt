@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Simple storage of configuration values.
@@ -7,6 +7,7 @@
 (provide aws-credentials-path
 	 s3-host
 	 a2s-host
+	 a2s-path
 	 a2s-ns
 	 a2s-nss)
 
@@ -15,6 +16,7 @@
 
 ;; host for Amazon Associate Services
 (define a2s-host "webservices.amazon.com")
+(define a2s-path "/onca/xml")
 
 ;; S3 storage host
 (define s3-host "s3.amazonaws.com")

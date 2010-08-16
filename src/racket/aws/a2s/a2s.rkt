@@ -1,10 +1,14 @@
-#lang racket
+#lang racket/base
 
-(provide keyword-search browse-node
+(provide fetch-parse browse-node service-parms
+	 make-signer a2s-uri
+	 empty-response
+	 sign-request
 	 item-lookup similarity-lookup	 
 	 cart-create cart-clear cart-get cart-add)
 
 (require
+ racket/pretty
  (only-in (planet lizorkin/ssax:2:0/ssax)
 	  ssax:xml->sxml)
  (only-in (planet lizorkin/sxml:2:1/sxml)
@@ -34,12 +38,11 @@
  (only-in (planet knozama/webkit:1:0/web/http/resource)
 	  fetch-resource-xml)
  (only-in "../configuration.rkt"
-	  a2s-ns
-	  a2s-host)
+	  a2s-ns a2s-host a2s-path)
  (only-in "../credential.rkt"
-	  aws-credentials-associate-tag
-	  aws-credentials-secret-key
-	  aws-credentials-access-key)
+	  aws-credential-associate-tag
+	  aws-credential-secret-key
+	  aws-credential-access-key)
  (only-in "../auth.rkt"
 	  aws-s3-auth-str
 	  aws-s3-auth-mac))
@@ -49,31 +52,30 @@
 
 (define a2s-host-header (host-header a2s-host))
 
-(define search-parms
-  `(("Operation"     . "ItemSearch")
-    ;; ("SearchIndex"   . "Books")
-    ("ResponseGroup" . ,(url-encode-string "SalesRank,Small,EditorialReview,Images" #f))))
-
 (define itemlookup-parms
   '(("Operation"   . "ItemLookup")))
 
 (define browse-parms
-  '(("Operation" . "BrowseNodeLookup")
+  '(("Operation"     . "BrowseNodeLookup")
     ("ResponseGroup" . "BrowseNodeInfo")))
+
+(define service-parms
+  `(("Service"        . "AWSECommerceService")
+    ("Version"        . "2010-11-01")))
 
 (define ecs-parms
   (lambda (creds)
     `(("Service"        . "AWSECommerceService")
       ("Version"        . "2010-11-01")         
-      ("AssociateTag"   . ,(aws-credentials-associate-tag creds))
-      ("AWSAccessKeyId" . ,(aws-credentials-access-key creds)))))
+      ("AssociateTag"   . ,(aws-credential-associate-tag creds))
+      ("AWSAccessKeyId" . ,(aws-credential-access-key creds)))))
 
 (define fetch-parse
   (lambda (uri headers error)
-    (let-values (((hdrs ip) (http-invoke 'GET uri `(,a2s-host-header) #f)))
+    (let-values (((hdrs ip) (http-invoke 'GET uri headers #f)))
       (call-with-exception-handler
        (lambda (e)
-	 (pretty-print "ERROR in browse.")
+	 ((error-display-handler)  "ERROR in browse." e)
 	 (pretty-print uri)
 	 (pretty-print hdrs)
 	 (close-input-port ip)
@@ -83,6 +85,7 @@
        (lambda ()
 	 (let ((results (ssax:xml->sxml ip '())))
 	   (close-input-port ip)
+	   (displayln results)
 	   results))))))
 
 (define browse-node
@@ -96,30 +99,6 @@
 	
 	(fetch-parse uri `(,a2s-host-header) #f)))))
 
-(define keyword-search
-  (lambda (creds index-sym words) 
-    (let ((parms (append search-parms (ecs-parms creds)
-		       `(("Keywords" . ,(url-encode-string words #f))
-			 ("Timestamp" . ,(url-encode-string (current-time-iso-8601) #f))
-			 ,(case index-sym
-			    ((KINDLE)
-			     '("SearchIndex" . "KindleStore"))
-			    (else '("SearchIndex" . "Books")))))))
-      (let* ((sig (sign-request creds "GET" a2s-host "/onca/xml" parms))
-	   (parms (cons (cons "Signature" (url-encode-string sig #f)) parms))
-	   (uri (make-uri "http" #f a2s-host #f "/onca/xml" (parms->query parms) "")))
-	(let-values (((hdrs ip) (http-invoke 'GET uri `(,a2s-host-header) #f)))
-	  (call-with-exception-handler
-	   (lambda (ec)
-	     (pretty-print "ERROR in item search.")
-	     (pretty-print uri)
-	     (pretty-print hdrs)
-	     (close-input-port ip)
-	     empty-response)
-	   (lambda ()
-	     (let ((results (ssax:xml->sxml ip '())))
-	       (close-input-port ip)
-	       results))))))))
 
 (define similarity-lookup  
   (lambda (creds asins)
@@ -134,11 +113,30 @@
 
 (define sign-request 
   (lambda (creds action host path params)
+    (displayln action)
+    (displayln host)
+    (displayln path)
+    (displayln params)
     (let ((parms (weave-string-separator "&" (sort (map (lambda (pair)
 							(string-append (car pair) "=" (cdr pair)))
 						      params) string<?))))
       (let ((auth-str (weave-string-separator "\n" (list action host path parms))))
-	(base64-encode (hmac-sha256 (aws-credentials-secret-key creds) auth-str))))))
+	(displayln "====================")
+	(displayln auth-str)
+	(displayln "====================")
+	(base64-encode (hmac-sha256 (aws-credential-secret-key creds) auth-str))))))
+
+(define make-signer
+  (lambda (creds)
+    (lambda (action parms)
+      (cons (cons "Signature" 
+		   (url-encode-string (sign-request creds action a2s-host a2s-path parms) #f))
+	     parms))))
+
+(define a2s-uri
+  (lambda (parms)
+    (make-uri "http" #f a2s-host #f a2s-path (parms->query parms) "")))
+
 
 (define item-lookup
   (lambda (creds asin)

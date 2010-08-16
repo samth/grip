@@ -1,6 +1,8 @@
-#lang racket
+#lang racket/base
 
 (provide sha256 hexstr)
+
+(require racket/contract)
 
 (provide/contract (hmac-sha256 (-> (or/c string? bytevector?) (or/c string? bytevector?) bytevector?)))
 

@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 (provide fx1+
 	 fx1-

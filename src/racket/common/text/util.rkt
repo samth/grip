@@ -18,7 +18,7 @@
 
 ;; general string / text manipulation
 
-#lang racket
+#lang racket/base
 
 (provide weave-string-separator
 	 for-lines)

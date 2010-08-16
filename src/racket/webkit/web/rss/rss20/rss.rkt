@@ -1,6 +1,6 @@
 #| Parse routines for RSS |#
 
-#lang racket
+#lang racket/base
  
  (provide
   fetch-rss 
@@ -9,6 +9,7 @@
   sx-media-content-width sx-media-content-height)
  
  (require
+  racket/pretty
  (only-in (planet lizorkin/sxml:2:1/sxml)
 	  sxpath)
  (only-in (planet lizorkin/ssax:2:0/ssax)

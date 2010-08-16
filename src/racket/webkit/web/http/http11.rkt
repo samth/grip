@@ -18,7 +18,9 @@
 
 ;;http-request
 
-#lang racket
+#lang racket/base
+
+(require racket/contract)
 
 (provide http-header-from-socket-input-port
          get-header header-value
@@ -37,6 +39,7 @@
 
 (require racket/fixnum
          racket/date
+	 racket/tcp
          (only-in srfi/13
                   string-tokenize)
          (only-in srfi/14
@@ -49,6 +52,8 @@
 		  aif)
          (only-in (planet knozama/common:1:0/std/prelude)
 		  fxzero? fx1+ fx1-)
+	 (only-in "headers.rkt"
+		  host-header)
          "../uri.rkt"
          "proxy.rkt")
 
@@ -299,58 +304,58 @@
 
 (define http-invoke
   (lambda (action url headers payload)
-    (let ((authority (uri-authority url)))
-      (let ((host (authority-host authority))
-	  (port (let ((port (authority-port authority)))
-		  (if port (string->number port) 80)))		    
-	  (verb (lambda (action)
-		  ;; this is wrong string->ascii??
-		  (case action
-		    ((GET) "GET")
-		    ((PUT) "PUT")
-		    ;;  ((POST) (string->utf8 "POST"))
-		    ;;  ((HEAD) (string->utf8 "HEAD")))))
-		    (else (error 'http-invoke "HTTP method not support." action)))))
-	  (proxy? (http-proxy? authority url)))	 
-        (let ((conn-host (if proxy?
-			  (aif (http-proxy-host) it host)
-			  host))
-	    (conn-port (if proxy?
-			  (aif (http-proxy-port) it port)
-			  port)))
-          (let-values (((ip op) (tcp-connect conn-host conn-port)))
-            (let ((send (lambda (s)
-			(write-string s op))))
-              ;; header line
-              (send (verb action))
-              (send space)
-              (send (uri->start-line-path-string url))
-              (send space)
-              (send version)
-              (send terminate)
-              ;; headers
-              (for-each (lambda (h)
-                          (send h)
-                          (send terminate))
-                        headers)
-              (when payload
-                (send (string-append "Content-Length: " 
-				     (number->string (bytes-length payload))))
-                (send terminate))
-              (send terminate)
-              (when payload
-                (send payload)
-                (send terminate))
-              (flush-output op)             
-              
-              ;;(close-port op) ;; nginx doesn't understand a half-close <sigh>
-              (let ((headers (http-header-from-socket-input-port ip)))
-                (let  ((chunked/length (content-length-or-chunked? (cdr headers))))
-                  (if (number? chunked/length)
-                      (values headers ip) ;; content/length
-                      (let-values (((inpipe outpipe) (make-pipe)))
-                        (thread (lambda () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
-                        (values headers inpipe))))))))))))
+    (let* ((authority (uri-authority url))
+	 (host (authority-host authority))
+	 (headers (cons (host-header host) headers))
+	 (port (let ((port (authority-port authority)))
+		 (if port (string->number port) 80)))		    
+	 (verb (lambda (action)
+		 (case action
+		   ((GET) "GET")
+		   ((PUT) "PUT")
+		   ;;  ((POST) (string->utf8 "POST"))
+		   ;;  ((HEAD) (string->utf8 "HEAD")))))
+		   (else (error 'http-invoke "HTTP method not support." action)))))
+	 (proxy? (http-proxy? authority url)))
+      (let ((conn-host (if proxy?
+			(aif (http-proxy-host) it host)
+			host))
+	  (conn-port (if proxy?
+			(aif (http-proxy-port) it port)
+			port)))
+	(let-values (((ip op) (tcp-connect conn-host conn-port)))
+	  (let ((send (lambda (s)
+		      (write-string s op))))
+	    ;; header line
+	    (send (verb action))
+	    (send space)
+	    (send (uri->start-line-path-string url))
+	    (send space)
+	    (send version)
+	    (send terminate)
+	    ;; headers
+	    (for-each (lambda (h)
+			(send h)
+			(send terminate))
+		      headers)
+	    (when payload
+	      (send (string-append "Content-Length: " 
+				   (number->string (bytes-length payload))))
+	      (send terminate))
+	    (send terminate)
+	    (when payload
+	      (send payload)
+	      (send terminate))
+	    (flush-output op)             
+	    
+	    ;;(close-port op) ;; nginx doesn't understand a half-close <sigh>
+	    (let ((headers (http-header-from-socket-input-port ip)))
+	      (let  ((chunked/length (content-length-or-chunked? (cdr headers))))
+		(if (number? chunked/length)
+		   (values headers ip) ;; content/length
+		   (let-values (((inpipe outpipe) (make-pipe)))
+		     (thread (lambda () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
+		     (values headers inpipe)))))))))))
 
 
 (define current-time-rfc2822

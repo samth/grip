@@ -1,69 +1,79 @@
-#lang racket
+#lang racket/base
 
-(provide) ;;keyword-search)
+(provide keyword-search)
 
-;; (require knozama/aws/credentials
-;; 	 knozama/aws/configuration
-;; 	 knozama/web/uri
-;; 	 knozama/web/uri/url/param
-;; 	 (only-in net/uri-codec
-;; 		  uri-encode)
-;; 	 (only-in knozama/web/http/http
-;; 		  parse-http-response-line
-;; 		  response-line-code
-;; 		  http-invoke)
-;; 	 (only-in knozama/aws/a2s/a2s
-;; 		  a2s-host-header))
+(require
+ racket/pretty
+ (only-in (planet knozama/webkit:1:0/web/uri)
+	  make-uri
+	  url-encode-string)
+ (only-in (planet knozama/webkit:1:0/web/uri/url/param)
+	  parms->query)
+ (only-in (planet knozama/webkit:1:0/web/http/http11)
+	  http-invoke)
+ (only-in "../credential.rkt"
+	  aws-credential-associate-tag
+	  aws-credential-secret-key
+	  aws-credential-access-key)
+ (only-in (planet knozama/common:1:0/type/date)
+	  current-time-iso-8601)
+ (only-in "../configuration.rkt"
+	  a2s-ns
+	  a2s-host)
+ "a2s.rkt")
+	  
+(define search-parms
+  (cons '("Operation" . "ItemSearch")
+	service-parms))
 
+(define index-parm
+  (lambda (sym)
+    (case sym
+      ((KINDLE)
+       '("SearchIndex" . "KindleStore"))
+      ((BOOKS)
+       '("SearchIndex" . "Books"))
+      (else '("SearchIndex" . "All")))))
 
-;; (define ecs-parms
-;;   (lambda (creds)
-;;     `(("Service"        . "AWSECommerceService")
-;;       ("Version"        . "2010-11-01")         
-;;       ("AssociateTag"   . ,(aws-credentials-associate-tag creds))
-;;       ("AWSAccessKeyId" . ,(aws-credentials-access-key creds)))))
+(define group
+  (lambda (sym)
+    (case sym
+      ((Rank) "SalesRank")
+      ((Small) "Small")
+      ((Review) "EditorialReview")
+      ((Images) "Images"))))
 
-;; (define search-parms
-;;   '(("Operation"     . "ItemSearch")
-;;     ;; ("SearchIndex"   . "Books")
-;;     ("ResponseGroup" . "SalesRank,Small,EditorialReview,Images")))
-
-;; (define keyword-search
-;;   (lambda (creds index-sym words) 
-;;     (let ((parms (append search-parms (ecs-parms creds)
-;; 		       `(("Keywords" . ,(uri-encode words))
-;; 			 ,(case index-sym
-;; 			    ((KINDLE)
-;; 			     '("SearchIndex" . "KindleStore"))
-;; 			    (else '("SearchIndex" . "Books")))))))
-;;       (let ((uri (uri "http" (authority #f a2s-host #f) "/onca/xml" (parms->query parms) "")))       
-;; 	(let-values (((hdrs ip) (http-invoke 'GET uri `(,a2s-host-header) #f)))
-;; 	  (let ((http-resp (parse-http-response-line (car hdrs))))
-;; 	    (if (string=? (response-line-code http-resp) "200")
-;; 	       (call-with-exception-handler
-;; 		(lambda (e)
-;; 		  (pretty-print "ERROR in item search.")
-;; 		  (pretty-print uri)
-;; 		  (pretty-print hdrs)				   
-;; 		  (close-input-port ip)
-;; 		  '())
-;; 		(lambda ()
-;; 		  (let ((results (xml->sxml ip '())))
-;; 		    (close-input-port ip)
-;; 		    results)))
-;; 	       (call-with-exception-handler
-;; 		(lambda (e)
-;; 		  (pretty-print "ERROR in item search.")
-;; 		  (pretty-print uri)
-;; 		  (pretty-print hdrs)				   
-;; 		  (close-input-port ip)
-;; 		  '())
-;; 		(lambda ()
-;; 		  (display "Failed with error: ")(display http-resp)(newline)
-;; 		  (let ((results (xml->sxml ip '())))
-;; 		    (close-input-port ip)
-;; 		    results))))))))))
-		  
-		 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; GIven a list of group symbols form the ResponseGroup kv param and url-encode it.
+;; listof (symbol?) -> string?
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define response-group-parm
+  (lambda (groups)
+    (let loop ((groups groups)(param ""))
+      (if (null? groups)
+	 `("ResponseGroup" . ,(url-encode-string param #f))
+	 (loop (cdr groups)
+	       (let ((g (group (car groups))))
+		 (if (void? g)
+		    param
+		    (if (equal? param "")
+		       g
+		       (string-append param "," g)))))))))
 
 
+;; credentials? -> symbol? -> listof(string?) -> (listof(string?) -> sxml?)
+
+(define keyword-search
+  (lambda (creds index groups) 
+    (let ((core-parms (let ((creds  ;;`(("AssociateTag"   . ,(aws-credential-associate-tag creds))
+				  `(("AWSAccessKeyId" . ,(aws-credential-access-key creds)))))
+		      (append search-parms 
+			      service-parms 
+			      (cons (response-group-parm groups)
+				    (cons (index-parm index) creds)))))
+	(signer (make-signer creds)))
+      (lambda (words)
+	(let ((parms (append `(("Keywords" . ,(url-encode-string words #f))
+			     ("Timestamp" . ,(url-encode-string (current-time-iso-8601) #f)))
+			   core-parms)))
+	  (fetch-parse (a2s-uri (signer "GET" parms)) '() #f))))))
