@@ -85,7 +85,7 @@
        (lambda ()
 	 (let ((results (ssax:xml->sxml ip '())))
 	   (close-input-port ip)
-	   (displayln results)
+	   (pretty-print results)
 	   results))))))
 
 (define browse-node
@@ -113,17 +113,10 @@
 
 (define sign-request 
   (lambda (creds action host path params)
-    (displayln action)
-    (displayln host)
-    (displayln path)
-    (displayln params)
     (let ((parms (weave-string-separator "&" (sort (map (lambda (pair)
 							(string-append (car pair) "=" (cdr pair)))
 						      params) string<?))))
       (let ((auth-str (weave-string-separator "\n" (list action host path parms))))
-	(displayln "====================")
-	(displayln auth-str)
-	(displayln "====================")
 	(base64-encode (hmac-sha256 (aws-credential-secret-key creds) auth-str))))))
 
 (define make-signer

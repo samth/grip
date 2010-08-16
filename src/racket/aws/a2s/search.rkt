@@ -21,10 +21,9 @@
 	  a2s-ns
 	  a2s-host)
  "a2s.rkt")
-	  
-(define search-parms
-  (cons '("Operation" . "ItemSearch")
-	service-parms))
+
+(define search-op-parm
+  '("Operation" . "ItemSearch"))
 
 (define index-parm
   (lambda (sym)
@@ -65,12 +64,10 @@
 
 (define keyword-search
   (lambda (creds index groups) 
-    (let ((core-parms (let ((creds  ;;`(("AssociateTag"   . ,(aws-credential-associate-tag creds))
-				  `(("AWSAccessKeyId" . ,(aws-credential-access-key creds)))))
-		      (append search-parms 
-			      service-parms 
-			      (cons (response-group-parm groups)
-				    (cons (index-parm index) creds)))))
+    (let ((core-parms (let ((creds `(("AWSAccessKeyId" . ,(aws-credential-access-key creds)))))
+		      (cons search-op-parm (append service-parms
+						   (cons (response-group-parm groups)
+							 (cons (index-parm index) creds))))))
 	(signer (make-signer creds)))
       (lambda (words)
 	(let ((parms (append `(("Keywords" . ,(url-encode-string words #f))
