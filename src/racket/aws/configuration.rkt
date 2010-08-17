@@ -4,15 +4,15 @@
 ;; Simple storage of configuration values.
 ;; we could have multiple configuration maps 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(provide aws-credentials-path
-	 s3-host
-	 a2s-host
-	 a2s-path
-	 a2s-ns
-	 a2s-nss)
+(provide 
+ credential-path
+ s3-host
+ a2s-host
+ a2s-path
+ a2s-ns
+ a2s-nss)
 
-;; path to configuration file containing AWS credentials
-(define aws-credentials-path #f)
+(define credential-path "/home/rpr/awsaccount.txt")
 
 ;; host for Amazon Associate Services
 (define a2s-host "webservices.amazon.com")

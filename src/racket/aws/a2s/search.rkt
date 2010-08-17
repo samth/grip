@@ -60,17 +60,12 @@
 		       (string-append param "," g)))))))))
 
 
-;; credentials? -> symbol? -> listof(string?) -> (listof(string?) -> sxml?)
+;; symbol? -> listof(string?) -> (listof(string?) -> sxml?)
 
 (define keyword-search
-  (lambda (creds index groups) 
-    (let ((core-parms (let ((creds `(("AWSAccessKeyId" . ,(aws-credential-access-key creds)))))
-		      (cons search-op-parm (append service-parms
-						   (cons (response-group-parm groups)
-							 (cons (index-parm index) creds))))))
-	(signer (make-signer creds)))
-      (lambda (words)
-	(let ((parms (append `(("Keywords" . ,(url-encode-string words #f))
-			     ("Timestamp" . ,(url-encode-string (current-time-iso-8601) #f)))
-			   core-parms)))
-	  (fetch-parse (a2s-uri (signer "GET" parms)) '() #f))))))
+  (lambda (index groups words) 
+    (let ((parms 
+	 (cons `("Keywords" . ,(url-encode-string words #f))
+	       (cons search-op-parm
+		     (cons (response-group-parm groups) (list (index-parm index)))))))
+      (a2s-invoke parms))))

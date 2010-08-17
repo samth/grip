@@ -21,13 +21,22 @@
 	 sx-cart-item-total
 	 sx-cart-errors
 	 sx-cart-error-code
-	 sx-cart-error-message)
+	 sx-cart-error-message
+	 cart-create 
+	 cart-clear cart-get 
+	 cart-add)
 
 (require 
+ (only-in (planet knozama/common:1:0/std/prelude)
+	  fx1+)
+ (only-in (planet knozama/common:1:0/text/util)
+	  weave-string-separator)
  (only-in (planet lizorkin/sxml:2:1/sxml)
 	  sxpath)
  (only-in (planet knozama/xml:1:0/util)
 	  select-single-node-text)
+ (only-in "a2s.rkt"
+	  a2s-invoke)
  (only-in "../configuration.rkt"
 	  a2s-ns))
 
@@ -96,3 +105,50 @@
 
 (define sx-cart-error-message
   (select-single-node-text "a2s:Message" ns))
+
+#|  Cart API |#
+
+;; START HERE -- TEST CART CREATE
+
+;;  (define cart-modify #f)
+
+;; Given a line number and an alist of (asin . qty) create a cart line
+;; Item.1.ASIN=123&Item.1.Quantity=10
+(define make-cart-lines
+  (lambda (entries)
+    (let ((make-line (lambda (n line)
+		       (let ((line-no (number->string n)))
+			 (string-append "Item."   line-no ".ASIN=" (car line)
+					"&Item."  line-no ".Quantity=" (number->string (cdr line)))))))
+      (do ((accum '() (cons (make-line n (car entries)) accum))
+	   (entries entries (cdr entries))
+	   (n 1 (fx1+ n)))
+	  ((null? entries) (weave-string-separator "&" (reverse accum)))))))
+
+
+;; lines : alist of (item . qty)
+(define cart-create 
+  (lambda (creds items)
+    (let ((parms `(("Operation" . "CartCreate"))))
+      (a2s-invoke creds parms (make-cart-lines items)))))
+
+(define cart-parms
+  (lambda (operation cart-id hmac-encoded)
+    `(("Operation" . ,operation)
+      ("CartId"    . ,cart-id)
+      ("HMAC"      . ,hmac-encoded))))
+
+(define cart-clear
+  (lambda (creds cart-id hmac-encoded)
+    (a2s-invoke creds (cart-parms "CartClear" cart-id hmac-encoded) #f)))
+
+(define cart-get
+  (lambda (creds cart-id hmac-encoded)
+    (a2s-invoke creds (cart-parms "CartGet" cart-id hmac-encoded) #f)))
+
+(define cart-add
+  (lambda (creds cart-id hmac-encoded items)
+    (a2s-invoke creds 
+		(cart-parms "CartAdd" cart-id hmac-encoded)
+		(make-cart-lines items))))
+
