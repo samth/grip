@@ -3,7 +3,8 @@
 (provide 
  a2s-invoke
  credentials 
- fetch-parse browse-node service-parms
+ ;;fetch-parse 
+ browse-node service-parms
  empty-response
  sign-request
  item-lookup similarity-lookup)
@@ -74,46 +75,20 @@
 	  (cons `("AWSAccessKeyId" . ,(aws-credential-access-key (credentials)))
 		service-parms))))
 
-(define fetch-parse
-  (lambda (uri headers error)
-    (let-values (((hdrs ip) (http-invoke 'GET uri headers #f)))
-      (call-with-exception-handler
-       (lambda (e)
-	 ((error-display-handler) "ERROR in browse." e)
-	 (pretty-print uri)
-	 (pretty-print hdrs)
-	 (close-input-port ip)
-	 (if error
-	    (error e)
-	    '(*TOP*)))
-       (lambda ()
-	 (let ((results (ssax:xml->sxml ip '())))
-	   (close-input-port ip)
-	   (pretty-print results)
-	   results))))))
-
 (define browse-node
   (lambda (creds node-id)
-    (let ((parms (append browse-parms (core-parms)
-		       `(("BrowseNodeId" . ,(number->string node-id))
-			 ("Timestamp" . ,(url-encode-string (current-time-iso-8601) #f))))))
-      (let* ((sig (sign-request creds "GET" a2s-host "/onca/xml" parms))
-	   (parms (cons (cons "Signature" (url-encode-string sig #f)) parms))
-	   (uri (make-uri "http" #f a2s-host #f "/onca/xml" (parms->query parms) "")))
-	
-	(fetch-parse uri `(,a2s-host-header) #f)))))
+    (let ((parms `(("BrowseNodeId" . ,(number->string node-id)))))	
+      (a2s-invoke parms))))
 
 
 (define similarity-lookup  
   (lambda (creds asins)
-    (let ((parms (append itemlookup-parms (core-parms)
-		       `(("IdType" . "ASIN")
-			 ("ItemId" . ,(weave-string-separator "," asins))
-			 ("ResponseGroup" . "SalesRank,ItemAttributes,Images,EditorialReview")))))
-      ;;(pretty-print parms)
-      (let ((uri (make-uri "http" #f a2s-host #f "/onca/xml" (parms->query parms) "")))
-	(fetch-resource-xml uri `(,a2s-host-header) empty-response)))))
-
+    (let ((parms `(("Operation" . "SimilarityLookup")
+		 ("IdType" . "ASIN")
+		 ("ItemId" . ,(weave-string-separator "," asins))
+		 ("ResponseGroup" . ,(url-encode-string "SalesRank,ItemAttributes,Images,EditorialReview" #f)))))
+      (displayln "SIMILARITY")
+      (a2s-invoke parms))))
 
 (define item-lookup
   (lambda (creds asin)
@@ -122,6 +97,7 @@
 			 ("ItemId" . ,asin)
 			 ("ResponseGroup" . ,(url-encode-string "Small,ItemAttributes" #f))))))
       ;;("ResponseGroup" . ,(url-encode-string "SalesRank,Small,ItemAttributes,EditorialReview,Images,Reviews,Offers,Similarities" #f))
+      (displayln "ITEM LOOKUP")
       (a2s-invoke parms))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -141,21 +117,18 @@
 							a2s-host 
 							a2s-path 
 							param-str)))
-	   (sig (url-encode-string (base64-encode (hmac-sha256 (aws-credential-secret-key (credentials))
-							       auth-str)) #f)))
+	   (sig (url-encode-string (base64-encode 
+				    (hmac-sha256 
+				     (aws-credential-secret-key (credentials))
+				     auth-str)) #f)))
 	(string-append "Signature=" sig "&" param-str))))
 
 
   ;; Generic call procedure to the REST A2S API 
   (define a2s-invoke
     (lambda (params)
-      (display "INVOKE")
-      (pretty-print params)
       (let* ((parm-str (sign-request "GET" (append (core-parms) params)))
 	   (uri (make-uri "http" #f a2s-host #f a2s-path parm-str "")))
-	(displayln "======")
-	(displayln parm-str)
-	(displayln "======")
 	(let-values (((hdrs ip) (http-invoke 'GET uri '() #f)))
 	  (call-with-exception-handler
 	   (lambda (e)

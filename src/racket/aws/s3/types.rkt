@@ -19,7 +19,7 @@
 #lang racket/base
 
 (require net/url
-	 aws/misc)
+	 "../misc.rkt")
 
 (provide make-s3-bucket
 	 s3-bucket?

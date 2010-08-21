@@ -19,29 +19,30 @@
 #lang racket/base
 
 ;;  "../bravais/bravais-properties.scm"
-(require aws/auth
-	 aws/credentials
-	 aws/s3/types
-	 aws/s3/headers
-	 aws/s3/response
-	 net/base64
-	 file/md5
-	 net/url
-	 racket/date
-	 racket/contract)
+(require 
+ racket/date
+ racket/contract
+ net/url
+ net/base64
+ file/md5
+ "../auth.rkt"
+ "../credential.rkt"
+ "types.rkt"
+ "headers.rkt"
+ "response.rkt")
 
 ;;(lib "xml.ss" "xml")
 
 (provide/contract
- (list-buckets        (-> aws-credentials? s3-response?))
- (create-bucket       (-> aws-credentials? s3-bucket? s3-response?))
- (delete-bucket       (-> aws-credentials? s3-bucket? s3-response?))
- (put-object          (-> aws-credentials? bytes? s3-resource? s3-response?))
- (put-file-object     (-> aws-credentials? path? s3-resource? s3-response?))
- (head-object         (-> aws-credentials? s3-resource? s3-response?))
- (get-object          (-> aws-credentials? s3-resource? s3-response?))
- (delete-object       (-> aws-credentials? s3-resource? s3-response?))
- (list-bucket-objects (-> aws-credentials? s3-bucket? s3-key? string? number? s3-response?)))    
+ (list-buckets        (-> aws-credential? s3-response?))
+ (create-bucket       (-> aws-credential? s3-bucket? s3-response?))
+ (delete-bucket       (-> aws-credential? s3-bucket? s3-response?))
+ (put-object          (-> aws-credential? bytes? s3-resource? s3-response?))
+ (put-file-object     (-> aws-credential? path? s3-resource? s3-response?))
+ (head-object         (-> aws-credential? s3-resource? s3-response?))
+ (get-object          (-> aws-credential? s3-resource? s3-response?))
+ (delete-object       (-> aws-credential? s3-resource? s3-response?))
+ (list-bucket-objects (-> aws-credential? s3-bucket? s3-key? string? number? s3-response?)))    
 
 (define s3-get    get-impure-port)
 (define s3-put    put-impure-port)
@@ -73,9 +74,9 @@
 (define (aws-error s)
   (display s) (newline))
 
-(define (authorization-header credentials auth-str)
-  (string-append "Authorization: AWS " (aws-credentials-access-key credentials) 
-		 ":" (aws-s3-auth-mac (aws-credentials-secret-key credentials) auth-str)))
+(define (authorization-header credential auth-str)
+  (string-append "Authorization: AWS " (aws-credential-access-key credential) 
+		 ":" (aws-s3-auth-mac (aws-credential-secret-key credential) auth-str)))
 
 (define (make-bucket-url bucket)
   (let ((url (make-base-url)))
