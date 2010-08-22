@@ -86,8 +86,7 @@
  (define fetch-rss
    (lambda (uri)
      (let-values (((hdrs ip) (http-invoke 'GET uri 
-					`(,(host-header (authority-host (uri-authority uri)))
-					  ,(agent-header "curl/7.16.4 (x86_64-redhat-linux-gnu) libcurl/7.16.4 OpenSSL/0.9.8b zlib/1.2.3 libidn/0.6.8")
+					`(,(agent-header "curl/7.16.4 (x86_64-redhat-linux-gnu) libcurl/7.16.4 OpenSSL/0.9.8b zlib/1.2.3 libidn/0.6.8")
 					  "Accept: */*")
 					#f)))
        (let ((http-resp (parse-http-response-line (car hdrs))))

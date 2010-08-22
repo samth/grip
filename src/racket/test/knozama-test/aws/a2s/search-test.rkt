@@ -5,9 +5,5 @@
  knozama/aws/configuration
  knozama/aws/a2s/search)
 
-(define creds (load-credentials aws-credentials-path))
-
-
-
-
+(define creds (load-credential aws-credential-path))
 

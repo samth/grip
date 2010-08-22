@@ -76,43 +76,43 @@
 		service-parms))))
 
 (define browse-node
-  (lambda (creds node-id)
-    (let ((parms `(("BrowseNodeId" . ,(number->string node-id)))))	
+  (lambda (node-id)
+    (let ((parms (append `(("BrowseNodeId" . ,(number->string node-id))) browse-parms)))
       (a2s-invoke parms))))
 
 
 (define similarity-lookup  
-  (lambda (creds asins)
+  (lambda (asins)
     (let ((parms `(("Operation" . "SimilarityLookup")
-		 ("IdType" . "ASIN")
-		 ("ItemId" . ,(weave-string-separator "," asins))
-		 ("ResponseGroup" . ,(url-encode-string "SalesRank,ItemAttributes,Images,EditorialReview" #f)))))
+		   ("IdType" . "ASIN")
+		   ("ItemId" . ,(weave-string-separator "," asins))
+		   ("ResponseGroup" . ,(url-encode-string "SalesRank,ItemAttributes,Images,EditorialReview" #f)))))
       (displayln "SIMILARITY")
       (a2s-invoke parms))))
 
 (define item-lookup
-  (lambda (creds asin)
+  (lambda (asin)
     (let ((parms (append itemlookup-parms
-		       `(("IdType" . "ASIN")
-			 ("ItemId" . ,asin)
-			 ("ResponseGroup" . ,(url-encode-string "Small,ItemAttributes" #f))))))
+			 `(("IdType" . "ASIN")
+			   ("ItemId" . ,asin)
+			   ("ResponseGroup" . ,(url-encode-string "Small,ItemAttributes" #f))))))
       ;;("ResponseGroup" . ,(url-encode-string "SalesRank,Small,ItemAttributes,EditorialReview,Images,Reviews,Offers,Similarities" #f))
       (displayln "ITEM LOOKUP")
       (a2s-invoke parms))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; A2S required sorted param string ready for signing.
+;; A2S required sorted param string ready for signing.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define params->string
-    (lambda (params)
-      (weave-string-separator "&" (sort (map (lambda (pair)
-					       (string-append (car pair) "=" (cdr pair)))
-					     params) string<?))))
+(define params->string
+  (lambda (params)
+    (weave-string-separator "&" (sort (map (lambda (pair)
+					     (string-append (car pair) "=" (cdr pair)))
+					   params) string<?))))
 
 
-  (define sign-request 
-    (lambda (action params)    
-      (let* ((param-str (params->string params))
+(define sign-request 
+  (lambda (action params)    
+    (let* ((param-str (params->string params))
 	   (auth-str (weave-string-separator "\n" (list action 
 							a2s-host 
 							a2s-path 
@@ -121,25 +121,23 @@
 				    (hmac-sha256 
 				     (aws-credential-secret-key (credentials))
 				     auth-str)) #f)))
-	(string-append "Signature=" sig "&" param-str))))
+      (string-append "Signature=" sig "&" param-str))))
 
 
-  ;; Generic call procedure to the REST A2S API 
-  (define a2s-invoke
-    (lambda (params)
-      (let* ((parm-str (sign-request "GET" (append (core-parms) params)))
-	   (uri (make-uri "http" #f a2s-host #f a2s-path parm-str "")))
-	(let-values (((hdrs ip) (http-invoke 'GET uri '() #f)))
-	  (call-with-exception-handler
-	   (lambda (e)
-	     ((error-display-handler) "ERROR in a2s invocation." e)
-	     (displayln e)
+;; Generic call procedure to the REST A2S API 
+(define a2s-invoke
+  (lambda (params)
+    (let* ((parm-str (sign-request "GET" (append (core-parms) params)))
+	   (uri (make-uri "http" #f a2s-host #f a2s-path parm-str "")))	
+      (let-values (((hdrs ip) (http-invoke 'GET uri '() #f)))
+	(call-with-exception-handler
+	 (lambda (e)
+	   ((error-display-handler) "ERROR in a2s invocation." e)
+	   (displayln e)
+	   (close-input-port ip)
+	   empty-response)
+	 (lambda ()
+	   (let ((results (ssax:xml->sxml ip '())))
 	     (close-input-port ip)
-	     empty-response)
-	   (lambda ()
-	     (displayln "DONE WITH INVOKE")
-	     (let ((results (ssax:xml->sxml ip '())))
-	       (close-input-port ip)
-	       (pretty-print results)
-	       results)))))))
+	     results)))))))
 

@@ -94,10 +94,12 @@
 		(loop (read-char ip)))))))))
 
 ;; all strings or #f
-(struct authority (username host port))
+(struct authority (username host port)
+	#:transparent)
 
 ;;all strings or #f, each string is a major piece of the uri.
-(struct uri (scheme authority path query fragment))
+(struct uri (scheme authority path query fragment)
+	#:transparent)
 
 (define null-string?
   (lambda (s)

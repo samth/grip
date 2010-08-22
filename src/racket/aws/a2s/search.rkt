@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide keyword-search)
+(provide keyword-search
+	 browse-node-search)
 
 (require
  racket/pretty
@@ -34,13 +35,18 @@
        '("SearchIndex" . "Books"))
       (else '("SearchIndex" . "All")))))
 
+;;       '("SearchIndex" . "Books&Power=binding:Kindle Edition"))
+
 (define group
   (lambda (sym)
     (case sym
-      ((Rank) "SalesRank")
-      ((Small) "Small")
-      ((Review) "EditorialReview")
-      ((Images) "Images"))))
+      ((Attributes)	"ItemAttributes")
+      ((Nodes)          "BrowseNodes")
+      ((Rank)		"SalesRank")
+      ((Small)		"Small")
+      ((Review)		"EditorialReview")
+      ((Images)		"Images")
+      ((Ids)		"ItemIds"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; GIven a list of group symbols form the ResponseGroup kv param and url-encode it.
@@ -59,6 +65,16 @@
 		       g
 		       (string-append param "," g)))))))))
 
+(define browse-node-search
+  (lambda (index groups node page)
+    (let ((parms 
+	 (cons `("Power" . ,(url-encode-string "binding:kindle" #f))
+	       (cons `("BrowseNode" . ,(number->string node))
+		     (cons search-op-parm 
+			   (cons `("ItemPage" . ,(number->string page))
+				 (cons (response-group-parm groups) 
+				       (list (index-parm index)))))))))
+	(a2s-invoke parms))))
 
 ;; symbol? -> listof(string?) -> (listof(string?) -> sxml?)
 

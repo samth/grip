@@ -4,6 +4,7 @@
  parse-x-www-form-urlencoded)
 
 (require
+ racket/pretty
  (only-in srfi/14
 	  char-set-complement
 	  list->char-set)
@@ -21,7 +22,9 @@
 ;; parse port contents into an alist of (k . v) pairs
 (define parse-x-www-form-urlencoded
   (lambda (in-port)
+    (displayln "Form parse")    
     (let loop ((key #f) (kvs '()))
+      (pretty-print key)
       (if key
 	 (loop #f (cons (cons key (read-token in-port value-delim)) kvs))
 	 (let ((key (read-token in-port key-delim)))
