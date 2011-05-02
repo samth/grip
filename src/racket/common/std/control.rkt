@@ -16,11 +16,23 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
-(provide aif)
+(provide 
+ aif
+ orelse)
 
 (require (for-syntax racket/base))
+
+(define-syntax orelse 
+  (lambda (stx)
+    (syntax-case stx ()
+      ((orelse test? exp alt)
+       (syntax
+	(let ((val exp))
+	  (if (test? val)
+	     val
+	     alt)))))))
 
 (define-syntax aif 
   (lambda (stx) 

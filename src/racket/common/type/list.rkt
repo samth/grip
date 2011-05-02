@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide assoc-value 
 	 ;; assoc-string assoc-string-value
@@ -27,8 +27,6 @@
 
 (require (only-in srfi/1
 		  find)
-	 (only-in "../std/prelude.rkt"
-		  fxzero? fx1-)
 	 (only-in "../std/control.rkt"
 		  aif))
 
@@ -74,7 +72,7 @@
 (define make-list
   (lambda (len val)
     (let loop ((len len) (lst '()))
-      (if (fxzero? len)
+      (if (zero? len)
 	 lst
-	 (loop (fx1- len) (cons val lst))))))
+	 (loop (add1 len) (cons val lst))))))
 

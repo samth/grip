@@ -95,9 +95,10 @@
     (let ((parms (append itemlookup-parms
 			 `(("IdType" . "ASIN")
 			   ("ItemId" . ,asin)
-			   ("ResponseGroup" . ,(url-encode-string "Small,ItemAttributes" #f))))))
+			   ("ResponseGroup" . ,(url-encode-string "BrowseNodes" #f))))))
+      ;;  ("ResponseGroup" . ,(url-encode-string "Small,Reviews" #f))))))
       ;;("ResponseGroup" . ,(url-encode-string "SalesRank,Small,ItemAttributes,EditorialReview,Images,Reviews,Offers,Similarities" #f))
-      (displayln "ITEM LOOKUP")
+      ;; (displayln "ITEM LOOKUP")
       (a2s-invoke parms))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -130,14 +131,12 @@
     (let* ((parm-str (sign-request "GET" (append (core-parms) params)))
 	   (uri (make-uri "http" #f a2s-host #f a2s-path parm-str "")))	
       (let-values (((hdrs ip) (http-invoke 'GET uri '() #f)))
-	(call-with-exception-handler
-	 (lambda (e)
-	   ((error-display-handler) "ERROR in a2s invocation." e)
-	   (displayln e)
-	   (close-input-port ip)
-	   empty-response)
-	 (lambda ()
-	   (let ((results (ssax:xml->sxml ip '())))
-	     (close-input-port ip)
-	     results)))))))
+	(with-handlers [(exn:fail? (lambda (ex) 
+				     ((error-display-handler) "ERROR in a2s invocation." ex)
+				     (displayln ex) 
+				     (close-input-port ip)
+				     empty-response))]
+	  (let ((results (ssax:xml->sxml ip '())))
+	    (close-input-port ip)
+	    results))))))
 

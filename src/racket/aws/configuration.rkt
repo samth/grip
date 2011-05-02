@@ -1,4 +1,4 @@
-#lang racket/base
+#lang typed/racket/base
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Simple storage of configuration values.
@@ -12,7 +12,7 @@
  a2s-ns
  a2s-nss)
 
-(define credential-path "/home/rpr/awsaccount.txt")
+(define credential-path "/home/ray/awsaccount.txt")
 
 ;; host for Amazon Associate Services
 (define a2s-host "webservices.amazon.com")
@@ -22,7 +22,7 @@
 (define s3-host "s3.amazonaws.com")
 
 ;; Amazon Associate Services namespace
-(define a2s-namespace "http://webservices.amazon.com/AWSECommerceService/2010-06-01")
+(define a2s-namespace "http://webservices.amazon.com/AWSECommerceService/2010-11-01")
 
 (define a2s-ns
   (cons 'a2s a2s-namespace))

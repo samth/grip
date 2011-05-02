@@ -1,4 +1,4 @@
-#lang racket/base
+#lang typed/racket/base
 
 (provide keyword-search
 	 browse-node-search)
@@ -42,11 +42,23 @@
     (case sym
       ((Attributes)	"ItemAttributes")
       ((Nodes)          "BrowseNodes")
+      ((Offer)          "OfferSummary")
       ((Rank)		"SalesRank")
       ((Small)		"Small")
+      ((Large)          "Large")
       ((Review)		"EditorialReview")
-      ((Images)		"Images")
       ((Ids)		"ItemIds"))))
+
+;;      ((Images)		"Images")
+
+(define rank
+  (lambda (sym)
+    (case sym
+      ((PriceAsc)	"price")
+      ((PriceDesc)	"-price")
+      ((Review)		"reviewrank")
+      ((Date)		"daterank")
+      ((Sales)		"salesrank"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; GIven a list of group symbols form the ResponseGroup kv param and url-encode it.
@@ -66,17 +78,31 @@
 		       (string-append param "," g)))))))))
 
 (define browse-node-search
-  (lambda (index groups node page)
-    (let ((parms 
-	 (cons `("Power" . ,(url-encode-string "binding:kindle" #f))
-	       (cons `("BrowseNode" . ,(number->string node))
-		     (cons search-op-parm 
-			   (cons `("ItemPage" . ,(number->string page))
-				 (cons (response-group-parm groups) 
-				       (list (index-parm index)))))))))
-	(a2s-invoke parms))))
 
-;; symbol? -> listof(string?) -> (listof(string?) -> sxml?)
+  (lambda (index groups node power by page)
+
+  (define add-sort
+    (lambda (param)
+      (if by
+	 (cons `("Sort" . ,(rank by)) param)
+	 param)))
+
+  (define add-power
+    (lambda (param)
+      (if power
+	 (cons `("Power" . ,power) param)
+	 param)))
+
+    (let* ((base
+	 (cons `("BrowseNode" . ,(number->string node))
+	       (cons search-op-parm 
+		     (cons `("ItemPage" . ,(number->string page))
+			   (cons (response-group-parm groups) 
+				 (list (index-parm index)))))))
+	(parms (add-power (add-sort base))))
+
+      (displayln parms)
+      (a2s-invoke parms))))
 
 (define keyword-search
   (lambda (index groups words) 

@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide encode-char
 	 digit-char? hex-char? pchar? pct-encoded-char?
@@ -26,26 +26,29 @@
 (require)
 
 ;; Amazon requires upcase letters in their signed URLs.
-(define encode-char
-  (lambda (ch)
-    (string-append "%" (string-upcase (number->string (char->integer ch) 16)))))
+(: encode-char (Char -> String))
+(define (encode-char ch)
+    (string-append "%" (string-upcase (number->string (char->integer ch) 16))))
 
-(define encode-char?
-  (lambda (ch)
-    (or (unsafe-char? ch))))
+(: encode-char? (Char -> Boolean))
+(define (encode-char? ch)
+    (or (unsafe-char? ch)))
 
+(: digit-char? (Char -> Boolean))
 (define digit-char?
   (lambda (ch)
     (and
      (char>=? ch #\0)
      (char<=? ch #\9))))
 
+(: alphabet-char? (Char -> Boolean))
 (define alphabet-char?
   (lambda (ch)
     (and
      (char-ci>=? ch #\a)
      (char-ci<=? ch #\z))))
 
+(: hex-char? (Char -> Boolean))
 (define hex-char?
   (lambda (ch)
     (or
@@ -54,6 +57,7 @@
        ((#\a #\b #\c #\d #\e #\f) #t)
        (else #f)))))
 
+(: unreserved-char? (Char -> Boolean))
 (define unreserved-char?
   (lambda (ch)
     (or
@@ -63,13 +67,13 @@
        ((#\. #\_ #\~ #\\ #\-) #t)
        (else #f)))))
 
-(define reserved
-  (lambda (ch)
-    (or
-     (general-delim-char? ch)
-     (sub-delim-char? ch))))
+(: reserved? (Char -> Boolean))
+(define (reserved? ch)
+  (or (general-delim-char? ch)
+     (sub-delim-char? ch)))
 
 ;; rtf1138
+(: unsafe-char? (Char -> Boolean))
 (define unsafe-char?
   (lambda (ch)
     (case ch
@@ -77,24 +81,28 @@
        #t)
       (else #f))))
 
+(: general-delim-char? (Char -> Boolean))
 (define general-delim-char?
   (lambda (ch)
     (case ch
       ((#\: #\/ #\? #\# #\[ #\] #\@) #t)
       (else #f))))
 
+(: sub-delim-char? (Char -> Boolean))
 (define sub-delim-char?
   (lambda (ch)
     (case ch
       ((#\! #\$ #\& #\' #\( #\) #\* #\+ #\, #\; #\=) #t)
       (else #f))))
 
+(: pct-encoded-char? (Char -> Boolean))
 (define pct-encoded-char?
   (lambda (ch)
     (or
      (eq? ch #\%)
      (hex-char? ch))))
 
+(: pchar? (Char -> Boolean))
 (define pchar?
   (lambda (ch)
     (or
@@ -105,8 +113,10 @@
        ((#\: #\@) #t)
        (else #f)))))
 
+(: scheme-start-ch? (Char -> Boolean))
 (define scheme-start-ch? alphabet-char?)
 
+(: scheme-tail-ch? (Char -> Boolean))
 (define scheme-tail-ch?
   (lambda (ch)
     (or

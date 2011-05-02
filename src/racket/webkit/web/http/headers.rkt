@@ -21,10 +21,11 @@
 ;; Simple helper procedures to create commonly used S3 http REST headers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide
- ;; Headers
+ Header
+ Headers
  ACCEPT USER-AGENT COOKIE DATE HOST 
  CONTENT-TYPE CONTENT-LENGTH CONTENT-MD5
  LOCATION SET-COOKIE
@@ -40,6 +41,9 @@
  agent-header accept-header date-header
  host-header content-type content-length
  content-md5 location set-cookie)
+
+(define-type Header (Pairof String String))
+(define-type Headers (Listof Header))
 
 ;; Standard Headers
 (define ACCEPT         "Accept")
@@ -61,78 +65,89 @@
 ;; Manipulation Procedures
 ;;-;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(: empty-headers Headers)
 (define empty-headers '())
 
-(define headers?
-  (lambda (lst)
-    (cond
-     ((null? lst) #t)
-     ((pair? lst)
-      (let ((e (car lst)))
-	(and (pair? e)
-	   (string? (car e)))))
-     (else #f))))
+(: headers? (Any -> Boolean))
+(define (headers? lst)
+  (cond
+   ((null? lst) #t)
+   ((pair? lst)
+    (let ((e (car lst)))
+      (and (pair? e)
+	 (string? (car e)))))
+   (else #f)))
 
-(define add-header
-  (lambda (k v headers)
-    (cons (cons k v) headers)))
+(: add-header (String String Headers -> Headers))
+(define (add-header k v headers)
+  (cons (cons k v) headers))
 
+(: get-header (String Headers -> (Option (Pairof String String))))
 (define get-header assoc)
 
-(define get-header-value
-  (lambda (header-sym headers)
-    (let ((header (get-header header-sym headers)))
+(: get-header-value (String Headers -> (Option String)))
+(define (get-header-value header headers)
+    (let ((header (get-header header headers)))
       (if header
 	 (cdr header)
-	 #f))))
+	 #f)))
 
 ;;-;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Get a http header value
 ;;-;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define get-cookie-header
-  (lambda (headers)
-    (get-header-value COOKIE headers)))
+(: get-cookie-header (Headers -> (Option String)))
+(define (get-cookie-header headers)
+  (get-header-value COOKIE headers))
 
 ;;-;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Makers of http headers
 ;;-;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(: make-header (String String -> String))
 (define (make-header key value)
   (string-append key ": " value))
 
+(: accept-header (String -> String))
 (define (accept-header value)
   (make-header ACCEPT value))
 
+(: agent-header (String -> String))
 (define (agent-header agent-id)
   (make-header USER-AGENT agent-id))
 
+(: date-header (String -> String))
 (define (date-header date)
   (make-header  DATE date))
 
+(: host-header (String -> String))
 (define (host-header host)
   (make-header HOST host))
 
+(: content-type (String -> String))
 (define (content-type mime)
   (make-header CONTENT-TYPE mime))
 
+(: content-length (Integer -> String))
 (define (content-length len)
-  (make-header CONTENT-LENGTH (number->string len)))
+  (make-header CONTENT-LENGTH (assert (number->string len) exact-integer?)))
 
+(: content-md5 (String -> String))
 (define (content-md5 md5)
   (make-header CONTENT-MD5 md5))
 
+(: location (String -> String))
 (define (location loc)
   (make-header LOCATION loc))
 
-(define set-cookie 
-  (lambda (cookie)
-    (make-header SET-COOKIE cookie)))
+(: set-cookie (String -> String))
+(define (set-cookie cookie)
+  (make-header SET-COOKIE cookie))
 
 ;; Useful predicates
-(define x-www-form-urlencoded?
-  (lambda (headers)
-    (let ((header (get-header CONTENT-TYPE headers)))
-      (if header
-	  (string=? (cdr header) X-WWW-FORM-URLENCODED)
-	  #f))))
+(: x-www-form-urlencoded? (Headers -> Boolean))
+(define (x-www-form-urlencoded? headers)
+  (let ((header (get-header CONTENT-TYPE headers)))
+    (if header
+       (string=? (cdr header) X-WWW-FORM-URLENCODED)
+	 #f)))

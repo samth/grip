@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide set-http-proxy!
 	 add-proxy-proc!
@@ -25,37 +25,48 @@
 	 http-proxy-host
 	 http-proxy-port)
 
-(require)
+(require
+ (only-in "../uri.rkt"
+	  uri
+	  authority))
 
+(: proxy-host (Option String))
 (define proxy-host #f)
+(: proxy-port (Option Integer))
 (define proxy-port #f)
 
 ;; alistof (symbol? . authority? * uri? -> boolean?)
 ;; We pass that authority as its already been
 ;; parsed in http-invoke.
+(: proxy-escape (Listof (Pairof Symbol (authority uri -> Boolean))))
 (define proxy-escape '())
 
+(: http-proxy-host (-> (Option String)))
 (define http-proxy-host
   (lambda ()
     proxy-host))
 
+(: http-proxy-port (-> (Option Integer)))
 (define http-proxy-port
   (lambda ()
     proxy-port))
 
+(: set-http-proxy! (String Integer -> Void))
 (define set-http-proxy!
   (lambda (host port)
     (set! proxy-host host)
     (set! proxy-port port)))
 
+(: add-proxy-proc! (Symbol (authority uri -> Boolean) -> Void))
 (define add-proxy-proc!
   (lambda (symbol proc)
     (set! proxy-escape (cons (cons symbol proc) 
 			  proxy-escape))))
 
+(: remove-proxy-proc! (Symbol -> Void))
 (define remove-proxy-proc!
   (lambda (symbol)
-    (set! proxy-escape (filter (lambda (esc)
+    (set! proxy-escape (filter (lambda: ((esc : (Pairof Symbol (authority uri -> Boolean))))
 			      (not (eq? symbol (car esc))))
 			    proxy-escape))))
 
