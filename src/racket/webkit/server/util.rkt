@@ -5,9 +5,7 @@
  normalize-path)
 
 (require
- racket/fixnum 
- (only-in (planet knozama/common:1:0/std/prelude)
-	  fx1+))
+ racket/fixnum)
 
 ;; Given a list of path segments normalize them by removing ".." and "." segments
 ;; Note: Never allow ".." to go above the relative root.
@@ -41,12 +39,12 @@
 	     (reverse words))
 	    ((constituent? (string-ref s i))
 	     (let ((start i))
-	       (let loop2 ((i (fx1+ i)))
+	       (let loop2 ((i (add1 i)))
 		 (if (and (fx< i limit) (constituent? (string-ref s i)))
-		    (loop2 (fx1+ i))
-		    (loop (fx1+ i) (cons (substring s start i) words))))))
+		    (loop2 (add1 i))
+		    (loop (add1 i) (cons (substring s start i) words))))))
 	    (else
-	     (loop (fx1+ i) words))))))
+	     (loop (add1 i) words))))))
 
 ;; Probably simplistic.  The ECMAScript spec has a more complete
 ;; definition of how to encode and decode urls and url components.

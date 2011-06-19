@@ -21,31 +21,35 @@
 (provide assoc-value 
 	 ;; assoc-string assoc-string-value
 	 lookup
-	 last-pair make-list 
+	 last-pair make-list
 	 ;; every? any? 
 	 weave)
 
-(require (only-in srfi/1
-		  find)
-	 (only-in "../std/control.rkt"
-		  aif))
+(require/typed 
+ srfi/1
+ (find (All (a) (a -> Boolean) (Listof a) -> (Option a))))
+
+(require 
+ (only-in "../std/control.rkt"
+	  aif))
 
 ;;  (primitives assoc-string every? any? list-copy))
 
 ;; find an element in a list satisfing the given predicate
 ;; return the given default value
-(define lookup
-  (lambda (proc list default)
-    (aif (find proc list)
-	 it
-	 default)))
+(: lookup (All (a) (a -> Boolean) (Listof a) a -> a))
+(define (lookup proc list default)
+  (let ((e (find proc list)))
+    (if e
+       e
+       default)))
 
-(define assoc-value
-  (lambda( key alst)
-    (let ((pair (assoc key alst)))
-      (if pair
-	 (cdr pair)
-	 #f))))
+(: assoc-value (All (a b) a (Listof (Pairof a b)) -> (Option b)))
+(define (assoc-value key alst)
+  (let ((pair (assoc key alst)))
+    (if pair
+       (cdr pair)
+       #f)))
 
 ;; (define (assoc-string-value str-key alst)
 ;;   (let ((pair (assoc-string str-key alst)))
@@ -54,25 +58,25 @@
 ;;        #f)))
 
 ;; Returns the last pair in list.
-(define last-pair
-  (lambda (x)
-    (if (pair? (cdr x))
-       (last-pair (cdr x))
-       x)))
+(: last-pair (All (a) (Listof a) -> (Listof a)))
+(define (last-pair x)
+  (if (pair? (cdr x))
+     (last-pair (cdr x))
+     x))
 
 ;; weave an element between a list of elements
-(define weave
-  (lambda (e lst)
-    (if (null? lst)
+(: weave (All (a) a (Listof a) -> (Listof a)))
+(define (weave e lst)
+  (if (null? lst)
+     lst
+     (if (null?  (cdr lst))
+	lst
+	(cons (car lst) (cons e (weave e (cdr lst)))))))
+  
+(: make-list (All (a) Integer a -> (Listof a)))
+(define (make-list len val)
+  (let: loop : (Listof a) ((len : Integer len) (lst  : (Listof a) '()))
+    (if (zero? len)
        lst
-       (if (null?  (cdr lst))
-	  lst
-	  (cons (car lst) (cons e (weave e (cdr lst))))))))
-
-(define make-list
-  (lambda (len val)
-    (let loop ((len len) (lst '()))
-      (if (zero? len)
-	 lst
-	 (loop (add1 len) (cons val lst))))))
+       (loop (add1 len) (cons val lst)))))
 

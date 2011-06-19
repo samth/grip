@@ -6,9 +6,9 @@
  static-resource)
 
 (require
- (only-in (planet knozama/webkit:1:0/web/http/http11)
+ (only-in (planet knozama/webkit:1/web/http/http11)
 	  http-send-response)
- (only-in (planet knozama/common:1:0/text/util)
+ (only-in (planet knozama/common:1/text/util)
 	  weave-string-separator)
  (only-in "util.rkt"
 	  normalize-path)

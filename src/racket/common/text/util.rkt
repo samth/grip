@@ -18,7 +18,7 @@
 
 ;; general string / text manipulation
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide weave-string-separator
 	 for-lines)
@@ -28,6 +28,7 @@
 
 ;; weave a separator string strictly between every pair of strings in a list
 ;; (weave '("1" "2" "3") ",") -> "1,2,3"
+(: weave-string-separator (String (Listof String) -> String))
 (define weave-string-separator
   (lambda (sep lst)
     (apply string-append (weave sep lst))))

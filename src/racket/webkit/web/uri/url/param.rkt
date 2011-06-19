@@ -16,21 +16,24 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide parse-parms encode-parm
 	 parms->query)
 
 (require 
- (only-in srfi/14
+ (only-in typed/srfi/14
+	  Char-Set
 	  string->char-set
 	  char-set-complement)
- (only-in srfi/13
-	  string-tokenize)
- (only-in (planet knozama/common:1:0/text/util)
+ (only-in (planet knozama/common:1/text/util)
 	  weave-string-separator)
  "../uricharset.rkt")
 
+
+(require/typed 
+ srfi/13
+ (string-tokenize (String Char-Set -> (Listof String))))
 
 ;; (require (rnrs base)
 ;; 	 (only (rnrs io simple)
@@ -49,52 +52,51 @@
 ;; 	       weave-string-separator)
 ;; 	 (primitives get-output-string open-output-string))
 
-(define parm-reserved-char?
-  (lambda (ch)
-    (case ch
-      ((#\& #\=) #t)
-      (else #f))))
+(: parm-reserved-char? (Char -> Boolean))
+(define (parm-reserved-char? ch)
+  (case ch
+    ((#\& #\=) #t)
+    (else #f)))
 
-(define alist? list?)
-(define query alist?)
 
-(define encode-parm-string
-  (lambda (str)
-    (let ((op (open-output-string))
-	(ip (open-input-string str)))
-      (let loop ((ch (read-char ip)))
-	(if (eof-object? ch)
-	   (get-output-string op)
-	   (begin
-	     (if (or (unsafe-char? ch)
-		   (parm-reserved-char? ch))
-		(write-string op (encode-char ch))
-		(write-char op ch))
-	     (loop (read-char ip))))))))
+(: encode-parm-string (String -> String))
+(define (encode-parm-string str)
+  (let ((op (open-output-string))
+      (ip (open-input-string str)))
+    (let loop ((ch (read-char ip)))
+      (if (eof-object? ch)
+	 (get-output-string op)
+	 (begin
+	   (if (or (unsafe-char? ch)
+		 (parm-reserved-char? ch))
+	      (write-string (encode-char ch) op)
+	      (write-char ch op))
+	   (loop (read-char ip)))))))
 
-(define encode-parm
-  (lambda (parm)
-    (let ((key   (car parm))
-	(value (cdr parm)))
-      (cons (encode-parm-string key)
-	    (encode-parm-string value)))))
+(: encode-parm ((Pair String String) -> (Pair String String)))
+(define (encode-parm parm)
+  (let ((key   (car parm))
+      (value (cdr parm)))
+    (cons (encode-parm-string key)
+	  (encode-parm-string value))))
 
-(define parms->query
-  (lambda (parms)
-    (weave-string-separator "&" (map (lambda (kv)
-				       (string-append (car kv) "=" (cdr kv)))
-				     parms))))
+(: parms->query ((Listof (Pair String String)) -> String))
+(define (parms->query parms)
+  (weave-string-separator "&" (map (lambda:  ((kv : (Pair String String)))
+				     (string-append (car kv) "=" (cdr kv)))
+				   parms)))
 
+(: parm-delim-char-set Char-Set)
 (define parm-delim-char-set
   (char-set-complement (string->char-set "=&")))
 
-(define parse-parms
-  (lambda (parm-str)
-    (let ((kvs (string-tokenize parm-str parm-delim-char-set)))
-      (let loop ((kvs kvs) (parms '()))
+(: parse-parms (String -> (Listof (Pairof String String))))
+(define (parse-parms parm-str)
+  (let ((kvs (string-tokenize parm-str parm-delim-char-set)))
+    (let: loop : (Listof (Pair String String)) ((kvs : (Listof String) kvs) (parms : (Listof (Pair String String)) '()))
 	(if (null? kvs)
 	   parms
 	   (let ((key (car kvs)))
 	     (if (null? (cdr kvs))
 		parms ;; odd number of KVs which is wrong.  Return what we got.
-		(loop (cddr kvs) (cons (cons key (cadr kvs)) parms)))))))))
+		(loop (cddr kvs) (cons (cons key (cadr kvs)) parms))))))))

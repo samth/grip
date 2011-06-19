@@ -21,9 +21,7 @@
 (provide path-split)
 
 (require
- racket/fixnum
- (only-in (planet knozama/common:1:0/std/prelude)
-	  fx1+ fx1- fxzero?))
+ racket/fixnum)
 
 (define path-split
   (lambda (s)
@@ -32,28 +30,28 @@
 		    (char=? #\/ (string-ref s at)))))
       (let ((prefix-root
 	   (lambda (segs)
-	     (if (and (not (fxzero? limit))
+	     (if (and (not (zero? limit))
 		   (char=? (string-ref s 0) #\/))
 		(cons "" segs)
 		segs))))
-	(if (not (fxzero? limit))
+	(if (not (zero? limit))
 	   (let loop ((i 0) (start (if (at-slash 0) 1 0)) (segments '()))
 	     (cond ((fx>= i limit)
 		    (cond 
 		     ((fx< start i)
 		      (prefix-root (reverse (cons (substring s start i) segments))))
-		     ((at-slash (fx1- limit))
+		     ((at-slash (sub1 limit))
 		      (prefix-root (reverse (cons "" segments))))
 		     (else
 		      (prefix-root (reverse segments)))))
 		   ((at-slash i)
 		    (cond 
 		     ((fx> start i)
-		      (loop (fx1+ i) (fx1+ i) segments))
+		      (loop (add1 i) (add1 i) segments))
 		     ((fx= start i)
-		      (loop (fx1+ i) (fx1+ i) (cons "" segments)))
+		      (loop (add1 i) (add1 i) (cons "" segments)))
 		     (else
-		      (loop (fx1+ i) (fx1+ i) (cons (substring s start i) segments)))))
+		      (loop (add1 i) (add1 i) (cons (substring s start i) segments)))))
 		   (else
-		    (loop (fx1+ i) start segments))))
+		    (loop (add1 i) start segments))))
 	   s)))))

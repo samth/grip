@@ -27,13 +27,11 @@
 	 cart-add)
 
 (require 
- (only-in (planet knozama/common:1:0/std/prelude)
-	  fx1+)
- (only-in (planet knozama/common:1:0/text/util)
+ (only-in (planet knozama/common:1/text/util)
 	  weave-string-separator)
  (only-in (planet lizorkin/sxml:2:1/sxml)
 	  sxpath)
- (only-in (planet knozama/xml:1:0/util)
+ (only-in (planet knozama/xml:1/util)
 	  select-single-node-text)
  (only-in "a2s.rkt"
 	  a2s-invoke)
@@ -122,7 +120,7 @@
 					"&Item."  line-no ".Quantity=" (number->string (cdr line)))))))
       (do ((accum '() (cons (make-line n (car entries)) accum))
 	   (entries entries (cdr entries))
-	   (n 1 (fx1+ n)))
+	   (n 1 (add1 n)))
 	  ((null? entries) (weave-string-separator "&" (reverse accum)))))))
 
 

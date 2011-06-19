@@ -18,7 +18,7 @@
 
 ;; Load AWS credentials from a protected file.
 
-#lang racket/base
+#lang typed/racket/base
 
 
 (provide
@@ -29,6 +29,13 @@
  aws-credential-associate-tag
  load-credential)
 
+(require/typed racket/base
+	       ((read read-creds) (Input-Port -> (Listof (Pair Symbol String)))))
+ 
+(require 
+ (only-in (planet knozama/common:1/std/opt)
+	  opt-apply-orelse))
+
 ;; (require
 ;;  (only (rnrs lists)
 ;;        assoc)
@@ -36,19 +43,29 @@
 ;;        read call-with-input-file) 
 ;;  (err5rs records syntactic))
 
-(struct aws-credential (account-id access-key 
-				   secret-key 
-				   associate-tag))
+(struct: aws-credential ((account-id : String)
+			 (access-key : String)
+			 (secret-key : String)
+			 (associate-tag : String)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Read in aws properties from a protected file.
 ;; string? -> aws-credentials?
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(: load-credential (String -> aws-credential));
 (define (load-credential fpath)
+  
+  (define lookup (inst assoc Symbol String))
+  (define value  (inst cdr Symbol String))
+
+  (: cred-value (Symbol (Listof (Pair Symbol String)) -> String))
+  (define (cred-value sym props)
+    (opt-apply-orelse  (lookup sym props) value  ""))
+  
   (call-with-input-file fpath
-    (lambda (ip)
-      (let ((props (read ip)))
-	(aws-credential (cdr (assoc 'account-id props))
-			(cdr (assoc 'access-key props))
-			(cdr (assoc 'secret-key props))
-			(cdr (assoc 'associate-tag props)))))))
+    (lambda: ((ip : Input-Port))
+      (let: ((props : (Listof (Pair Symbol String))(read-creds ip)))
+	(aws-credential (cred-value 'account-id props)
+			(cred-value 'access-key props)
+			(cred-value 'secret-key props)
+			(cred-value 'associate-tag props))))))

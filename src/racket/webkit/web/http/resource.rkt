@@ -16,23 +16,29 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide
  ;;future-resource-xml
  fetch-resource-xml)
 
+(require/typed (planet lizorkin/ssax:2:0/ssax)
+	       (ssax:xml->sxml (Input-Port (Listof String) -> (List Any))))
+
 (require
- (planet lizorkin/ssax:2:0/ssax)
  (only-in "../uri.rkt"
+	  uri
 	  uri-authority authority-host)
  (only-in "headers.rkt"
+	  Headers
 	  agent-header
 	  host-header)
  (only-in "http11.rkt"
-	  parse-http-response-line
+	  http-response-from-headers
 	  response-line-code
-	  http-invoke))
+	  http-invoke)
+ (only-in "util.rkt"
+	  ok-response?))
 
 ;; FIX ME RPR - This needs to be a 'generic' function in the sense
 ;; that the appropriate content handling fetch should be done 
@@ -44,18 +50,20 @@
 ;; Note: Need to build up to a a synch. fetch-resource call
 ;; for a generic resource which returns the appropriate type
 ;; based on the mime type.
-(define fetch-resource-xml
-  (lambda (url headers error-proc)    
-    (let ((headers (append `(,(host-header (authority-host (uri-authority url)))
-			   ,(agent-header "SOS/RL3/0.1")
-			   "Accept: */*"))))
-      (let-values (((resp-data ip) (http-invoke 'GET url headers #f)))
-	(let ((result (let ((http-resp (parse-http-response-line (car resp-data))))
-		      (if (string=? (response-line-code http-resp) "200")
-			 (ssax:xml->sxml ip '())
-			 (error-proc)))))
-	  (close-input-port ip)
-	  result)))))
+(: fetch-resource-xml (uri Headers -> (Option (Listof Any))))
+(define (fetch-resource-xml url headers)
+  (let ((auth (uri-authority url)))
+    (if auth
+       (let ((headers (append `(,(host-header (authority-host auth))
+			      ,(agent-header "SOS/RL3/0.1")
+			      "Accept: */*"))))
+	 (let-values (((resp-data ip) (http-invoke 'GET url headers #f)))
+	   (if (ok-response? resp-data)
+	      (let ((result (ssax:xml->sxml ip '())))
+		(close-input-port ip)
+		result)
+	      #f)))
+       #f)))
 
 ;; return a resource via HTTP GET
 ;; returns the value of invoking error-proc on an error

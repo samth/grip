@@ -1,20 +1,14 @@
 #lang typed/racket/base
 
 (provide 
- =>)
+ %%
+ ==>)
+
+(require racket/pretty)
+
  ;; begin0)
 
 ;;	 cons*)
-
-;; (define-syntax add1
-;;   (syntax-rules ()
-;;     ((add1 x)
-;;      (+ 1 x))))
-
-;;  (define-syntax sub1
-;;    (syntax-rules ()
-;;      ((sub1 x)
-;;       (- x 1))))
 
 ;; (define-syntax begin0
 ;;   (syntax-rules ()
@@ -23,11 +17,19 @@
 ;;        es ...
 ;;        result))))
 
-(define-syntax =>
+;; create a procedure thunk out of a exp(s)
+(define-syntax ==>
   (syntax-rules ()
     ((_ exp ...)
      (lambda ()
        exp ...))))
+
+(define-syntax %%
+  (syntax-rules ()
+    ((_ exp)
+     (let ((tmp exp))
+       (pretty-print tmp)
+       tmp))))
 
 ;; (: cons* (All (a) a a * -> (Listof a)))
 ;; (define (cons* a1 a2 . rest)

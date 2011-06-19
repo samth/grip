@@ -4,14 +4,12 @@
 
 (require
  racket/tcp
- (only-in (planet knozama/common:1:0/std/prelude)
-	  add1 sub1)
- (only-in (planet knozama/webkit:1:0/web/uri)
+ (only-in (planet knozama/webkit:1/web/uri)
 	  http-path-path
 	  parse-http-path)
- (only-in (planet knozama/webkit:1:0/web/uri/path)
+ (only-in (planet knozama/webkit:1/web/uri/path)
 	  path-split)
- (only-in (planet knozama/webkit:1:0/web/http/http11)
+ (only-in (planet knozama/webkit:1/web/http/http11)
 	  parse-http-response-line
 	  request-line-path
 	  http-header-from-socket-input-port)

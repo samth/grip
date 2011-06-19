@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Knozama's Amazon API Library
-;; Copyright (C) 2007,2008,2009,2010  Raymond Paul Racine
+;; Copyright (C) 2007,2008,2009,2010,2011  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -18,54 +18,74 @@
 
 #| HTTP Cookies |#
 
-#lang racket/base
+#lang typed/racket/base
 
-(provide  make-cookie
-	  parse-cookie)
+(provide make-cookie
+	 parse-cookie)
 
-(require racket/date)
+(require/typed 
+ racket/base
+ (opaque Date date?)
+ (seconds->date (Integer -> Date)))
 
-(define make-cookie
-  (lambda (domain path name value expire-secs)    
+(require/typed
+ racket/date
+ (current-date (-> Date))
+ (date-display-format (Parameterof Symbol))
+ (date->string (Date -> String)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Create a HTTP Header Cookie				            ;;
+;; (make-cookie "ray.com" "/a/b" "bread" "rye" 500) -> 	            ;;
+;; "bread=rye; Expires=Sat, 21 May 2011; Path=/a/b; Domain=ray.com" ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(: make-cookie (String String String String Integer -> String))
+(define (make-cookie domain path name value expire-secs)
     (let ((duration (+ (current-seconds) expire-secs)))
-      (date-display-format 'rfc2822)
-      (let ((expire-date (date->string (seconds->date duration))))
-	(string-append name "=" value "; "
-		       "Expires=" expire-date "; "
-		       "Path="    path "; "
-		       "Domain="  domain)))))
+      (parameterize ((date-display-format 'rfc2822))
+	(let ((expire-date (date->string (seconds->date duration))))
+	  (string-append name "=" value "; "
+			 "Expires=" expire-date "; "
+			 "Path="    path "; "
+			 "Domain="  domain)))))
 
-
-(define parse-cookie
-  (lambda (cookie)
-    (if (string? cookie)
-       (let ((is (open-input-string cookie))
-	   (os (open-output-string)))
-	 (let loop ((avs '()) (ws #f) (attr #f))
-	   (let ((ch (read-char is)))
-	     (cond 
-	      ((eof-object? ch)
-	       (if attr
-		  (cons (cons attr (get-output-string os)) avs)
-		  avs))
-	      ((and (not ws) (char=? ch #\space))
-	       (loop avs ws attr))
-	      (else
-	       (if attr
-		  (if (char=? ch #\;)
-		     (let ((value (get-output-string os #t)))
-		       (loop (cons (cons attr value) avs) #f #f))
-		     (let ((ws (if (char=? ch #\")
-				(not ws)
-				#t)))
-		       (write-char os ch)
-		       (loop avs ws attr)))
-		  (if (char=? ch #\=)
-		     (let ((attr (get-output-string os #t)))
-		       (loop avs ws attr))
-		     (begin
-		       (write-char os ch)
-		       (loop avs ws attr)))))))))
-       '())))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Parse a cookie string into an alist of key value pairs		   ;;
+;; (parse-cookie (make-cookie "ray.com" "/a/b" "bread" "rye" 500)) ->	   ;;
+;; '(("Path" . "/a/b") ("Expires" . "Sat, 21 May 2011") ("bread" . "rye")) ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(: parse-cookie (String -> (Listof (Pairof String String))))
+(define (parse-cookie cookie)
+  (let ((is (open-input-string cookie))
+      (os (open-output-string)))
+    (let: loop : (Listof (Pair String String)) 
+	((avs : (Listof (Pair String String)) '()) 
+	 (ws : Boolean #f) 
+	 (attr : (Option String) #f))
+      (let ((ch (read-char is)))
+	(cond 
+	 ((eof-object? ch)
+	  (if (and (string? attr)
+		(not (string=? attr "")))
+	     (cons (cons attr (get-output-string os)) avs)
+	     avs))
+	 ((and (not ws) (char=? ch #\space))
+	  (loop avs ws attr))
+	 (else
+	  (if attr
+	     (if (char=? ch #\;)
+		(let ((value (bytes->string/utf-8 (get-output-bytes os #T))))
+		  (loop (cons (cons attr value) avs) #f #f))
+		(let ((ws (if (char=? ch #\")
+			   (not ws)
+			   #t)))
+		  (write-char ch os)
+		  (loop avs ws attr)))
+	     (if (char=? ch #\=)
+		(let ((attr (bytes->string/utf-8 (get-output-bytes os #t))))
+		  (loop avs ws attr))
+		(begin
+		  (write-char ch os)
+		  (loop avs ws attr))))))))))
 
 

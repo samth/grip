@@ -29,7 +29,7 @@
 	 (only-in srfi/13
 		  string-trim-both)
 	 web-server/stuffers/hmac-sha1
-	 (only-in (planet knozama/common:1:0/type/list)
+	 (only-in (planet knozama/common:1/type/list)
 		  weave))
 
 

@@ -27,9 +27,9 @@
 	 uri uri-authority)
 
 (require 
- (only-in (planet knozama/common:1:0/std/prelude)
-	  =>)
- (only-in (planet knozama/common:1:0/std/opt)
+ (only-in (planet knozama/common:1/std/prelude)
+	  ==>)
+ (only-in (planet knozama/common:1/std/opt)
 	  opt-apply-orelse)
  (only-in "uri/uricharset.rkt"
 	  sub-delim-char?

@@ -16,20 +16,21 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide current-time-iso-8601
 	 current-time-rfc-2822)
 
-(require srfi/19)
+(require/typed srfi/19
+	       (current-date (-> date))
+	       (date->string (date String -> String))
+	       (opaque date date?))
 
 (define iso-8601-date-time-format "~Y-~m-~dT~H:~M:~S~z")
 (define rfc2822-format "~a, ~d ~b ~Y ~T ~z")
 
-(define current-time-rfc-2822
-  (lambda ()
-    (date->string (current-date) rfc2822-format)))
+(define (current-time-rfc-2822)
+  (date->string (current-date) rfc2822-format))
 
-(define current-time-iso-8601
-  (lambda ()
-    (date->string (current-date) iso-8601-date-time-format)))
+(define (current-time-iso-8601)
+  (date->string (current-date) iso-8601-date-time-format))

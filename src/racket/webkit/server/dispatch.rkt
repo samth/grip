@@ -9,12 +9,12 @@
  rest-resource)
 
 (require 
- (only-in (planet knozama/webkit:1:0/web/http/http11)
+ (only-in (planet knozama/webkit:1/web/http/http11)
 	  parse-request-line
 	  parse-http-response-line)
- (only-in (planet knozama/webkit:1:0/web/uri)
+ (only-in (planet knozama/webkit:1/web/uri)
 	  parse-http-path)
- (only-in (planet knozama/webkit:1:0/web/uri/path)
+ (only-in (planet knozama/webkit:1/web/uri/path)
 	  path-split)
  (only-in "log.rkt"
 	  www-log))
