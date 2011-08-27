@@ -6,17 +6,6 @@
 
 (require racket/pretty)
 
- ;; begin0)
-
-;;	 cons*)
-
-;; (define-syntax begin0
-;;   (syntax-rules ()
-;;     ((begin0 e1 es ...)
-;;      (let ((result e1))
-;;        es ...
-;;        result))))
-
 ;; create a procedure thunk out of a exp(s)
 (define-syntax ==>
   (syntax-rules ()
