@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Knozama's Amazon API Library
-;; Copyright (C) 2007,2008,2009,2010  Raymond Paul Racine
+;; Copyright (C) 2007-2011  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@
 	 parse-uri parse-authority uri->string
 	 parse-http-path uri->start-line-path-string
 	 http-path-path http-path-query http-path-fragment
-	 authority authority-host authority-port
-	 uri uri-authority)
+	 Authority Authority-host Authority-port
+	 Uri Uri-authority)
 
 (require 
  (only-in (planet knozama/common:1/std/prelude)
@@ -41,7 +41,6 @@
 	  hex-char?
 	  encode-char
 	  unreserved-char?))
-
 
 ;; Encode the given string
 ;; space-as-plus boolean denotes if spaces should be encoded with '+' or %20.
@@ -105,14 +104,14 @@
 		  (loop (read-char ip)))))))))
 
 ;; all strings or #f
-(struct: authority ((username : (Option String))
+(struct: Authority ((username : (Option String))
 		    (host : String)
 		    (port : (Option Integer)))
 	 #:transparent)
 
 ;;all strings or #f, each string is a major piece of the uri.
-(struct: uri ((scheme : String)
-	      (authority : (U False authority))
+(struct: Uri ((scheme : String)
+	      (authority : (U False Authority))
 	      (path : String)
 	      (query : (Option String))
 	      (fragment : (Option String)))
@@ -136,13 +135,13 @@
 	str
 	alt))))
 
-(: make-uri (String (Option String) String (U False Natural) String (Option String) (Option String) -> (Option uri)))
+(: make-uri (String (Option String) String (U False Natural) String (Option String) (Option String) -> (Option Uri)))
 (define make-uri
   (lambda (scheme user host port path query fragment)
-    (let ((authority (authority user host port)))
+    (let ((authority (Authority user host port)))
       (if (null-string? scheme)
 	 #f
-	 (uri scheme authority
+	 (Uri scheme authority
 	      (opt-string path "/")
 	      (opt-string query)
 	      (opt-string fragment))))))
@@ -153,55 +152,55 @@
 			    (string-append prefix field))
 		    ""))
 
-(: uri->start-line-path-string (uri -> String))
+(: uri->start-line-path-string (Uri -> String))
 (define uri->start-line-path-string
   (lambda (uri)
     (string-append
-     (uri-path uri)
-     (maybe (uri-query uri) "?")
-     (maybe (uri-fragment uri) "#"))))
+     (Uri-path uri)
+     (maybe (Uri-query uri) "?")
+     (maybe (Uri-fragment uri) "#"))))
 
-(: uri->string (uri -> String))
+(: uri->string (Uri -> String))
 (define (uri->string uri)
   (string-append
-   (uri-scheme uri)
+   (Uri-scheme uri)
    ":"
-   (let ((auth (authority->string (uri-authority uri))))
+   (let ((auth (authority->string (Uri-authority uri))))
      (if auth
 	(string-append "//" auth)
 	""))
-   (uri-path uri)
-   (maybe (uri-query uri) "?")
-   (maybe (uri-fragment uri) "#")))
+   (Uri-path uri)
+   (maybe (Uri-query uri) "?")
+   (maybe (Uri-fragment uri) "#")))
 
-(: authority->string ((U False String authority) -> (Option String)))
+(: authority->string ((U False String Authority) -> (Option String)))
 (define (authority->string authority)
   (cond
    ((string? authority) authority)
-   ((authority? authority)
+   ((Authority? authority)
     (string-append
-     (let ((user (authority-username authority)))
+     (let ((user (Authority-username authority)))
        (if (cond
 	   ((boolean? user) user)
 	   ((string? user) (> (string-length user) 0)))
 	  (string-append user "@")
 	  ""))
-     (authority-host authority)
-     (let ((port (authority-port authority)))
+     (Authority-host authority)
+     (let ((port (Authority-port authority)))
        (if port
 	  (string-append ":" (number->string port))
 	  ""))))
    (else #f)))
 
 ;; Two authororities are equal if they're record values are equal.
-(: authority-equal? (authority authority -> Boolean))
+(: authority-equal? (Authority Authority -> Boolean))
 (define (authority-equal? auth1 auth2)
-  (and (equal? (authority-username auth1)
-	     (authority-username auth2))
-     (equal? (authority-host auth1)
-	     (authority-host auth2))
-     (eqv? (authority-port auth1)
-	   (authority-port auth2))))
+  (and (equal? (Authority-username auth1)
+	     (Authority-username auth2))
+     (equal? (Authority-host auth1)
+	     (Authority-host auth2))
+     (eqv? (Authority-port auth1)
+	   (Authority-port auth2))))
 
 ;; Read chars while valid or eof-object?
 ;; Place valid chars in output string port
@@ -358,7 +357,7 @@
 	    (get-output-string op))
 	  #f))))
 
-(: parse-uri (String -> uri))
+(: parse-uri (String -> Uri))
 (define (parse-uri uri-str)
   (let ((ip (open-input-string uri-str)))
     (let ((scheme (parse-scheme ip)))
@@ -372,7 +371,7 @@
 			   #f)))
 		(let ((query (parse-query-or-fragment ip #\?)))
 		  (let ((fragment (parse-query-or-fragment ip #\#)))
-		    (uri scheme auth path query fragment))))))))))
+		    (Uri scheme auth path query fragment))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Routines to parse a HTTP request start line path.				 ;;
@@ -459,7 +458,7 @@
 	 (else
 	  (loop (read-char ip))))))))
 
-(: parse-authority (String -> authority))
+(: parse-authority (String -> Authority))
 (define (parse-authority auth-str)
   (if (not (string? auth-str))
      #f
@@ -478,9 +477,9 @@
 	       (error "Invalid username.")
 	       (let ((username (get-output-string op)))
 		 (let-values (((host port) (parse-host-port ip)))
-		   (authority username host port)))))
+		   (Authority username host port)))))
 	  (let-values (((host port) (parse-host-port ip)))
-	    (authority #f host port))))))
+	    (Authority #f host port))))))
 
 
 ;; (rtd-printer-set! uri (lambda (uri outp)
