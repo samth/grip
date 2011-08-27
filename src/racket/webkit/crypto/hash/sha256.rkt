@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide hmac-sha256 sha256 hexstr)
+(provide sha256 sha256-bytes)
 
 (require (only-in (planet knozama/r6rs:1/bytevectors)
 		  bytevector?
@@ -21,61 +21,18 @@
 	 
 (require racket/fixnum)
 
+(require (only-in "../private/util.rkt"
+		  fxdiv-and-mod fx1+ fx1- fxzero? str->bv))
+
 ;; (require (filtered-in
 ;;           (λ (name) (regexp-replace #rx"unsafe-" name ""))
 ;;           racket/unsafe/ops))
-
-(define-syntax fx=? 
-  (syntax-rules ()
-    ((fx=? x y)
-     (fx= x y))))
-
-(define-syntax fx<=?
-  (syntax-rules ()
-    ((fx<=? x y)
-     (fx<= x y))))    
-
-(define-syntax fx<?
-  (syntax-rules ()
-    ((fx<? x y)
-     (fx< x y))))
-
-(: fxdiv-and-mod (Fixnum Fixnum -> (values Fixnum Fixnum)))
-(define (fxdiv-and-mod x y)
-  (values (fxquotient x y)
-	  (fxmodulo x y)))
-
-(define fxzero? zero?)
-
-(define-syntax fx1+
-  (syntax-rules ()
-    ((fx1+ x)
-     (fx+ 1 x))))
-
-(define-syntax fx1-
-  (syntax-rules ()
-    ((fx1- x)
-     (fx- x 1))))
 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; SHA-256 (SHA2) from FIPS PUB 180-3
 ;; Works with a in-memory bytevector of data.
 ;; i.e., no support for a byte stream which could be easily added.
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Bytevector to hex string
-;; Only the first 8 32-bit words
-(: hexstr (Bytes -> String))
-(define (hexstr bv)
-  (let ((hex (lambda: ((i : Integer))
-	     (let ((s (number->string (bytevector-u8-ref bv i) 16)))
-	       (if (fx= (string-length s) 1)
-		  (string-append "0" s)
-		  s))))
-      (len (bytevector-length bv)))
-    (do: : String ((i : Integer 0 (fx1+ i))
-		   (s : String "" (string-append s (hex i))))
-	 ((fx=? i len) s))))
 
 ;; Mask for module 32 arithmetic
 ;; (: w32 Integer)
@@ -133,14 +90,14 @@
 	      #x19a4c116 #x1e376c08 #x2748774c #x34b0bcb5 #x391c0cb3 #x4ed8aa4a #x5b9cca4f #x682e6ff3 
 	      #x748f82ee #x78a5636f #x84c87814 #x8cc70208 #x90befffa #xa4506ceb #xbef9a3f7 #xc67178f2) 
 	(cdr round-values)))
-      ((fx=? idx 64) constants)
+      ((fx= idx 64) constants)
     (word-set! constants idx (car round-values))))
 
 ;; Expand a 64 byte chunk
 (: expand-chunk! (Bytes -> Void))
 (define (expand-chunk! w64)
   (do: : Void ((i : Fixnum 16 (fx1+ i)))
-       ((fx=? i 64))
+       ((fx= i 64))
     (let ((s0 (let ((w (word-ref w64 (fx- i 15))))
 	      (bitwise-xor (rotate w 7)
 			   (rotate w 18)
@@ -161,8 +118,8 @@
       (word-set! w64 14 high)
       (word-set! w64 15 low))))
 
-(: hash (Bytes -> Bytes))
-(define (hash bv)
+(: sha256-bytes (Bytes -> Bytes))
+(define (sha256-bytes bv)
   (let ((len (bytevector-length bv))  ;; size of data to hash
       (w64 (make-bytevector 256 0)) ;; working buffer 64 32-bit words (256 bytes)
       (h0 H0)(h1 H1)(h2 H2)(h3 H3)(h4 H4)(h5 H5)(h6 H6)(h7 H7)) ;; init the hash
@@ -173,7 +130,7 @@
 	   (lambda ()
 	     (let ((a h0)(b h1)(c h2)(d h3)(e h4)(f h5)(g h6)(h h7))
 	       (do ((i 0 (fx1+ i)))
-		   ((fx=? i 64))
+		   ((fx= i 64))
 		 (let ((s0  (bitwise-xor (rotate a 2) (rotate a 13) (rotate a 22)))
 		     (maj (bitwise-xor (bitwise-and a b) (bitwise-and a c) (bitwise-and b c))))
 		   (let ((t2 (m32+ s0 maj))
@@ -198,17 +155,17 @@
 	;; do final partial chunk(s) 
 	(bytevector-copy! bv (fx* chunks 64) w64 0 remainder)
 	(bytevector-u8-set! w64 remainder #x80)  ;; 10000000 1-bit byte
-	(if (fx<=? remainder 56)                  ;; enough room in this block for 8 byte bv length
+	(if (fx<= remainder 56)                  ;; enough room in this block for 8 byte bv length
 	   (begin
 	     (do ((i (fx1+ remainder) (fx1+ i))) ;; padd with 0s
-		 ((fx=? i 56))
+		 ((fx= i 56))
 	       (bytevector-u8-set! w64 i 0))
 	     (chunk-data-length! w64 len)
 	     (expand-chunk! w64)
 	     (hash-and-update))
 	   (begin                                    ;; not enough room, do another block for bv length
 	     (do ((i (fx1+ remainder) (fx1+ i))) ;; padd with 0s
-		 ((fx=? i 64))
+		 ((fx= i 64))
 	       (bytevector-u8-set! w64 i 0))
 	     (expand-chunk! w64)                 ;; process the partial 1-bit byte appended block first
 	     (hash-and-update)
@@ -228,10 +185,6 @@
       (word-set! hc 7 h7)
       hc)))
 
-;; UTF-8 String to Bytevector.
-(: s->bv (String -> Bytes))
-(define (s->bv s)
-  (string->utf8 s))
 ;;  (string->bytevector s (make-transcoder (utf-8-codec))))
 
 ;; SHA-256 hash a bytevector or string of data.
@@ -239,53 +192,10 @@
 (: sha256 ((U Bytes String) -> Bytes))
 (define (sha256 data)
   (cond 
-   ((bytevector? data) (hash data))
-   ((string? data) (hash (s->bv data)))
+   ((bytevector? data) (sha256-bytes data))
+   ((string? data) (sha256-bytes (str->bv data)))
    (else (error 'sha256 "String or Bytevector arg required."))))
 
-(: bytevector-append (Bytes Bytes -> Bytes))
-(define (bytevector-append bv1 bv2)
-  (let ((len1 (bytevector-length bv1))
-      (len2 (bytevector-length bv2)))
-    (let ((bv (make-bytevector (fx+ len1 len2) 0)))
-      (bytevector-copy! bv1 0 bv 0 len1)
-      (bytevector-copy! bv2 0 bv len1 len2)
-      bv)))
-
-(: block-size Integer)
-(define block-size 64)
-
-(: hmac (Bytes Bytes -> Bytes))
-(define (hmac key msg)
-  (let ((klen (bytevector-length key))
-      (mlen (bytevector-length msg))
-      (opad (make-bytevector block-size #x5c))
-      (ipad (make-bytevector block-size #x36)))
-    (let ((key (if (fx<? klen block-size)
-		(let ((key-block (make-bytevector block-size 0)))
-		  (bytevector-copy! key 0 key-block 0 klen)
-		  key-block)
-		(hash key))))
-      (do ((i 0 (fx1+ i)))
-	  ((fx=? i klen))
-	(bytevector-u8-set! ipad i (bitwise-xor (bytes-ref ipad i) (bytes-ref key i)))
-	(bytevector-u8-set! opad i (bitwise-xor (bytes-ref opad i) (bytes-ref key i))))
-      (hash (bytevector-append opad (hash (bytevector-append ipad msg)))))))
-
-(: hmac-sha256 ((U Bytes String) (U Bytes String) -> Bytes))
-(define (hmac-sha256 key msg)
-  (let ((k (if (string? key)
-	    (s->bv key)
-	    key))
-      (m (if (string? msg)
-	    (s->bv msg)
-	    msg)))
-    (hmac k m)))
-
-
-(: mk-msg (String -> Bytes))
-(define (mk-msg s)
-    (string->utf8 s))
 
 ;;  (string->bytevector s (make-transcoder (utf-8-codec))))
 

@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Knozama's Amazon API Library
-;; Copyright (C) 2007,2008,2009,2010  Raymond Paul Racine
+;; Copyright (C) 2007-2011  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -118,7 +118,6 @@
   (let ((os (open-output-string)))
     (base64-encode-streams (open-input-bytes bytes) os)
     (get-output-string os)))
-
 
 (: base64-decode-streams (Input-Port Output-Port -> Output-Port))
 (define base64-decode-streams
