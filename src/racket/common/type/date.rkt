@@ -22,15 +22,32 @@
 	 current-time-rfc-2822)
 
 (require/typed srfi/19
-	       (current-date (-> date))
-	       (date->string (date String -> String))
-	       (opaque date date?))
+	       (opaque Date19 date?)
+	       (current-date (-> Date19))
+	       (date->string (Date19 String -> String)))
 
+(: iso-8601-date-time-format String)
 (define iso-8601-date-time-format "~Y-~m-~dT~H:~M:~S~z")
+
+(: rfc2822-format String)
 (define rfc2822-format "~a, ~d ~b ~Y ~T ~z")
 
+(: current-time-rfc-2822 (-> String))
 (define (current-time-rfc-2822)
   (date->string (current-date) rfc2822-format))
 
 (define (current-time-iso-8601)
   (date->string (current-date) iso-8601-date-time-format))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Current time as a rfc2822 date string
+;; "Sat, 8 Sep 2007 18:19:20 -0400"
+;; unit -> string
+;; Note: Is relative local TZ and _not_ GMT
+;;       which is ok.
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;(: rfc2822-date (-> Date))
+;; (define (rfc2822-date) (current-date))
+;;   (date-display-format 'rfc2822)
+;;   (date->string (seconds->date (current-seconds)) #t))
+
