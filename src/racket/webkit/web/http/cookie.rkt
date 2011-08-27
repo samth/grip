@@ -34,6 +34,20 @@
  (date-display-format (Parameterof Symbol))
  (date->string (Date -> String)))
 
+;;-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Get the cookie header from a headers
+;;-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(: get-cookie-header (Headers -> (Option String)))
+(define (get-cookie-header headers)
+  (get-header-value COOKIE headers))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Make a cookie header ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+(: cookie-header (String -> String))
+(define (set-cookie cookie)
+  (make-header SET-COOKIE cookie))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Create a HTTP Header Cookie				            ;;
 ;; (make-cookie "ray.com" "/a/b" "bread" "rye" 500) -> 	            ;;
@@ -87,5 +101,3 @@
 		(begin
 		  (write-char ch os)
 		  (loop avs ws attr))))))))))
-
-
