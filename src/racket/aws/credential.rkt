@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Knozama's Amazon API Library
-;; Copyright (C) 2007,2008,2009,2010  Raymond Paul Racine
+;; Copyright (C) 2007-2011  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -20,14 +20,15 @@
 
 #lang typed/racket/base
 
-
 (provide
- aws-credential?
- aws-credential-account-id
- aws-credential-access-key
- aws-credential-secret-key
- aws-credential-associate-tag
- load-credential)
+ current-aws-credential
+ set-aws-credential!
+ init-aws-credential
+ Aws-Credential
+ Aws-Credential-account-id
+ Aws-Credential-access-key
+ Aws-Credential-secret-key
+ Aws-Credential-associate-tag)
 
 (require/typed racket/base
 	       ((read read-creds) (Input-Port -> (Listof (Pair Symbol String)))))
@@ -36,23 +37,23 @@
  (only-in (planet knozama/common:1/std/opt)
 	  opt-apply-orelse))
 
-;; (require
-;;  (only (rnrs lists)
-;;        assoc)
-;;  (only (rnrs io simple)
-;;        read call-with-input-file) 
-;;  (err5rs records syntactic))
-
-(struct: aws-credential ((account-id : String)
+(struct: Aws-Credential ((account-id : String)
 			 (access-key : String)
 			 (secret-key : String)
 			 (associate-tag : String)))
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Read in aws properties from a protected file.
-;; string? -> aws-credentials?
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(: load-credential (String -> aws-credential));
+(: current-aws-credential (Parameterof Aws-Credential))
+(define current-aws-credential (make-parameter (Aws-Credential "" "" "" "")))
+
+(: set-aws-credential! (Aws-Credential -> Void))
+(define (set-aws-credential! cred)
+  (set! current-aws-credential (make-parameter cred)))
+
+(: init-aws-credential (Path -> Void))
+(define (init-aws-credential path)
+  (set-aws-credential! (load-credential path)))
+
+(: load-credential (Path -> Aws-Credential));
 (define (load-credential fpath)
   
   (define lookup (inst assoc Symbol String))
@@ -65,7 +66,7 @@
   (call-with-input-file fpath
     (lambda: ((ip : Input-Port))
       (let: ((props : (Listof (Pair Symbol String))(read-creds ip)))
-	(aws-credential (cred-value 'account-id props)
+	(Aws-Credential (cred-value 'account-id props)
 			(cred-value 'access-key props)
 			(cred-value 'secret-key props)
 			(cred-value 'associate-tag props))))))
