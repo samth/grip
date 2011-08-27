@@ -27,8 +27,8 @@
 
 (require
  (only-in "../uri.rkt"
-	  uri
-	  authority))
+	  Uri
+	  Authority))
 
 (: proxy-host (Option String))
 (define proxy-host #f)
@@ -38,7 +38,7 @@
 ;; alistof (symbol? . authority? * uri? -> boolean?)
 ;; We pass that authority as its already been
 ;; parsed in http-invoke.
-(: proxy-escape (Listof (Pairof Symbol (authority uri -> Boolean))))
+(: proxy-escape (Listof (Pairof Symbol (Authority Uri -> Boolean))))
 (define proxy-escape '())
 
 (: http-proxy-host (-> (Option String)))
@@ -57,18 +57,16 @@
     (set! proxy-host host)
     (set! proxy-port port)))
 
-(: add-proxy-proc! (Symbol (authority uri -> Boolean) -> Void))
-(define add-proxy-proc!
-  (lambda (symbol proc)
-    (set! proxy-escape (cons (cons symbol proc) 
-			  proxy-escape))))
+(: add-proxy-proc! (Symbol (Authority Uri -> Boolean) -> Void))
+(define (add-proxy-proc! symbol proc)
+  (set! proxy-escape (cons (cons symbol proc) 
+			proxy-escape)))
 
 (: remove-proxy-proc! (Symbol -> Void))
-(define remove-proxy-proc!
-  (lambda (symbol)
-    (set! proxy-escape (filter (lambda: ((esc : (Pairof Symbol (authority uri -> Boolean))))
-			      (not (eq? symbol (car esc))))
-			    proxy-escape))))
+(define (remove-proxy-proc! symbol)
+  (set! proxy-escape (filter (lambda: ((esc : (Pairof Symbol (Authority Uri -> Boolean))))
+			    (not (eq? symbol (car esc))))
+			  proxy-escape)))
 
 ;; Determine if a http request should use the proxy or not.
 (define http-proxy? 
