@@ -24,7 +24,7 @@
 	 parse-http-path uri->start-line-path-string
 	 http-path-path http-path-query http-path-fragment
 	 Authority Authority-host Authority-port
-	 Uri Uri-authority)
+	 Uri Uri-scheme Uri-authority Uri-path Uri-query Uri-fragment)
 
 (require 
  (only-in (planet knozama/common:1/std/prelude)

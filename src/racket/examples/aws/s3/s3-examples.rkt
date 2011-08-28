@@ -12,6 +12,6 @@
 
 (init-aws-credential credential-path)
 
-(: my-buckets (-> Void))
+(: my-buckets (-> (Listof Any)))
 (define (my-buckets)
-  (list-buckets ""))
+  (list-buckets "/"))

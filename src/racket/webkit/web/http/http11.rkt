@@ -64,16 +64,18 @@
 	  http-proxy-host
 	  http-proxy?)
  (only-in "../uri.rkt"
-	  uri
+	  Uri
 	  uri->start-line-path-string
-	  authority-port
-	  authority-host
-	  uri-authority)
- (only-in "headers.rkt"
+	  Authority-port
+	  Authority-host
+	  Uri-authority)
+ (only-in "heading.rkt"
+	  HOST
+	  USER-AGENT)
+ (only-in "header.rkt"
+	  make-header-string
 	  Header
-	  Headers
-	  USER-AGENT
-	  host-header))
+	  Headers))
 
 
 ;; (require racket/date
@@ -368,14 +370,14 @@
 
 ;; ;; (provide/contract (http-invoke (-> symbol? uri? any/c (or/c boolean? bytes?) any)))
 
-(: http-invoke (Symbol uri (Listof String) (Option Bytes) -> (values HTTP-Resp-Header Input-Port)))
+(: http-invoke (Symbol Uri (Listof String) (Option Bytes) -> (values HTTP-Resp-Header Input-Port)))
 (define (http-invoke action url headers payload)
-  (let ((authority (uri-authority url)))
+  (let ((authority (Uri-authority url)))
     (if (not  authority)
        (values failed-invoke-resp failed-input-port)
-       (let* ((host (authority-host authority))
-	    (headers (cons (host-header host) headers))
-	    (port (let ((port (authority-port authority)))
+       (let* ((host (Authority-host authority))
+	    (headers (cons (make-header-string HOST host) headers))
+	    (port (let ((port (Authority-port authority)))
 		    (if port port 80)))
 	    (verb (lambda (action)
 		    (case action
