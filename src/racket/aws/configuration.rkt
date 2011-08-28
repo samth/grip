@@ -5,14 +5,11 @@
 ;; we could have multiple configuration maps 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (provide 
- credential-path
  s3-host
  a2s-host
  a2s-path
  a2s-ns
  a2s-nss)
-
-(define credential-path "/home/ray/awsaccount.txt")
 
 ;; host for Amazon Associate Services
 (define a2s-host "webservices.amazon.com")
