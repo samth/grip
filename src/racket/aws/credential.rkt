@@ -42,6 +42,10 @@
 			 (secret-key : String)
 			 (associate-tag : String)))
 
+(: default-cred-path Path)
+(define default-cred-path
+  (build-path (find-system-path 'home-dir) ".awscreds.sexp"))
+
 (: current-aws-credential (Parameterof Aws-Credential))
 (define current-aws-credential (make-parameter (Aws-Credential "" "" "" "")))
 
@@ -70,3 +74,5 @@
 			(cred-value 'access-key props)
 			(cred-value 'secret-key props)
 			(cred-value 'associate-tag props))))))
+
+(init-aws-credential default-cred-path)
