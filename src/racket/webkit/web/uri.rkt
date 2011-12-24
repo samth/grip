@@ -24,7 +24,7 @@
 	 parse-http-path uri->start-line-path-string
 	 http-path-path http-path-query http-path-fragment
 	 Authority Authority-host Authority-port
-	 Uri Uri-scheme Uri-authority Uri-path Uri-query Uri-fragment)
+	 Uri Uri? Uri-scheme Uri-authority Uri-path Uri-query Uri-fragment)
 
 (require 
  (only-in (planet knozama/common:1/std/prelude)
@@ -357,18 +357,20 @@
 	    (get-output-string op))
 	  #f))))
 
-(: parse-uri (String -> Uri))
+(: parse-uri (String -> (Option Uri)))
 (define (parse-uri uri-str)
   (let ((ip (open-input-string uri-str)))
     (let ((scheme (parse-scheme ip)))
       (if (not scheme)
-	 (error "Invalid URI.  manditory scheme is missing.")
+	 #f
 	 (if (not (parse-char ip #\:))
-	    (error "Invalid URI.  scheme must be delimited by a ':'.")
+	    #f
 	    (let-values (((authority path) (parse-hier ip)))
 	      (let ((auth (if (string? authority)
 			   (parse-authority authority)
-			   #f)))
+			   (begin
+			     (displayln "Invalid authority")
+			     #f))))
 		(let ((query (parse-query-or-fragment ip #\?)))
 		  (let ((fragment (parse-query-or-fragment ip #\#)))
 		    (Uri scheme auth path query fragment))))))))))
