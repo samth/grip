@@ -106,7 +106,7 @@
 ;; all strings or #f
 (struct: Authority ((username : (Option String))
 		    (host : String)
-		    (port : (Option Integer)))
+		    (port : Integer))
 	 #:transparent)
 
 ;;all strings or #f, each string is a major piece of the uri.
@@ -135,16 +135,13 @@
 	str
 	alt))))
 
-(: make-uri (String (Option String) String (U False Natural) String (Option String) (Option String) -> (Option Uri)))
-(define make-uri
-  (lambda (scheme user host port path query fragment)
-    (let ((authority (Authority user host port)))
-      (if (null-string? scheme)
-	 #f
-	 (Uri scheme authority
-	      (opt-string path "/")
-	      (opt-string query)
-	      (opt-string fragment))))))
+(: make-uri (String (Option String) String Natural String (Option String) (Option String) ->  Uri))
+(define (make-uri scheme user host port path query fragment)
+  (let ((authority (Authority user host port)))
+    (Uri scheme authority
+	 (opt-string path "/")
+	 (opt-string query)
+	 (opt-string fragment))))
 
 (: maybe ((Option String) String -> String))
 (define (maybe field prefix)
@@ -214,7 +211,7 @@
 	  (not (valid? ch)))
        cnt
        (begin
-	 (write-char (assert (read-char ip) char?)  op)
+	 (write-char (assert (read-char ip) char?) op)
 	 (loop (peek-char ip) (add1 cnt))))))
 
 ;; (input-port?  output-port?) -> boolean?)
@@ -239,7 +236,6 @@
 		 (write-char ch op)
 		 (parse-scheme-tail ip op)
 		 (get-output-string op))))))))
-
 
 ;; lex a character of value chtok
 ;; returns: #f if the next character is not a chtok
@@ -408,81 +404,78 @@
 
 ;; Parse out the port string.
 ;; Assumes leading ':' has been consumed.
-(: parse-port (Input-Port -> Integer))
+(: parse-port (Input-Port -> (Option Natural)))
 (define (parse-port ip)
-  (let ((op  (open-output-string))
-      (ch  (peek-char ip)))
-    (if (or (eof-object? ch)
-	  (not (digit-char? (assert ch char?))))
-       (error "Missing port number or extraneous characters where port number was expected.")
-       (let ((port (begin (read-valid ip
-				(lambda (ch)
-				  (digit-char? ch))
-				op)
-		    (get-output-string op))))
-	 (assert (string->number port) exact-integer?)))))
+  (let ((ch (read-char ip)))
+    (if (eof-object? ch)  ;; no port
+       #f
+       (if (not (eq? ch #\:))
+	  (error "Host must be optionally followed by a port.  Something else found.")
+	  (let ((op  (open-output-string))
+	      (ch  (peek-char ip)))
+	    (if (or (eof-object? ch)
+		  (not (digit-char? (assert ch char?))))
+	       (error "Missing port number or extraneous characters where port number was expected.")
+	       (let ((port (begin (read-valid ip
+					(lambda (ch)
+					  (digit-char? ch))
+					op)
+			    (get-output-string op))))
+		 (let ((port (string->number port)))
+		   (if (and (exact-integer? port)
+			 (>= port 0))
+		      port
+		      (error "Invalid port (not a number?)"))))))))))
 
 ;;; Parse the host and optional port from a given string
 ;;; returns: (values host port)
-(: parse-host-port (Input-Port -> (values String (U False Integer))))
-(define parse-host-port
-  (lambda (ip)
-    (let ((op  (open-output-string)))
-      (if (eof-object? (peek-char ip))
-	 (error "URI missing required host.")
-	 (let ((host (begin
-		     (read-valid ip
-				 (lambda (ch)
-				   (or
-				    (unreserved-char? ch)
-				    (pct-encoded-char? ch)
-				    (sub-delim-char? ch)))
-				 op)
-		     (get-output-string op))))
-	   (if (> (string-length host) 0)
-	      (let ((ch (read-char ip)))
-		(if (eof-object? ch)  ;; no port
-		   (values host #f)
-		   (if (not (eq? ch #\:))
-		      (error "Host must be optionally followed by a port.  Something else found.")
-		      (let ((port (parse-port ip)))
-			(values host port)))))
-	      (error "Manditory host is missing.")))))))
+(: parse-host (Input-Port -> (Option String)))
+(define (parse-host ip)
+  (let ((op  (open-output-string)))
+    (if (eof-object? (peek-char ip))
+       (error "URI missing required host.")
+       (let ((host (begin
+		   (read-valid ip
+			       (lambda (ch)
+				 (or
+				  (unreserved-char? ch)
+				  (pct-encoded-char? ch)
+				  (sub-delim-char? ch)))
+			       op)
+		   (get-output-string op))))
+	 (if (> (string-length host) 0)
+	    host
+	    #f)))))
 
-(: authority-with-username? (String -> Boolean))
-(define authority-with-username?
-  (lambda (auth)
-    (let ((ip (open-input-string auth)))
-      (let loop ((ch (read-char ip)))
-	(cond
-	 ((eof-object? ch) #f)
-	 ((eq? ch #\@) #t)
-	 (else
-	  (loop (read-char ip))))))))
+(: parse-user (Input-Port -> (Option String)))
+(define (parse-user ip)
+  (let ((op  (open-output-string)))
+    (read-valid ip
+		(lambda (ch)
+		  (or
+		   (unreserved-char? ch)
+		   (pct-encoded-char? ch)
+		   (sub-delim-char? ch)
+		   (eq? ch #\:)))
+		op)
+    (if (not (eq? (read-char ip) #\@))
+       #f
+       (get-output-string op))))
 
-(: parse-authority (String -> Authority))
+(: parse-authority (String -> (Option Authority)))
 (define (parse-authority auth-str)
   (if (not (string? auth-str))
      #f
      (let ((ip (open-input-string auth-str)))
-       (if (authority-with-username? auth-str)
-	  (let ((op  (open-output-string)))
-	    (read-valid ip
-			(lambda (ch)
-			  (or
-			   (unreserved-char? ch)
-			   (pct-encoded-char? ch)
-			   (sub-delim-char? ch)
-			   (eq? ch #\:)))
-			op)
-	    (if (not (eq? (read-char ip) #\@))
-	       (error "Invalid username.")
-	       (let ((username (get-output-string op)))
-		 (let-values (((host port) (parse-host-port ip)))
-		   (Authority username host port)))))
-	  (let-values (((host port) (parse-host-port ip)))
-	    (Authority #f host port))))))
-
+       (let ((user (parse-user ip)))
+	 (let ((ip (if user
+		    ip
+		    (open-input-string auth-str)))) ;; restart parse
+	   (let* ((host (parse-host ip))
+		(port (parse-port ip)))
+	     (if (and host port)
+		(Authority user host port)
+		#f)))))))
 
 ;; (rtd-printer-set! uri (lambda (uri outp)
 ;; 			(display "#<uri \"" outp)
@@ -498,31 +491,36 @@
 
 
 
-
-;;          (define test-auth
-;;            (list
-;;             "www.amazon.com"
-;;             "ray@www.amazon.com"
-;;             "www.amazon.com:80"
-;;             "ray@www.amazon.com:80"))
-
-;;          (define test-auth-bad
-;;            (list
-;;             "ray@"
-;;             "ray@80"
-;;             ":90"
-;;             "ray@:80"))
-
-;;          (for-each (lambda (auth-str)
-;;                      (let ((auth (parse-authority auth-str)))
-;;                        (display "Username: ")
-;;                        (display (authority-username auth))
-;;                        (display " Host: ")
-;;                        (display (authority-host auth))
-;;                        (display " Port: ")
-;;                        (display (authority-port auth))
-;;                        (newline)))
-;;                    test-auth)
+;; (: test-auth-parse (-> Void))
+;; (define (test-auth-parse)
+;;   (define test-auth
+;;     (list
+;;      "www.amazon.com"
+;;      "ray@www.amazon.com"
+;;      "www.amazon.com:80"
+;;      "ray@www.amazon.com:80"))
+  
+;;   (define test-auth-bad
+;;     (list
+;;      "ray@"
+;;      "ray@80"
+;;      ":90"
+;;      "ray@:80"))
+  
+ 
+;;   (for-each (lambda: ((auth-str : String))
+;; 	      (let ((auth (parse-authority auth-str)))
+;; 		(if auth
+;; 		   (begin
+;; 		     (display "Username: ")
+;; 		     (display (Authority-username auth))
+;; 		     (display " Host: ")
+;; 		     (display (Authority-host auth))
+;; 		     (display " Port: ")
+;; 		     (display (Authority-port auth))
+;; 		     (newline))
+;; 		   (displayln "No Authority"))))
+;; 	    test-auth))
 
 
 ;; http://ecs.amazonaws.com/onca/xml?
