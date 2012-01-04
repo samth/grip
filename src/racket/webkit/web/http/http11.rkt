@@ -22,10 +22,20 @@
 
 (provide
  ResponseHeader
+ ResponseHeader?
+ ResponseHeader-result
+ ResponseHeader-headers
+ Result
+ Result?
+ Result-proto
+ Result-code
+ Result-msg
  HTTPConnection-in
+ HTTPConnection-header
  http-successful?
  http-close-connection
- http-invoke)
+ http-invoke
+ make-client-error-response)
 
 (require/typed
  racket
@@ -75,6 +85,13 @@
 			 [in  : Input-Port]
 			 [real-in : (Option Input-Port)])
 	 #:transparent)  ;; the actual socket input port, e.g. 'in' could be a chuncking pipe 
+
+(: CHUNK-SIZE Integer)
+(define CHUNK-SIZE (* 64 1024)) ;; 64 K chunks, based on reasonable in-memory needs.
+
+(: make-client-error-response (Integer String -> ResponseHeader))
+(define (make-client-error-response code msg)
+  (ResponseHeader (Result "HTTP/1.1" code msg) '()))
 
 ;; (require racket/date
 ;; 	 racket/tcp
@@ -210,9 +227,9 @@
 		    0))))
 	   (else 0)))))
   
-  
-  (read-chunk-length ip))
-
+  (with-handlers ([exn:fail?		    
+		  (lambda (ex) 0)])
+    (read-chunk-length ip)))
 
 (: get-header (String Headers -> (Option Header)))
 (define get-header
@@ -368,7 +385,11 @@
 					'())
 			out in #f))))
 
-;; ;; Used by the chunk reader thread to pipe the chunks.
+;; Used by the chunk reader thread to pipe the chunks.
+;; Intermediate pipe for inbound chunked data stream
+;; Read off the chunk size from the input port
+;; then transfer that amount of data from the input 
+;; to the output port.
 (: http-pipe-chunks (Integer Input-Port Output-Port -> Void))
 (define (http-pipe-chunks chunk-size socket-ip out-pipe)
   (let: loop : Void ((chunk-size : Integer chunk-size))
@@ -390,7 +411,6 @@
   (define (complete)
     (flush-output out-pipe)
     (close-output-port out-pipe))
-    
 
   (let ((bs (read-bytes content-length socket-ip)))
     (if (eof-object? bs)
@@ -399,67 +419,126 @@
 	 (write-bytes bs out-pipe)
 	 (complete)))))
 
-;; ;; (provide/contract (http-invoke (-> symbol? uri? any/c (or/c boolean? bytes?) any)))
+(: http-action->string (Symbol -> String))
+(define (http-action->string action)
+  (case action
+    ((GET)  "GET")
+    ((PUT)  "PUT")
+    ((POST) "POST")
+    ((DELETE) "DELETE")
+    ((HEAD) "HEAD")
+    (else (error 'http-invoke "HTTP method not support." action))))
 
-(: http-invoke (Symbol Uri (Listof String) (Option Bytes) -> HTTPConnection))
+(: send-header (String String Output-Port -> Void))
+(define (send-header header value op)
+  (write-string header op)
+  (write-string ": " op)
+  (write-string value op)
+  (write-string terminate op)
+  (void))
+
+;; Write out the HTTP header line and accompaning headers converted to strings.
+;; NOTE the headers are NOT terminated which is done by send-payload as
+;; a content-length may be required if not chunked.
+(: send-http-header (Output-Port Symbol Uri (Listof String) -> Void))
+(define (send-http-header op action url headers)
+  (write-string (http-action->string action) op)
+  (write-string space op)
+  (write-string (uri->start-line-path-string url) op)
+  (write-string space op)
+  (write-string version op)
+  (write-string terminate op)
+  (for-each (lambda: ((h : String))
+	      (write-string h op)
+	      (write-string terminate op))
+	    headers))
+
+(: terminate-http-header (Output-Port -> Void))
+(define (terminate-http-header op)
+  (write-string terminate op)
+  (flush-output op))
+
+(: send-chunked-payload (Input-Port Output-Port -> Void))
+(define (send-chunked-payload ip op)
+
+  (: write-chunk-header (Integer -> Void))
+  (define (write-chunk-header sz)
+    (write-string (number->string sz 16) op)
+    (write-string terminate op)
+    (void))
+
+  (let ((buffer (make-bytes CHUNK-SIZE)))
+    (let loop ((sz (read-bytes! buffer ip 0 CHUNK-SIZE)))      
+      (if (eof-object? sz)
+	 (begin
+	   (write-chunk-header 0)
+	   (write-string terminate op)
+	   (void))
+	 (begin
+	   (write-chunk-header sz)
+	   (write-bytes buffer op 0 (- sz 1))
+	   (loop (read-bytes! buffer ip 0 CHUNK-SIZE)))))))
+
+(: send-payload ((Option (U Bytes Input-Port)) Output-Port -> Void))
+(define (send-payload payload op)
+  (if payload     
+     (if (bytes? payload)
+	(begin 
+	  (display "Sending payload of size") (displayln (bytes-length payload))
+	  (send-header "Content-Length" (number->string (bytes-length payload) 10) op)
+	  (terminate-http-header op)
+	  (write-bytes payload op)
+	  (flush-output op)
+	  (void))
+	(begin
+	  (send-header "Transfer-Encoding" "Chunked" op)
+	  (terminate-http-header op)
+	  (send-chunked-payload payload op)))
+     (terminate-http-header op)))
+  
+;; WARNING - All the output routines now in Racket (write-bytes etc) return the actual
+;; number of bytes written.  All the above code "assumes" a full write always occurs to 
+;; the socket output port. FIXME 
+
+;; ;; (provide/contract (http-invoke (-> symbol? uri? any/c (or/c boolean? bytes?) any)))
+;; Put - If the payload is a byte array then used content-length.
+;;     - If the payload is a pipe, use chunking.
+(: http-invoke (Symbol Uri (Listof String) (Option (U Bytes Input-Port)) -> HTTPConnection))
 (define (http-invoke action url headers payload)
+
+  (: append-host-to-headers (String -> (Listof String)))
+  (define (append-host-to-headers host)
+    (cons (make-header-string HOST host) headers))
+  
   (let ((authority (Uri-authority url)))
     (if (not  authority)
        (failed-connection "Missing authority in URL")
         (let* ((host (Authority-host authority))
-               (headers (cons (make-header-string HOST host) headers))
-               (port (let ((port (Authority-port authority)))
-                       (if port port 80)))
-               (verb (lambda (action)
-                       (case action
-                         ((GET) "GET")
-                         ((PUT) "PUT")
-                         ;;  ((POST) (string->utf8 "POST"))
-                         ;;  ((HEAD) (string->utf8 "HEAD")))))
-                         (else (error 'http-invoke "HTTP method not support." action)))))
-               (proxy? (http-proxy? authority url)))
+	     (headers (append-host-to-headers host))
+	     (port    (aif (Authority-port authority) it 80))
+	     (proxy? (http-proxy? authority url)))
           (let ((conn-host (if proxy?
-                               (aif (http-proxy-host) it host)
-                               host))
-                (conn-port (if proxy?
-                               (aif (http-proxy-port) it port)
-                               port)))
+			    (aif (http-proxy-host) it host)
+			    host))
+	      (conn-port (if proxy?
+			    (aif (http-proxy-port) it port)
+			    port)))
             (let-values (((ip op) (tcp-connect conn-host conn-port)))
-              (let ((send (lambda: ((s : String))
-                            (write-string s op))))
-                ;; header line
-                (send (verb action))
-                (send space)
-                (send (uri->start-line-path-string url))
-                (send space)
-                (send version)
-                (send terminate)
-                ;; headers
-                (for-each (lambda: ((h : String))
-                            (send h)
-                            (send terminate))
-                          headers)
-                (when payload
-                  (send (string-append "Content-Length: " 
-                                       (number->string (bytes-length payload))))
-                  (send terminate))
-                (send terminate)
-                (when payload
-                  ;; (send payload)  FIXME RPP
-                  (send terminate))
-                (flush-output op)             
-                
-                (let ((headers (http-header-from-socket-input-port ip)))
-                  (if headers
-		     (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers headers))))
-		       (if (number? chunked/length)
-			  (let-values (((inpipe outpipe) (make-pipe)))
-			    (thread (lambda () (http-pipe-content-length-block chunked/length ip outpipe)))
-			    (HTTPConnection headers op inpipe ip)) ;; content/length
-			  (let-values (((inpipe outpipe) (make-pipe)))
-			    (thread (lambda () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
-			    (HTTPConnection headers op inpipe ip))))
-		     (failed-connection "Invalid response from server"))))))))))
+	      (send-http-header op action url headers)
+	      
+	      (send-payload payload op)
+	      
+	      (let ((headers (http-header-from-socket-input-port ip)))
+		(if headers
+		   (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers headers))))
+		     (if (number? chunked/length)
+			(let-values (((inpipe outpipe) (make-pipe)))
+			  (thread (lambda () (http-pipe-content-length-block chunked/length ip outpipe)))
+			  (HTTPConnection headers op inpipe ip)) ;; content/length
+			(let-values (((inpipe outpipe) (make-pipe)))
+			  (thread (lambda () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
+			  (HTTPConnection headers op inpipe ip))))
+		   (failed-connection "Invalid response from server")))))))))
 
 
 (: http-successful? (HTTPConnection -> Boolean))
@@ -470,7 +549,9 @@
 (define (http-close-connection conn)
   (let ((real-in (HTTPConnection-real-in conn)))
     (if real-in
-       (close-input-port real-in)
+       (begin
+	 (close-input-port (HTTPConnection-in conn))
+	 (close-input-port real-in))
        (close-input-port (HTTPConnection-in conn)))
     (close-output-port (HTTPConnection-out conn))))
 
