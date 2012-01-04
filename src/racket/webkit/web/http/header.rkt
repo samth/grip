@@ -21,7 +21,8 @@
 (provide
  Header Headers
  make-header make-header-string header->string  empty-headers 
- add-header get-header get-header-value)
+ add-header get-header get-header-value
+ date-header content-type content-length content-md5)
 
 (define-type Header (Pairof String String))
 (define-type Headers (Listof Header))
@@ -44,11 +45,6 @@
     (let ((header (get-header header headers)))
       (if header (cdr header) #f)))
 
-(: make-header (String String -> Header))
-(define (make-header hdr val)
-  (cons hdr val))
-
-;; Make a Header
 (: make-header-string (String String -> String))
 (define (make-header-string key value)
   (string-append key ": " value))
@@ -56,3 +52,23 @@
 (: header->string (Header -> String))
 (define (header->string hdr)
   (make-header-string (car hdr) (cdr hdr)))
+
+(: make-header (String String -> Header))
+(define (make-header hdr val)
+  (cons hdr val))
+
+(: date-header (String -> Header))
+(define (date-header date)
+  (make-header "Date" date))
+
+(: content-type (String -> Header))
+(define (content-type mime)
+  (make-header "Content-Type" mime))
+
+(: content-length (Integer -> Header))
+(define (content-length len)
+  (make-header "Content-Length" (number->string len)))
+
+(: content-md5 (String -> Header))
+(define (content-md5 md5)
+  (make-header "Content-MD5" md5))
