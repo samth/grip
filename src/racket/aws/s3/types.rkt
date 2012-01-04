@@ -22,7 +22,7 @@
 	 Owner Owner? Owner-id Owner-name
 	 Bucket Bucket? Bucket-name Bucket-creation-date
 	 Object Object? Object-key Object-last-modified
-	 Object-storage-class Object-etag Object-size Object-owner
+	 Object-etag Object-size Object-owner ;; Object-storage-class
 	 Objects Objects? Objects-name Objects-prefix Objects-marker
 	 Objects-max-keys Objects-is-truncated Objects-objects)
 
@@ -41,7 +41,7 @@
 (struct: Object
 	 ([key : String]
 	  [last-modified : String]
-	  [storage-class : String]
+	  ;; [storage-class : String]
 	  [etag : String]
 	  [size : Integer]
 	  [owner : Owner]) #:transparent)

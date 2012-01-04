@@ -16,28 +16,32 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+;; #lang typed/racket/base
 
-(provide date-header
-	 content-type
-	 content-length
-	 content-md5)
+;; (provide date-header
+;; 	 content-type
+;; 	 content-length
+;; 	 content-md5)
   
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Makers of http headers
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  
-(define (make-header key value)
-  (string-append key value))
+;;   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;   ;; Makers of http headers
+;;   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (: make-header (String String -> String))  
+;; (define (make-header key value)
+;;   (string-append key ": " value))
 
-(define (date-header date)
-  (make-header "Date: " date))
+;; (: date-header (String -> String))
+;; (define (date-header date)
+;;   (make-header "Date" date))
 
-(define (content-type mime)
-  (make-header "Content-Type: " mime))
+;; (: content-type (String -> String))
+;; (define (content-type mime)
+;;   (make-header "Content-Type" mime))
 
-(define (content-length len)
-  (make-header "Content-Length: " (number->string len)))
+;; (: content-length (Integer -> String))
+;; (define (content-length len)
+;;   (make-header "Content-Length" (number->string len)))
 
-(define (content-md5 md5)
-  (make-header "Content-MD5: " md5))
+;; (: content-md5 (String -> String))
+;; (define (content-md5 md5)
+;;   (make-header "Content-MD5" md5))
