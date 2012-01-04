@@ -23,7 +23,7 @@
 	 parse-uri parse-authority uri->string
 	 parse-http-path uri->start-line-path-string
 	 http-path-path http-path-query http-path-fragment
-	 Authority Authority-host Authority-port
+	 Authority Authority-user Authority-host Authority-port
 	 Uri Uri? Uri-scheme Uri-authority Uri-path Uri-query Uri-fragment)
 
 (require 
@@ -104,7 +104,7 @@
 		  (loop (read-char ip)))))))))
 
 ;; all strings or #f
-(struct: Authority ((username : (Option String))
+(struct: Authority ((user : (Option String))
 		    (host : String)
 		    (port : Integer))
 	 #:transparent)
@@ -176,7 +176,7 @@
    ((string? authority) authority)
    ((Authority? authority)
     (string-append
-     (let ((user (Authority-username authority)))
+     (let ((user (Authority-user authority)))
        (if (cond
 	   ((boolean? user) user)
 	   ((string? user) (> (string-length user) 0)))
@@ -192,8 +192,8 @@
 ;; Two authororities are equal if they're record values are equal.
 (: authority-equal? (Authority Authority -> Boolean))
 (define (authority-equal? auth1 auth2)
-  (and (equal? (Authority-username auth1)
-	     (Authority-username auth2))
+  (and (equal? (Authority-user auth1)
+	     (Authority-user auth2))
      (equal? (Authority-host auth1)
 	     (Authority-host auth2))
      (eqv? (Authority-port auth1)
@@ -363,7 +363,7 @@
 	    #f
 	    (let-values (((authority path) (parse-hier ip)))
 	      (let ((auth (if (string? authority)
-			   (parse-authority authority)
+			   (parse-authority authority scheme)
 			   (begin
 			     (displayln "Invalid authority")
 			     #f))))
@@ -462,8 +462,8 @@
        #f
        (get-output-string op))))
 
-(: parse-authority (String -> (Option Authority)))
-(define (parse-authority auth-str)
+(: parse-authority (String String -> (Option Authority)))
+(define (parse-authority auth-str scheme)
   (if (not (string? auth-str))
      #f
      (let ((ip (open-input-string auth-str)))
@@ -471,8 +471,9 @@
 	 (let ((ip (if user
 		    ip
 		    (open-input-string auth-str)))) ;; restart parse
-	   (let* ((host (parse-host ip))
-		(port (parse-port ip)))
+	   (let ((host (parse-host ip))
+	       (port (let ((p (parse-port ip)))
+		       (if p p (if (string=? scheme "http") 80 #f)))))
 	     (if (and host port)
 		(Authority user host port)
 		#f)))))))
