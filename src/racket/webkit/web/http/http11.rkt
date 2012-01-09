@@ -42,6 +42,10 @@
  (read-bytes! (Bytes Input-Port Integer Integer -> Integer)))
 
 (require/typed
+ openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
+ 
+
+(require/typed
  srfi/14
  (opaque char-set char-set?)
  (char-set:blank char-set)
@@ -62,6 +66,7 @@
  (only-in "../uri.rkt"
           Uri
           uri->start-line-path-string
+	  Uri-scheme
           Authority-port
           Authority-host
           Uri-authority)
@@ -523,7 +528,9 @@
 	      (conn-port (if proxy?
 			    (aif (http-proxy-port) it port)
 			    port)))
-            (let-values (((ip op) (tcp-connect conn-host conn-port)))
+            (let-values (((ip op) (if (string=? (Uri-scheme url) "https")
+				   (ssl-connect conn-host conn-port)
+				   (tcp-connect conn-host conn-port))))
 	      (send-http-header op action url headers)
 	      
 	      (send-payload payload op)

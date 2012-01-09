@@ -462,6 +462,13 @@
        #f
        (get-output-string op))))
 
+(: scheme-default-port (String -> (Option Integer)))
+(define (scheme-default-port scheme)
+  (cond
+   ((string=? "http" scheme) 80)
+   ((string=? "https" scheme) 443)
+   (else #f)))
+
 (: parse-authority (String String -> (Option Authority)))
 (define (parse-authority auth-str scheme)
   (if (not (string? auth-str))
@@ -473,7 +480,7 @@
 		    (open-input-string auth-str)))) ;; restart parse
 	   (let ((host (parse-host ip))
 	       (port (let ((p (parse-port ip)))
-		       (if p p (if (string=? scheme "http") 80 #f)))))
+		       (if p p (scheme-default-port scheme)))))
 	     (if (and host port)
 		(Authority user host port)
 		#f)))))))
