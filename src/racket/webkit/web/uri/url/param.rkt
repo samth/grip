@@ -18,8 +18,7 @@
 
 #lang typed/racket/base
 
-(provide parse-parms encode-parm
-	 parms->query)
+(provide parse-params encode-param encode-param-string params->query)
 
 (require 
  (only-in typed/srfi/14
@@ -29,7 +28,6 @@
  (only-in (planet knozama/common:1/text/util)
 	  weave-string-separator)
  "../uricharset.rkt")
-
 
 (require/typed 
  srfi/13
@@ -52,51 +50,67 @@
 ;; 	       weave-string-separator)
 ;; 	 (primitives get-output-string open-output-string))
 
-(: parm-reserved-char? (Char -> Boolean))
-(define (parm-reserved-char? ch)
+(: param-reserved-char? (Char -> Boolean))
+(define (param-reserved-char? ch)
   (case ch
     ((#\& #\=) #t)
     (else #f)))
 
-
-(: encode-parm-string (String -> String))
-(define (encode-parm-string str)
+(: encode-param-string (String Boolean -> String))
+(define (encode-param-string str space-as-plus)
   (let ((op (open-output-string))
       (ip (open-input-string str)))
     (let loop ((ch (read-char ip)))
-      (if (eof-object? ch)
-	 (get-output-string op)
-	 (begin
-	   (if (or (unsafe-char? ch)
-		 (parm-reserved-char? ch))
-	      (write-string (encode-char ch) op)
-	      (write-char ch op))
-	   (loop (read-char ip)))))))
+      (cond 
+       ((eof-object? ch) (get-output-string op))
+       ((char=? ch #\space) 
+	(if space-as-plus	   
+	   (write-char #\+ op)
+	   (write-string "%20" op))
+	(loop (read-char ip)))
+       ((or (unsafe-char? ch)
+	   (param-reserved-char? ch))
+	(write-string (encode-char ch) op)
+	(write-char ch op)
+	(loop (read-char ip)))
+       (else
+	(write-char ch op)
+	(loop (read-char ip)))))))
 
-(: encode-parm ((Pair String String) -> (Pair String String)))
-(define (encode-parm parm)
-  (let ((key   (car parm))
-      (value (cdr parm)))
-    (cons (encode-parm-string key)
-	  (encode-parm-string value))))
+;; (if (eof-object? ch)
+;; 	 (get-output-string op)
+;; 	 (begin
+;; 	   (if (or (unsafe-char? ch)
+;; 		 (param-reserved-char? ch)
+;; 		 (char=? #\+ ch))
+;; 	      (write-string (encode-char ch) op)
+;; 	      (write-char ch op))
+;; 	   (loop (read-char ip)))))))
 
-(: parms->query ((Listof (Pair String String)) -> String))
-(define (parms->query parms)
+(: encode-param ((Pair String String) Boolean -> (Pair String String)))
+(define (encode-param param space-as-plus)
+  (let ((key   (car param))
+      (value (cdr param)))
+    (cons (encode-param-string key space-as-plus)
+	  (encode-param-string value space-as-plus))))
+
+(: params->query ((Listof (Pair String String)) -> String))
+(define (params->query parms)
   (weave-string-separator "&" (map (lambda:  ((kv : (Pair String String)))
 				     (string-append (car kv) "=" (cdr kv)))
 				   parms)))
 
-(: parm-delim-char-set Char-Set)
-(define parm-delim-char-set
+(: param-delim-char-set Char-Set)
+(define param-delim-char-set
   (char-set-complement (string->char-set "=&")))
 
-(: parse-parms (String -> (Listof (Pairof String String))))
-(define (parse-parms parm-str)
-  (let ((kvs (string-tokenize parm-str parm-delim-char-set)))
-    (let: loop : (Listof (Pair String String)) ((kvs : (Listof String) kvs) (parms : (Listof (Pair String String)) '()))
+(: parse-params (String -> (Listof (Pairof String String))))
+(define (parse-params param-str)
+  (let ((kvs (string-tokenize param-str param-delim-char-set)))
+    (let: loop : (Listof (Pair String String)) ((kvs : (Listof String) kvs) (params : (Listof (Pair String String)) '()))
 	(if (null? kvs)
-	   parms
+	   params
 	   (let ((key (car kvs)))
 	     (if (null? (cdr kvs))
-		parms ;; odd number of KVs which is wrong.  Return what we got.
-		(loop (cddr kvs) (cons (cons key (cadr kvs)) parms))))))))
+		params ;; odd number of KVs which is wrong.  Return what we got.
+		(loop (cddr kvs) (cons (cons key (cadr kvs)) params))))))))
