@@ -57,7 +57,7 @@
 (define (init-aws-credential path)
   (set-aws-credential! (load-credential path)))
 
-(: load-credential (Path -> Aws-Credential));
+(: load-credential (Path -> Aws-Credential))
 (define (load-credential fpath)
   
   (define lookup (inst assoc Symbol String))
