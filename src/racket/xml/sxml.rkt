@@ -25,7 +25,8 @@
  html->sxml
  xml->sxml
  node-text
- select-single-node-text)
+ select-single-node-text
+ extract-text extract-string extract-boolean extract-integer extract-real)
 
 (define-type Sxml  (Listof Any))
 (define-type SXPath (Sxml -> Sxml))
@@ -51,3 +52,49 @@
      (let ((sxp (sxpath path-exp ns)))
        (lambda: ((nodelst : (Listof Any)))
 	 (node-text (sxp nodelst)))))))
+
+;; Extract the 1st string value (if it exists) as a Real
+(: extract-real (Sxml -> (Option Real)))
+(define (extract-real sxml)
+  (if (pair? sxml)
+     (let ((snum (car sxml)))
+       (if (string? snum)
+	  (let ((rnum (string->number snum)))
+	    (if (real? rnum)
+	       rnum
+	       #f))
+	  #f))
+     #f))
+
+(: extract-integer (Sxml -> (Option Integer)))
+(define (extract-integer sxml)
+  (if (pair? sxml)
+     (let ((sint (car sxml)))
+       (if (string? sint)
+	  (let ((inum (string->number sint)))
+	    (if (exact-integer? inum)
+	       inum
+	       #f))
+	  #f))
+     #f))
+
+(define (extract-string sxml)
+  (if (pair? sxml)
+     (let ((str (car sxml)))
+       (if (string? str)
+	  str
+	  ""))
+     ""))
+
+(: extract-boolean (Sxml -> Boolean))
+(define (extract-boolean sxml)
+  (if (pair? sxml)
+     (let ((flag (car sxml)))
+       (if (string? flag)
+	  (or (string=? flag "true")
+	     (string=? flag "1"))
+	  #f))
+     #f))
+
+(: extract-text (Sxml -> String))
+(define extract-text extract-string)
