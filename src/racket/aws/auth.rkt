@@ -19,9 +19,8 @@
 #lang typed/racket/base
 
 (provide
- aws-auth-str
- aws-auth-mac
- aws-auth-mac-encode)
+ aws-auth-str aws-auth-mac aws-auth-mac-encode
+ sdb-auth-str)
   
 (require/typed srfi/13
 	       (string-trim-both (String -> String)))
@@ -34,8 +33,29 @@
  (only-in (planet knozama/webkit:1/crypto/hmac)
 	  hmac-sha1)
  (only-in (planet knozama/webkit:1/web/uri)
-	  url-encode-string))
- 
+	  url-encode-string)
+ (only-in (planet knozama/webkit:1/web/uri/url/param)
+	  parms->query)
+ (only-in "configuration.rkt"
+	  sdb-host sdb-std-parms)
+ (only-in "credential.rkt"
+	  Aws-Credential-access-key
+	  current-aws-credential))
+
+;; &Version=2009-04-15
+;; &Timestamp=2010-01-25T15%3A01%3A28-07%3A00
+;; &SignatureVersion=2
+;; &SignatureMethod=HmacSHA256
+
+
+;; SimpleDB Auth String to sign
+(: sdb-auth-str (String String (Listof (Pair String String)) -> String))
+(define (sdb-auth-str action host parms)
+  (let ((sep "\n")
+      (std-parms (sdb-std-parms (Aws-Credential-access-key (current-aws-credential)))))
+    (let ((qstr (parms->query (append std-parms parms))))
+      (string-append (weave-string-separator sep  (list action sdb-host qstr))))))
+	
 (: aws-auth-str (String String String String (Listof String) String -> String))
 (define (aws-auth-str verb md5 mime expiration amz-headers resource)
   (let ((sep "\n"))
