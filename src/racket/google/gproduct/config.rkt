@@ -1,7 +1,10 @@
 #lang typed/racket/base
 
 (provide
- gproduct-host gproduct-path std-query-params)
+ gproduct-host gproduct-path std-query-params gproduct-nss)
+
+(: gproduct-nss String)
+(define gproduct-nss "http://www.google.com/shopping/api/schemas/2010")
 
 (: gproduct-host String)
 (define gproduct-host "www.googleapis.com")
@@ -11,7 +14,7 @@
 
 (: std-query-params (Listof (Pairof String String)))
 (define std-query-params   
-  (list (cons "fields" "entry/s:product(s:author,s:gtin,s:title,s:link)&alt=atom")
+  (list (cons "fields" "entry/s:product(s:author,s:gtin,s:title,s:link)&restrictBy=condition=new&alt=atom")
 	(cons "country" "US")
 	;;(cons "brand "")
 	(cons "alt" "atom")))
