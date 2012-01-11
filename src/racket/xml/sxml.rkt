@@ -37,7 +37,7 @@
 
 (require/typed 
  (planet lizorkin/ssax:2:0/ssax)
- ((ssax:xml->sxml xml->sxml) (Input-Port (Listof String) -> Sxml)))
+ ((ssax:xml->sxml xml->sxml) (Input-Port (Listof (Pair Symbol String)) -> Sxml)))
 
 (require/typed
  (planet lizorkin/sxml:2:1/sxml)
