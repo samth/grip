@@ -7,7 +7,7 @@
 (provide 
  s3-host
  a2s-host a2s-path a2s-ns a2s-nss
- sdb-host sdb-std-parms)
+ sdb-host sdb-std-params)
 
 ;; host for Amazon Associate Services
 (define a2s-host "webservices.amazon.com")
@@ -57,8 +57,8 @@
 (define (sdb-access-key-parm key)
   (cons sdb-access-key key))
 
-(: sdb-std-parms (String -> (Listof (Pairof String String))))
-(define (sdb-std-parms key)
+(: sdb-std-params (String -> (Listof (Pairof String String))))
+(define (sdb-std-params key)
   (list (sdb-access-key-parm key)
 	sdb-version-parm 
 	sdb-sig-version-parm 

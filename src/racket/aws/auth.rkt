@@ -35,9 +35,9 @@
  (only-in (planet knozama/webkit:1/web/uri)
 	  url-encode-string)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  parms->query)
+	  params->query)
  (only-in "configuration.rkt"
-	  sdb-host sdb-std-parms)
+	  sdb-host sdb-std-params)
  (only-in "credential.rkt"
 	  Aws-Credential-access-key
 	  current-aws-credential))
@@ -47,13 +47,17 @@
 ;; &SignatureVersion=2
 ;; &SignatureMethod=HmacSHA256
 
+(: param-sort ((Pair String String) (Pair String String) -> Boolean))
+(define (param-sort p1 p2)
+  (string<=? (car p1) (car p2)))
 
 ;; SimpleDB Auth String to sign
-(: sdb-auth-str (String String (Listof (Pair String String)) -> String))
-(define (sdb-auth-str action host parms)
+(: sdb-auth-str (String (Listof (Pair String String)) -> String))
+(define (sdb-auth-str action params)
+
   (let ((sep "\n")
-      (std-parms (sdb-std-parms (Aws-Credential-access-key (current-aws-credential)))))
-    (let ((qstr (parms->query (append std-parms parms))))
+      (std-params (sdb-std-params (Aws-Credential-access-key (current-aws-credential)))))
+    (let ((qstr (params->query (sort (append std-params params) param-sort))))
       (string-append (weave-string-separator sep  (list action sdb-host qstr))))))
 	
 (: aws-auth-str (String String String String (Listof String) String -> String))
@@ -72,4 +76,3 @@
 (: aws-auth-mac-encode (String String -> String))
 (define (aws-auth-mac-encode key str)
   (url-encode-string (aws-auth-mac key str) #f))
-
