@@ -7,7 +7,7 @@
 (provide 
  s3-host
  a2s-host a2s-path a2s-ns a2s-nss
- sdb-host sdb-std-params)
+ sdb-host sdb-std-params sdb-ns)
 
 ;; host for Amazon Associate Services
 (define a2s-host "webservices.amazon.com")
@@ -34,6 +34,9 @@
 
 (: sdb-version String)
 (define sdb-version "2009-04-15")
+
+(: sdb-ns (Pairof Symbol String))
+(define sdb-ns (cons 'sdb "http://sdb.amazonaws.com/doc/2009-04-15/"))
 
 (: sdb-sig-version String)
 (define sdb-sig-version "2")
