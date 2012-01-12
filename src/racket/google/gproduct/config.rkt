@@ -14,7 +14,9 @@
 
 (: std-query-params (Listof (Pairof String String)))
 (define std-query-params   
-  (list (cons "fields" "entry/s:product(s:author,s:gtin,s:title,s:link)&restrictBy=condition=new&alt=atom")
+  (list (cons "fields" (string-append 
+			"entry/s:product(s:author,s:gtin,s:title,s:link)"
+			"&restrictBy=condition=new&alt=atom"))
 	(cons "country" "US")
 	;;(cons "brand "")
 	(cons "alt" "atom")))
