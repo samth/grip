@@ -42,7 +42,7 @@
 (define sdb-sig-method "HmacSHA256")
 
 (: sdb-access-key String)
-(define sdb-access-key "AWSAcessKeyId")
+(define sdb-access-key "AWSAccessKeyId")
 
 (: sdb-version-parm (Pairof String String))
 (define sdb-version-parm (cons "Version" sdb-version))

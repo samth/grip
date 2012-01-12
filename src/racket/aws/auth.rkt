@@ -26,6 +26,7 @@
 	       (string-trim-both (String -> String)))
 
 (require
+ racket/pretty
  (only-in (planet knozama/common:1/text/util)
 	  weave-string-separator)
  (only-in (planet knozama/webkit:1/crypto/base64)
@@ -42,22 +43,18 @@
 	  Aws-Credential-access-key
 	  current-aws-credential))
 
-;; &Version=2009-04-15
-;; &Timestamp=2010-01-25T15%3A01%3A28-07%3A00
-;; &SignatureVersion=2
-;; &SignatureMethod=HmacSHA256
-
 (: param-sort ((Pair String String) (Pair String String) -> Boolean))
 (define (param-sort p1 p2)
   (string<=? (car p1) (car p2)))
 
+(: sep String)
+(define sep "\n")
+
 ;; SimpleDB Auth String to sign
-(: sdb-auth-str (String (Listof (Pair String String)) -> String))
-(define (sdb-auth-str action params)
-  (let ((sep "\n")
-      (std-params (sdb-std-params (Aws-Credential-access-key (current-aws-credential)))))
-    (let ((qstr (params->query (sort (append std-params params) param-sort))))
-      (string-append (weave-string-separator sep  (list action sdb-host "" qstr))))))
+(: sdb-auth-str (String String (Listof (Pair String String)) -> String))
+(define (sdb-auth-str action path params)
+  (let ((qstr (params->query (sort params param-sort))))
+    (string-append (weave-string-separator sep  (list action sdb-host path qstr)))))
 
 (: sdb-auth-mac (String String -> String))
 (define (sdb-auth-mac key str)
@@ -78,7 +75,7 @@
 
 (: aws-auth-mac (String String -> String))
 (define (aws-auth-mac key str)
-  (string-trim-both (base64-encode (hmac-sha1 (string->bytes/utf-8 key) 
+  (string-trim-both (base64-encode (hmac-sha1 (string->bytes/utf-8 key)
 					      (string->bytes/utf-8 str)))))
 
 (: aws-auth-mac-encode (String String -> String))
