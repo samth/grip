@@ -40,6 +40,9 @@
 (: META-ACTION String)
 (define META-ACTION "DomainMetadata")
 
+(: PUT-ACTION String)
+(define PUT-ACTION "PutAttributes")
+
 (: request-signature (String -> String))
 (define (request-signature signee)
   (url-encode-string (base64-encode (hmac-sha256 (Aws-Credential-secret-key (current-aws-credential)) signee)) #f))
@@ -168,31 +171,8 @@
     (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
       (invoke-sdb-get url request-headers parse-meta-domain-resp))))
 
-;; <DomainMetadataResponse xmlns="http://sdb.amazonaws.com/doc/2009-04-15/">
-;;   <DomainMetadataResult>
-;;     <ItemCount>195078</ItemCount>
-;;     <ItemNamesSizeBytes>2586634</ItemNamesSizeBytes>
-;;     <AttributeNameCount >12</AttributeNameCount >
-;;     <AttributeNamesSizeBytes>120</AttributeNamesSizeBytes>
-;;     <AttributeValueCount>3690416</AttributeValueCount>
-;;     <AttributeValuesSizeBytes>50149756</AttributeValuesSizeBytes>
-;;     <Timestamp>1225486466</Timestamp>
-;;   </DomainMetadataResult>
-;;   <ResponseMetadata>
-;;     	<RequestId>b1e8f1f7-42e9-494c-ad09-2674e557526d</RequestId>
-;;     	<BoxUsage>0.0000219907</BoxUsage>
-;;   </ResponseMetadata>
-;; </DomainMetadataResponse>
+(struct: Attr ([name : String] [value : String] [replace : Boolean]) #:transparent)
 
-;; racket@aws/simpledb/simpledb> (create-domain "MetaTest")
-;; '(*TOP*
-;;   (*PI* xml "version=\"1.0\"")
-;;   (Response
-;;    (Errors
-;;     (Error
-;;      (Code "ServiceUnavailable")
-;;      (Message
-;;       "Service AmazonSimpleDB is currently unavailable. Please try again later")))
-;;    (RequestID "d8f166d0-f286-7c03-0c44-adae4525d07d")))
-;; - : (U True SDBError)
-
+(: put-attributes ((Listof Attr) -> (U SDBError True)))
+(define (put-attributes attrs)
+  ( ... ))
