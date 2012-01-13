@@ -28,6 +28,17 @@
  (only-in "../configuration.rkt"
 	  sdb-ns sdb-std-params))
 
+(define-type Param (Pair String String))
+
+(: Param? (Any -> Boolean))
+(define (isParam? x)
+  (if (pair? x)
+     (and (string? (car x))
+	(string? (cdr x)))
+     #f))
+
+(define-predicate Param? Param)
+
 (: CREATE-ACTION String)
 (define CREATE-ACTION "CreateDomain")
 
@@ -64,7 +75,7 @@
 (define (signature-param action path qparams)
   (cons "Signature" (request-signature (sdb-auth-str action path qparams))))
 
-(: create-ephemeral-params ((Option String) String -> (Listof (Pairof String String))))
+(: create-ephemeral-params ((Option String) String -> (Listof Param)))
 (define (create-ephemeral-params domain action)
   (append (sdb-std-params (Aws-Credential-access-key (current-aws-credential)))
 	  (let ((ps (list (cons "Action" action)
@@ -174,32 +185,68 @@
     (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
       (invoke-sdb-get url request-headers parse-meta-domain-resp))))
 
-(: attr-params (Integer Attr -> (Listof String)))
+(: attr-name-value (String Attr ->  (Listof Param)))
+(define (attr-name-value sid attr)
+  (list 
+   (cons  (string-append "Attribute." sid ".Name") 
+	  (url-encode-string (Attr-name attr) #f))
+   (cons (string-append "Attribute." sid ".Value") 
+	 (url-encode-string (Attr-value attr) #f))))
+
+(: attr-expected-name-value (String Attr -> (Listof Param)))
+(define (attr-expected-name-value sid attr)
+  (aif (Attr-expected attr)
+       (list 
+	(cons (string-append "Expected." sid ".Value") (url-encode-string it #f))
+	(cons (string-append "Expected." sid ".Name") (url-encode-string it #f)))
+       '()))
+
+(: attr-replace (String Attr -> (Listof Param)))
+(define (attr-replace sid attr)
+  (if (Attr-replace attr)
+     (list (cons (string-append  "Attribute." sid ".Replace") "true"))
+     '()))
+
+(: attr-params (Integer Attr -> (Listof Param)))
 (define (attr-params id attr)
   (let ((sid (number->string id)))
-    (filter string? (list 
-		     (if (Attr-replace attr) (string-append "Attribute." sid ".Replace") #f)
-		     (aif (Attr-expected attr) (string-append "Attribute." sid ".Expected" "=" (url-encode-string it #f)) #f)
-		     (string-append "Attribute." sid ".Value" "=" (url-encode-string (Attr-value attr) #f))
-		     (string-append "Attribute." sid ".Name" "=" (Attr-name attr))))))
+    (append (attr-replace sid attr)
+	    (attr-expected-name-value  sid attr)
+	    (attr-name-value sid attr))))
 
-(: build-attribute-query ((Listof Attr) -> (Listof String)))
+(: build-attribute-query ((Listof Attr) -> (Listof Param)))
 (define (build-attribute-query attrs)
-  (let: loop : (Listof String) ((attrs : (Listof Attr) attrs) (id : Integer 1) (accum : (Listof String) '()))
+  (let: loop : (Listof Param) ((attrs : (Listof Attr) attrs) (id : Integer 1) (accum : (Listof Param) '()))
     (if (null? attrs)
        (reverse accum)
        (let ((attr-set (attr-params id (car attrs))))
 	 (loop (cdr attrs) (+ 1 id) (append attr-set accum))))))
 
-(: put-attributes ((Listof Attr) -> (U SDBError True)))
-(define (put-attributes attrs)
-  (let ((qattrs (build-attribute-query attrs)))
-    (pretty-print qattrs)
-    #t))
+(: item-param (String -> Param))
+(define (item-param item)
+  (cons "ItemName" (url-encode-string item #f)))
+
+(: parse-put-attrs-response (Sxml -> (U SDBError True)))
+(define (parse-put-attrs-response sxml)
+  (pretty-print sxml)
+  #t)
+
+(: put-attributes (String String (Listof Attr) -> (U SDBError True)))
+(define (put-attributes domain item attrs)
+  (let ((qparams (cons (item-param item)
+		     (append (create-ephemeral-params domain PUT-ACTION)
+			     (build-attribute-query attrs)))))
+    (pretty-print qparams)
+    (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
+      (invoke-sdb-get url request-headers parse-put-attrs-response)
+      (pretty-print (uri->string url))
+      #t)))
 
 (: test (-> Void))
 (define (test)
-  (put-attributes (list (Attr "Age" "52" #f #f)
-			(Attr "FirstName" "Ray" "Raymond" #t)))
-  (void))
-
+  (let ((domain "RayTest"))
+    ;;(pretty-print (create-domain domain))
+    ;;(pretty-print (list-domains #f))    
+    (put-attributes domain "ray" (list (Attr "LastName" "Racine" #f #f)
+				       (Attr "FirstName" "Ray" #f #f)))
+  (void)))
