@@ -86,6 +86,9 @@
 		     [value-size : Integer]
 		     [timestamp : Integer]) #:transparent)
 
+(struct: Attr ([name : String] [value : String] 
+	       [expected : (Option String)] [replace : Boolean]) #:transparent)
+
 (: invoke-uri (String String -> Uri))
 (define (invoke-uri path query)
   (make-uri "https" #f "sdb.amazonaws.com" 443 path query ""))
@@ -171,8 +174,32 @@
     (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
       (invoke-sdb-get url request-headers parse-meta-domain-resp))))
 
-(struct: Attr ([name : String] [value : String] [replace : Boolean]) #:transparent)
+(: attr-params (Integer Attr -> (Listof String)))
+(define (attr-params id attr)
+  (let ((sid (number->string id)))
+    (filter string? (list 
+		     (if (Attr-replace attr) (string-append "Attribute." sid ".Replace") #f)
+		     (aif (Attr-expected attr) (string-append "Attribute." sid ".Expected" "=" (url-encode-string it #f)) #f)
+		     (string-append "Attribute." sid ".Value" "=" (url-encode-string (Attr-value attr) #f))
+		     (string-append "Attribute." sid ".Name" "=" (Attr-name attr))))))
+
+(: build-attribute-query ((Listof Attr) -> (Listof String)))
+(define (build-attribute-query attrs)
+  (let: loop : (Listof String) ((attrs : (Listof Attr) attrs) (id : Integer 1) (accum : (Listof String) '()))
+    (if (null? attrs)
+       (reverse accum)
+       (let ((attr-set (attr-params id (car attrs))))
+	 (loop (cdr attrs) (+ 1 id) (append attr-set accum))))))
 
 (: put-attributes ((Listof Attr) -> (U SDBError True)))
 (define (put-attributes attrs)
-  ( ... ))
+  (let ((qattrs (build-attribute-query attrs)))
+    (pretty-print qattrs)
+    #t))
+
+(: test (-> Void))
+(define (test)
+  (put-attributes (list (Attr "Age" "52" #f #f)
+			(Attr "FirstName" "Ray" "Raymond" #t)))
+  (void))
+
