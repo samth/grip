@@ -51,6 +51,9 @@
 (: META-ACTION String)
 (define META-ACTION "DomainMetadata")
 
+(: GET-ACTION String)
+(define GET-ACTION "GetAttributes")
+
 (: PUT-ACTION String)
 (define PUT-ACTION "PutAttributes")
 
@@ -88,7 +91,6 @@
 
 (struct: ListDomains ([domains  : (Listof String)]
 		      [nextToken : (Option String)]) #:transparent)
-
 (struct: MetaDomain ([item-count : Integer]
 		     [item-size : Integer]
 		     [name-count : Integer]
@@ -97,8 +99,8 @@
 		     [value-size : Integer]
 		     [timestamp : Integer]) #:transparent)
 
-(struct: Attr ([name : String] [value : String] 
-	       [expected : (Option String)] [replace : Boolean]) #:transparent)
+(struct: Attr ([name : String] [value : (U 'Exist 'NotExist String)]
+	       [replace : Boolean]) #:transparent)
 
 (: invoke-uri (String String -> Uri))
 (define (invoke-uri path query)
@@ -113,6 +115,7 @@
   (with-handlers ([exn:fail? 
 		   (lambda (ex) (SDBError))])
     (let ((conn (http-invoke 'GET url headers #f)))
+      (pretty-print conn)
       (let ((page (xml->sxml (HTTPConnection-in conn) '())))
 	(pretty-print page)
 	(resp-parser page)))))
@@ -188,18 +191,28 @@
 (: attr-name-value (String Attr ->  (Listof Param)))
 (define (attr-name-value sid attr)
   (list 
-   (cons  (string-append "Attribute." sid ".Name") 
-	  (url-encode-string (Attr-name attr) #f))
-   (cons (string-append "Attribute." sid ".Value") 
-	 (url-encode-string (Attr-value attr) #f))))
+   (cons (string-append "Attribute." sid ".Value") (url-encode-string (Attr-value attr) #f))
+   (cons (string-append "Attribute." sid ".Name") (url-encode-string (Attr-name attr) #f))))
 
 (: attr-expected-name-value (String Attr -> (Listof Param)))
 (define (attr-expected-name-value sid attr)
-  (aif (Attr-expected attr)
-       (list 
-	(cons (string-append "Expected." sid ".Value") (url-encode-string it #f))
-	(cons (string-append "Expected." sid ".Name") (url-encode-string it #f)))
-       '()))
+  (let ((expected (Attr-expected attr)))
+    (if expected 
+       (cond 
+	((eq? expected 'Exist)
+	 (list 
+	  (cons (string-append "Expected." sid ".Exist") "true")
+	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Attr-name attr) #f))))
+	((eq? expected 'NotExist)
+	 (list
+	  (cons (string-append "Expected." sid ".Exist") "false")
+	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Attr-name attr) #f))))
+	((string? expected)
+	 (list
+	  (cons (string-append "Expected." sid ".Value") expected)
+	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Attr-name attr) #f))))
+	(else '()))
+       '())))
 
 (: attr-replace (String Attr -> (Listof Param)))
 (define (attr-replace sid attr)
@@ -228,7 +241,7 @@
 
 (: parse-put-attrs-response (Sxml -> (U SDBError True)))
 (define (parse-put-attrs-response sxml)
-  (pretty-print sxml)
+  ;;(pretty-print sxml)
   #t)
 
 (: put-attributes (String String (Listof Attr) -> (U SDBError True)))
@@ -242,11 +255,57 @@
       (pretty-print (uri->string url))
       #t)))
 
-(: test (-> Void))
-(define (test)
+(: consistent-param (Boolean -> Param))
+(define (consistent-param flag)
+  (if flag
+     (cons "ConsistentRead" "true")
+     (cons "ConsistentRead" "false")))
+
+(: build-attribute-get-query ((Listof String) -> (Listof Param)))
+(define (build-attribute-get-query attr-names)
+  (let: loop : (Listof Param) ((names : (Listof String) attr-names) 
+			     (id : Integer 1) 
+			     (accum : (Listof Param) '()))
+      (if (null? names)
+	 (reverse accum)
+	 (loop (cdr names) (+ 1 id) (cons (cons (string-append "AttributeName." (number->string id)) 
+						(car names))
+					  accum)))))
+
+(: get-attributes (String String (Listof String) Boolean -> (U SDBError True)))
+(define (get-attributes domain item attrs consistent?)
+  (let ((qparams (cons (item-param item)
+		     (cons (consistent-param consistent?) 
+			   (append (create-ephemeral-params domain GET-ACTION)
+				   (build-attribute-get-query attrs))))))
+    (pretty-print qparams)
+    (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
+      (invoke-sdb-get url request-headers parse-put-attrs-response)
+      #t)))
+
+(: ptest (-> Void))
+(define (ptest)
+  (let ((domain "RayTest"))
+    (put-attributes domain "ray" (list (Attr "MAge" "22" 'Exist #t))))
+  (void))
+
+(: gtest (-> Void))
+(define (gtest)
   (let ((domain "RayTest"))
     ;;(pretty-print (create-domain domain))
     ;;(pretty-print (list-domains #f))    
-    (put-attributes domain "ray" (list (Attr "LastName" "Racine" #f #f)
-				       (Attr "FirstName" "Ray" #f #f)))
-  (void)))
+    ;;(put-attributes domain "ray" (list (Attr "LastName" "Racine" #f #f)
+    ;;				       (Attr "FirstName" "Ray" #f #f)))
+    ;;(put-attributes domain "ray" (list (Attr "Age" "21" #f #f)))
+    (get-attributes domain "ray" '() #f))
+  (void))
+
+;; '(*TOP*
+;;   (*PI* xml "version=\"1.0\"")
+;;   (Response
+;;    (Errors
+;;     (Error
+;;      (Code "IncompleteExpectedValues")
+;;      (Message
+;;       "If Expected.Exists = True or unspecified, then Expected.Value has to be specified")
+;;      (BoxUsage "0.0000219907")))
