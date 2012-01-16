@@ -21,7 +21,7 @@
 (provide
  Header Headers
  make-header make-header-string header->string  empty-headers 
- add-header get-header get-header-value
+ add-header get-header get-header-value opt-header-value
  date-header content-type content-length content-md5)
 
 (define-type Header (Pairof String String))
@@ -44,6 +44,12 @@
 (define (get-header-value header headers)
     (let ((header (get-header header headers)))
       (if header (cdr header) #f)))
+
+(: opt-header-value ((Option Header) -> (Option String)))
+(define (opt-header-value hdr)
+  (if (pair? hdr)
+     (cdr hdr)
+     #f))
 
 (: make-header-string (String String -> String))
 (define (make-header-string key value)
