@@ -44,7 +44,6 @@
 (require/typed
  openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
  
-
 (require/typed
  srfi/14
  (opaque char-set char-set?)
@@ -54,6 +53,10 @@
 (require/typed
  srfi/13
  (string-tokenize (String char-set -> (Listof String))))
+
+(require/typed
+ file/gunzip
+ (gunzip-through-ports (Input-Port Output-Port -> Void)))
 
 (require
  racket/date
@@ -74,9 +77,8 @@
           HOST
           USER-AGENT)
  (only-in "header.rkt"
-          make-header-string
-          Header
-          Headers))
+          make-header-string get-header get-header-value
+          Header Headers))
 
 (struct: Result [(proto : String)
 		 (code  : Integer)
@@ -97,19 +99,6 @@
 (: make-client-error-response (Integer String -> ResponseHeader))
 (define (make-client-error-response code msg)
   (ResponseHeader (Result "HTTP/1.1" code msg) '()))
-
-;; (require racket/date
-;; 	 racket/tcp
-;;          (only-in srfi/13
-;;                   string-tokenize)
-;;          (only-in typed/srfi/14
-;;                   char-set-complement
-;;                   char-set:blank
-;;                   char-set:whitespace
-;;                   char-set:graphic
-;;                   char-set-contains?)
-;;          "../uri.rkt"
-;;          "proxy.rkt")
 
 ;; Do a substring, trimming spaces
 (: substring-trim (String Integer Integer -> String))
@@ -236,32 +225,21 @@
 		  (lambda (ex) 0)])
     (read-chunk-length ip)))
 
-(: get-header (String Headers -> (Option Header)))
-(define get-header
-  (lambda (attr headers)
-    (assoc attr headers)))
-
-(: header-value ((Option Header) -> (Option String)))
-(define (header-value hdr)
-  (if (pair? hdr)
-      (cdr hdr)
-      #f))
-
 (: chunked-encoding? (Headers -> Boolean))
 (define (chunked-encoding? headers)
-  (let ((hdr (get-header "Transfer-Encoding" headers)))
+  (let ((hdr (get-header-value "Transfer-Encoding" headers)))
     (if hdr
-        (string-ci=? "chunked" (cdr hdr))
+        (string-ci=? "chunked" hdr)
         #f)))
 
 ;; extract the http request Content-Length
 ;; return #f if Content-Length is not present
 (: content-length (Headers -> (Option Integer)))
 (define (content-length headers)
-  (let ((len (header-value (get-header "Content-Length" headers))))
-    (if (string? len)
-        (assert (string->number len) exact-integer?)
-        #f)))
+  (let ((len (get-header-value "Content-Length" headers)))
+    (if len
+       (assert (string->number len) exact-integer?)
+       #f)))
 
 ;; returns:
 ;;   'chunked
@@ -424,14 +402,32 @@
 	 (write-bytes bs out-pipe)
 	 (complete)))))
 
+(: http-pipe-gunzip (Input-Port Output-Port -> Void))
+(define (http-pipe-gunzip inp outp)
+  (gunzip-through-ports inp outp))
+
+  ;; (define buffsz (* 16 1024))
+  ;; (define (complete)
+  ;;   (flush-output outp)
+  ;;   (close-output-port outp))
+  
+
+
+  ;; (let: loop : Void ((bs : (U EOF Bytes) (read-bytes buffsz inp)))
+  ;;     (if (eof-object? bs)
+  ;; 	 (complete)
+  ;; 	 (begin
+  ;; 	   (write-bytes bs outp)
+  ;; 	   (loop (read-bytes buffsz inp))))))
+
 (: http-action->string (Symbol -> String))
 (define (http-action->string action)
   (case action
-    ((GET)  "GET")
-    ((PUT)  "PUT")
-    ((POST) "POST")
+    ((GET)    "GET")
+    ((PUT)    "PUT")
+    ((POST)   "POST")
     ((DELETE) "DELETE")
-    ((HEAD) "HEAD")
+    ((HEAD)   "HEAD")
     (else (error 'http-invoke "HTTP method not support." action))))
 
 (: send-header (String String Output-Port -> Void))
@@ -537,16 +533,26 @@
 	      
 	      (let ((headers (http-header-from-socket-input-port ip)))
 		(if headers
-		   (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers headers))))
+		   (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers headers)))
+			(encoding (get-header-value "Content-Encoding" (ResponseHeader-headers headers))))
 		     (if (number? chunked/length)
+			;; content/length
 			(let-values (((inpipe outpipe) (make-pipe)))
 			  (thread (lambda () (http-pipe-content-length-block chunked/length ip outpipe)))
-			  (HTTPConnection headers op inpipe ip)) ;; content/length
+			  (if (and encoding (string=? "gzip" encoding))
+			     (let-values (((gz-inp gz-outp) (make-pipe)))
+			       (thread (lambda () (http-pipe-gunzip inpipe gz-outp)))
+			       (HTTPConnection headers op gz-inp ip))
+			     (HTTPConnection headers op inpipe ip)))
+			;; chunked
 			(let-values (((inpipe outpipe) (make-pipe)))
 			  (thread (lambda () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
-			  (HTTPConnection headers op inpipe ip))))
+			  (if (and encoding (string=? "gzip" encoding))
+			     (let-values (((gz-inp gz-outp) (make-pipe)))
+			       (thread (lambda () (http-pipe-gunzip inpipe gz-outp)))
+			       (HTTPConnection headers op gz-inp ip))
+			     (HTTPConnection headers op inpipe ip)))))
 		   (failed-connection "Invalid response from server")))))))))
-
 
 (: http-successful? (HTTPConnection -> Boolean))
 (define (http-successful? conn)
@@ -561,127 +567,3 @@
 	 (close-input-port real-in))
        (close-input-port (HTTPConnection-in conn)))
     (close-output-port (HTTPConnection-out conn))))
-
-;; (: current-time-rfc2822 (-> String))
-;; (define (current-time-rfc2822)
-;;   (date-display-format 'rfc2822)
-;;   (date->string (seconds->date (current-seconds))))
-
-;; (: http-send-response (String (Listof (Pair String String)) Output-Port Input-Port Integer -> Void))
-;; (define (http-send-response code-str headers socket-output-port content-input-port length)
-;;   (let ((preamble   "HTTP/1.1 ")
-;;       (code       code-str)
-;;       (colon-sp    ": ")
-;;       (send (lambda: ((str : String))
-;; 	      (write-string str socket-output-port))))
-;;     (let ((send-header
-;; 	 (lambda (hdr)
-;; 	   (send (car hdr))
-;; 	   (send colon-sp)
-;; 	   (send (cdr hdr))
-;; 	   (send terminate))))
-;;       (send preamble)
-;;       (send code)
-;;       (send terminate)
-;;       (send-header (cons "Date" (current-time-rfc2822)))
-;;       (for-each send-header headers)
-;;       (if (and (input-port? content-input-port) (zero? length))
-;; 	 (send-header (cons "Transfer-Encoding" "Chunked"))	   
-;; 	 (send-header (cons "Content-Length" (number->string length 16))))
-;;       (send terminate)
-;;       (if (input-port? content-input-port)
-;; 	 (let ((buffsz 1024))
-;; 	   (let ((buffer (make-bytes buffsz)))
-;; 	     (let:  loop : Void ((cnt : Integer (read-bytes! buffer content-input-port 0 buffsz)))
-;; 	       (if (eof-object? cnt)
-;; 		  (begin
-;; 		    (send "0")
-;; 		    (send terminate)(send terminate))
-;; 		  (begin
-;; 		    (send (number->string cnt 16))
-;; 		    (send terminate)
-;; 		    (write-bytes buffer socket-output-port 0 cnt)
-;; 		    (send terminate)
-;; 		    (loop  (read-bytes! buffer content-input-port 0 buffsz)))))))
-;; 	 (send terminate)))))
-
-
-;; (: http-301-moved-permanently (String Output-Port -> Void))
-;; (define (http-301-moved-permanently loc socket-output-port)
-;;   (let ((headers (list (cons "Location"  loc)
-;; 		     (cons "Content-Type" "text/html")))
-;;       (redir-msg (string-append "Please follow <a href=\"" 
-;; 				loc 
-;; 				"\">Knozama</a>")))
-;;     (http-send-response "301 moved permanently" 
-;; 			headers
-;; 			socket-output-port
-;; 			(open-input-bytes (string->bytes/utf-8 redir-msg))
-;; 			0)))
-
-;; (cond
-;;  ((textual-port? ip)
-;;   (read-chunk-length ip get-char lookahead-char))
-;;  ((binary-port? ip)
-;;   (read-chunk-length ip get-char-binary-port lookahead-char-binary-port)))))
-
-;; Assumes the port http headers have been read.
-;; Extra buffer copy here as I'm wrapping a port within a port
-;; Create a binary input port which understands the http protocol.
-;; e.g., seamless handling of chunked encoding.
-;; Ideally I'd like to avoid double buffer filling
-;; but the R6RS machinary and maybe Larceny's don't make this
-;; readily achievable. Really need a Streams/Port approach such
-;; as proposed in SRFI-81,82,83.
-
-;; If content-length is false then assume chunked encoding.
-;; input-port? * number? -> binary-input-port?
-
-;; content-length/chunked?
-;;   #f - header has not been read
-;;   'chunked - chunked
-;;   number? - content-length
-;; id - name of the port??
-;; ip - socket input port
-;; (define make-http-binary-input-port
-;;   (lambda (id ip content-length/chunked?)
-
-;;     (define name (string-copy id))
-
-;;     (define chunked?
-;;       (eq? 'chunked content-length/chunked?))
-
-;;     (define left-to-read 
-;;       (cond
-;;        ((number? content-length/chunked?)
-;; 	content-length/chunked?)
-;;        (chunked? (get-chunk-length ip))
-;;        (error 'make-http-binary-input-port "HTTP Protocol must have content-length or chunked encoding.")))
-
-;;     ;; assumed only called if there are at least some bytes available
-;;     (define read-proc
-;;       (lambda (iodata buffer)
-;; 	(if (fxzero? left-to-read)
-;; 	   'eof
-;; 	   (let ((buffsz (bytes-length buffer)))
-;; 	     (let ((cnt (read-bytes-available! ip buffer 0                 
-;; 					     (if (fx<? left-to-read buffsz)
-;; 						left-to-read
-;; 						buffsz))))
-;; 	       (set! left-to-read (fx- left-to-read cnt))
-;; 	       (if (fxzero? cnt)                    ;; socket peer reset
-;; 		  'eof
-;; 		  (when (and chunked?
-;; 			   (fxzero? left-to-read))
-;; 		    (set! left-to-read (get-chunk-length ip))))
-;; 	       cnt)))))
-
-;;     (define iproc
-;;       (lambda (op)
-;; 	(case op
-;; 	  ((read) read-proc)
-;; 	  ((close) (lambda (io-data) (close-port ip)))
-;; 	  ((name)  (lambda (io-data) name))
-;; 	  (else (assertion-violation 'make-http-binary-input-port "unsupported IO operation" id op)))))
-
-;;     (io/make-port iproc name 'input 'binary)))
