@@ -68,7 +68,7 @@
    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
    (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
    (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-   ;;(make-header-string "Accept-Encoding" "gzip,deflate,sdch")
+   (make-header-string "Accept-Encoding" "gzip")
    (make-header-string "Accept-Language" "en-US,en;q=0.8")
    (make-header-string "Cache-Control" "max-age=0")
    (make-header-string "Connection" "Close")))
@@ -99,8 +99,15 @@
 		     [value-size : Integer]
 		     [timestamp : Integer]) #:transparent)
 
-(struct: Attr ([name : String] [value : (U 'Exist 'NotExist String)]
+
+(struct: Expect ([name : String] [value : String]
+		 [exist : Boolean]) #:transparent)
+
+;; The value of replace is examined iff value is a string.
+(struct: Attr ([name : String] [value : String]
 	       [replace : Boolean]) #:transparent)
+
+(define-type AEParam (U Expect Attr))
 
 (: invoke-uri (String String -> Uri))
 (define (invoke-uri path query)
@@ -190,46 +197,39 @@
 
 (: attr-name-value (String Attr ->  (Listof Param)))
 (define (attr-name-value sid attr)
-  (list 
-   (cons (string-append "Attribute." sid ".Value") (url-encode-string (Attr-value attr) #f))
-   (cons (string-append "Attribute." sid ".Name") (url-encode-string (Attr-name attr) #f))))
+  (let ((aparam (list 
+	       (cons (string-append "Attribute." sid ".Value") (url-encode-string (Attr-value attr) #f))
+	       (cons (string-append "Attribute." sid ".Name") (url-encode-string (Attr-name attr) #f)))))
+    (if (Attr-replace attr)
+       (cons  (cons (string-append  "Attribute." sid ".Replace") "true") aparam)
+       aparam)))
 
-(: attr-expected-name-value (String Attr -> (Listof Param)))
+
+(: attr-expected-name-value (String Expect -> (Listof Param)))
 (define (attr-expected-name-value sid attr)
-  (let ((expected (Attr-expected attr)))
-    (if expected 
-       (cond 
-	((eq? expected 'Exist)
-	 (list 
+  (cond ((Expect-exist attr)
+	 (list
 	  (cons (string-append "Expected." sid ".Exist") "true")
-	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Attr-name attr) #f))))
-	((eq? expected 'NotExist)
+	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Expect-name attr) #f))))
+	((Expect-value attr)
+	 (list
+	  (cons (string-append "Expected." sid ".Value") (Expect-value attr))
+	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Expect-name attr) #f))))
+	(else
 	 (list
 	  (cons (string-append "Expected." sid ".Exist") "false")
-	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Attr-name attr) #f))))
-	((string? expected)
-	 (list
-	  (cons (string-append "Expected." sid ".Value") expected)
-	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Attr-name attr) #f))))
-	(else '()))
-       '())))
+	  (cons (string-append "Expected." sid ".Name") (url-encode-string (Expect-name attr) #f))))))
 
-(: attr-replace (String Attr -> (Listof Param)))
-(define (attr-replace sid attr)
-  (if (Attr-replace attr)
-     (list (cons (string-append  "Attribute." sid ".Replace") "true"))
-     '()))
-
-(: attr-params (Integer Attr -> (Listof Param)))
+(: attr-params (Integer AEParam -> (Listof Param)))
 (define (attr-params id attr)
   (let ((sid (number->string id)))
-    (append (attr-replace sid attr)
-	    (attr-expected-name-value  sid attr)
-	    (attr-name-value sid attr))))
+    (cond
+     ((Attr? attr) (attr-name-value sid attr))
+     ((Expect? attr) (attr-expected-name-value sid attr)))))
 
-(: build-attribute-query ((Listof Attr) -> (Listof Param)))
+(: build-attribute-query ((Listof AEParam) -> (Listof Param)))
 (define (build-attribute-query attrs)
-  (let: loop : (Listof Param) ((attrs : (Listof Attr) attrs) (id : Integer 1) (accum : (Listof Param) '()))
+  (let: loop : (Listof Param) ((attrs : (Listof AEParam) attrs) (id : Integer 1) (accum : (Listof Param) '()))
     (if (null? attrs)
        (reverse accum)
        (let ((attr-set (attr-params id (car attrs))))
@@ -244,7 +244,7 @@
   ;;(pretty-print sxml)
   #t)
 
-(: put-attributes (String String (Listof Attr) -> (U SDBError True)))
+(: put-attributes (String String (Listof AEParam) -> (U SDBError True)))
 (define (put-attributes domain item attrs)
   (let ((qparams (cons (item-param item)
 		     (append (create-ephemeral-params domain PUT-ACTION)
@@ -286,8 +286,9 @@
 (: ptest (-> Void))
 (define (ptest)
   (let ((domain "RayTest"))
-    (put-attributes domain "ray" (list (Attr "MAge" "22" 'Exist #t))))
-  (void))
+    (put-attributes domain "ray" (list (Attr "MAge" "22" #t)
+				       (Expect "LastName" "Smith" #f)))
+  (void)))
 
 (: gtest (-> Void))
 (define (gtest)
