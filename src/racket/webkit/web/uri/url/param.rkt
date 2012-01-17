@@ -18,7 +18,8 @@
 
 #lang typed/racket/base
 
-(provide parse-params encode-param encode-param-string params->query)
+(provide parse-params encode-param encode-param-string params->query
+	 Param Param? Params)
 
 (require 
  (only-in typed/srfi/14
@@ -49,6 +50,19 @@
 ;; 	 (only (rl3 text text)
 ;; 	       weave-string-separator)
 ;; 	 (primitives get-output-string open-output-string))
+
+(define-type Param (Pair String String))
+
+(define-type Params (Listof Param))
+
+(: isParam? (Any -> Boolean))
+(define (isParam? x)
+  (if (pair? x)
+     (and (string? (car x))
+	(string? (cdr x)))
+     #f))
+
+(define-predicate Param? Param)
 
 (: param-reserved-char? (Char -> Boolean))
 (define (param-reserved-char? ch)

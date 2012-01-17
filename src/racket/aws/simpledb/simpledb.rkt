@@ -9,7 +9,7 @@
  (only-in (planet knozama/aws:1/credential)
 	  Aws-Credential-secret-key Aws-Credential-access-key current-aws-credential)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  params->query parse-params)
+	  params->query parse-params Param)
  (only-in (planet knozama/webkit:1/crypto/base64)
 	  base64-encode)
  (only-in (planet knozama/webkit:1/crypto/hmac)
@@ -27,17 +27,6 @@
 	  Sxml SXPath sxpath html->sxml xml->sxml extract-text extract-integer)
  (only-in "../configuration.rkt"
 	  sdb-ns sdb-std-params))
-
-(define-type Param (Pair String String))
-
-(: Param? (Any -> Boolean))
-(define (isParam? x)
-  (if (pair? x)
-     (and (string? (car x))
-	(string? (cdr x)))
-     #f))
-
-(define-predicate Param? Param)
 
 (: CREATE-ACTION String)
 (define CREATE-ACTION "CreateDomain")
