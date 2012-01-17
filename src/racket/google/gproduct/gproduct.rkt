@@ -1,6 +1,9 @@
 #lang typed/racket/base
 
 (provide
+ SearchResult SearchResult? 
+ SearchResult-company SearchResult-account 
+ SearchResult-title SearchResult-gtin SearchResult-link
  product-search)
 
 (require
@@ -12,7 +15,7 @@
  (only-in (planet knozama/webkit:1/web/uri)
 	  Uri make-uri parse-uri uri->string)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  params->query encode-param-string)
+	  params->query encode-param-string Param Params)
  (only-in (planet knozama/webkit:1/web/http/http11)
 	  HTTPConnection-in http-successful? http-close-connection http-invoke)
  (only-in (planet knozama/xml:1/sxml)
@@ -27,31 +30,31 @@
 
 (struct: SearchResult ([company : String]
 		       [account : Integer]
-		       [title : String]
-		       [gtin  : String]
-		       [link : String]) #:transparent)
+		       [title   : String]
+		       [gtin    : String]
+		       [link    : String]) #:transparent)
 
 ;; HTTP Stuff
 
 (: search-request-headers (Listof String))
-(define search-request-headers  (list 
-			    ;; (make-header-string "User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.2 Safari/535.11")
-			    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
-			    (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-			    (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-			    (make-header-string "Accept-Encoding" "gzip")
-			    (make-header-string "Accept-Language" "en-US,en;q=0.8")
-			    (make-header-string "Cache-Control" "max-age=0")
-			    (make-header-string "Connection" "keep-alive")))
+(define search-request-headers  
+  (list 
+   (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
+   (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+   (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
+   (make-header-string "Accept-Encoding" "gzip")
+   (make-header-string "Accept-Language" "en-US,en;q=0.8")
+   (make-header-string "Cache-Control" "max-age=0")
+   (make-header-string "Connection" "keep-alive")))
 
-(: query-q-param (String -> (Pairof String String)))
+(: query-q-param (String -> Param))
 (define (query-q-param query)
   (cons "q" (encode-param-string query #t)))
 
-(: access-key-param (Pairof String String))
+(: access-key-param Param)
 (define access-key-param (cons "key" key)) 
 
-(: make-query-uri ((Listof (Pair String String)) -> Uri))
+(: make-query-uri ((Listof Param) -> Uri))
 (define (make-query-uri queries)
   (make-uri "https" #f gproduct-host 443 gproduct-path 
 	    (params->query (append queries std-query-params)) ""))
@@ -89,23 +92,24 @@
        (SearchResult name account title gtin link)
        #f)))
 
-(: product-search (String Params -> (Option (Listof (Option SearchResult)))))
+(: product-search (String Params -> (Listof SearchResult)))
 (define (product-search query restrictions)
-  (let ((url (make-query-uri (list (query-q-param query) access-key-param))))
+  (let ((url (make-query-uri (append (list (query-q-param query) access-key-param)
+				   restrictions))))
     (pretty-print (uri->string url))
     (with-handlers ([exn:fail? 
-		     (lambda (ex) #f)])
+		     (lambda (ex) '())])
       (let ((conn (http-invoke 'GET url search-request-headers #f)))
 	;; (pretty-print conn)
 	(if (http-successful? conn)       
 	   (let ((page (xml->sxml (HTTPConnection-in conn) '())))
 	     (http-close-connection conn)
-	      (pretty-print page)
+	     ;;(pretty-print page)
 	     (let ((prods (sx-prods page)))
 	       ;;(pretty-print prods)
 	       (if (andmap list? prods)
-		  (map parse-search-result prods)
-		  #f)))
+		  (filter SearchResult? (map parse-search-result prods))
+		  '())))
 	   (begin
 	     (http-close-connection conn)
-	     #f))))))
+	     '()))))))

@@ -3,10 +3,6 @@
 (provide
  gproduct-host gproduct-path std-query-params gproduct-nss)
 
- (only-in (planet knozama/common:1/text/util)
-	  weave-string-separator)
-
-
 (: gproduct-nss String)
 (define gproduct-nss "http://www.google.com/shopping/api/schemas/2010")
 
@@ -18,14 +14,10 @@
 
 (: std-query-params (Listof (Pairof String String)))
 (define std-query-params   
-  (list (cons "fields" (string-append 
-			"entry/s:product(s:author,s:gtin,s:title,s:link)"
-			"&restrictBy=condition=new,accountId=10048|7933"))
-	(cons "country" "US")
+  (list (cons "country" "US")
 	;;(cons "brand "")
-	(cons "alt" "atom")))
-
-
+	(cons "alt" "atom")
+	(cons "maxResults" "1000")))
 
 ;; "&restrictBy=condition=new,accountId=10048|7933&alt=atom"))
 

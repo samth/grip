@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide
- account-restrict condition-restrict
+ merge-restrictions
+ account-restrict condition-restrict request-fields
  build-restriction merge-restrictions)
  
 (require
@@ -31,3 +32,7 @@
 (: account-restrict ((Listof String) -> Param))
 (define (account-restrict ids)
   (build-restriction "accountId" ids))
+
+(: request-fields (String -> Param))
+(define (request-fields path)
+  (cons "fields" path))
