@@ -1,5 +1,8 @@
 #lang typed/racket/base
 
+(provide
+ create-domain list-domains delete-domain)
+
 (require
  racket/pretty
  (only-in (planet knozama/common:1/std/control)
