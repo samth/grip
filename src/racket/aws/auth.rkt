@@ -36,7 +36,7 @@
  (only-in (planet knozama/webkit:1/web/uri)
 	  url-encode-string)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  params->query)
+	  params->query Param Params)
  (only-in "configuration.rkt"
 	  sdb-host sdb-std-params)
  (only-in "credential.rkt"
@@ -49,6 +49,43 @@
 
 (: sep String)
 (define sep "\n")
+
+(: ddb-base String)
+(define ddb-base "POST\n/\n\n")
+
+(: ddb-merge-value (String String -> String))
+(define (ddb-merge-value new-value curr-values)
+  (if (string=? curr-values "")
+     new-value
+     (string-append curr-values "," new-value)))
+
+(: ddb-merge-params (Params -> Params))
+(define (ddb-merge-params params)
+  (let: ((merged : (HashTable String String) (make-hash)))
+    (let: loop : Params ((params : Params params))
+	(if (null? params)
+	   (hash->list merged)
+	   (let ((param (car params)))
+	     (hash-update! merged (car param) 
+			   (lambda: ((curr-value : String))
+				(ddb-merge-value (cdr params) curr-value))
+			   "")
+	     (loop (cdr params)))))))
+
+(: ddb-canonicalize-headers (Params -> String))
+(define (ddb-canonicalize-headers params)
+
+  (: lower-case-key (Param -> Param))
+  (define (lower-case-key param)
+    (cons (string-downcase (car param)) (cdr param)))
+
+  (let ((lparams (map lower-case-key params)))
+    (params->query lparams)))
+
+;; DynamoDB Auth String to Sign
+(: ddb-auth-str ((Listof (Pair String String)) String -> String))
+(define (ddb-auth-str params body)
+  (string-append ddb-base (ddb-canonicalize-headers params) body))
 
 ;; SimpleDB Auth String to sign
 (: sdb-auth-str (String String (Listof (Pair String String)) -> String))
