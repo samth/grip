@@ -1,10 +1,13 @@
 #lang typed/racket/base
 
-(define js-null 'JsNull)
+(provide
+ Json JsNull JsObject JsList JsObject? JsList?
+ json->string string->json write-json read-json)
 
-;; (: js-null? (Any -> Boolean))
-;; (define (js-null? x)
-;;   (eqv? x #\null))
+(require
+ racket/pretty)
+
+(define js-null 'JsNull)
 
 (define-type JsNull 'JsNull)
 (define-predicate JsNull? JsNull)
@@ -53,7 +56,7 @@
 (: read-json (Input-Port -> Json))
 (define (read-json port)
   (case (peek-char port)
-    ;; [(#\{) (read/hash port)]
+    [(#\{) (read/hash port)]
     [(#\[) (read/list port)]
     [(#\") (read/string port)]
     [(#\t) (read/true port)]
@@ -105,6 +108,8 @@
       (let ([value (read-json port)])
 	(skip-whitespace port)
 	(expect (peek-char port) '(#\, #\}))
+	(when (eq? (peek-char port) #\,)
+	  (read-char port))
 	(cons (string->symbol key) value))))
   
   (expect (read-char port) '(#\{))
@@ -114,40 +119,23 @@
 		       read-key-json
 		       (lambda: ((port : Input-Port))
 			 (eq? (peek-char port) #\})))))
-
-    (when (eq? (peek-char port) #\,)
-      (read-char port))
     (skip-whitespace port)
-    
-    ;; (let ((json (for/hasheq: : JsObject ([kv : (Pair Symbol Json) 
-    ;; 					 (read-until port
-    ;; 						     read-key-json
-    ;; 						     (lambda: ((port : Input-Port))
-    ;; 						       (eq? (peek-char port) #\})))])
-    ;; 			 (when (eq? (peek-char port) #\,)
-    ;; 			   (read-char port))
-    ;; 			 (skip-whitespace port)
-    ;; 			 (let: ((key : Symbol (car kv))
-    ;; 			      (json : Json (cdr kv)))
-    ;; 			   (values key json)))))
-
     (expect (read-char port) '(#\}))
-    (apply make-hasheq kvs)
-    (hasheq)))
+    (make-hasheq kvs)))
 
 (: read/list (Input-Port -> JsList))
 (define (read/list port)
   (expect (read-char port) '(#\[))
   (let: ((json : JsList  
 	     (for/list: : JsList ([value : Json
-				 (read-until port
-					     (lambda: ((port : Input-Port))
-					       (skip-whitespace port)
-					       (begin0 (read-json port)
-						 (skip-whitespace port)
-						 (expect (peek-char port) '(#\, #\]))))
-					     (lambda: ((port : Input-Port))
-					       (eq? (peek-char port) '(#\]))))])
+					 (read-until port
+						     (lambda: ((port : Input-Port))
+						       (skip-whitespace port)
+						       (begin0 (read-json port)
+							 (skip-whitespace port)
+							 (expect (peek-char port) '(#\, #\]))))
+						     (lambda: ((port : Input-Port))
+						       (eq? (peek-char port) '(#\]))))])
 			(when (eq? (peek-char port) '(#\,))
 			  (read-char port))
 			value)))
@@ -198,8 +186,6 @@
 	 (if (exact-integer? n)
 	    (integer->char n)
 	    (error 'read "bad unicode escape sequence: \"\\u~a\"" str))))))
-
-
 
 (: true-seq (Listof Char))
 (define true-seq (string->list "true"))
@@ -275,13 +261,25 @@
 	 n
 	 (error 'read "failure parsing number ~a" nstr)))))
 
-(: jsexpr->json (Json -> String))
-(define (jsexpr->json x)
+(: json->string (Json -> String))
+(define (json->string x)
   (let ([out (open-output-string)])
     (write-json x out)
     (get-output-string out)))
 
-;; (: json->jsexpr (String -> Json))
-;; (define (json->jsexpr s)
-;;   (let ([in (open-input-string s)])
-;;     (read-json in)))
+(: string->json (String -> Json))
+(define (string->json s)
+  (let ([in (open-input-string s)])
+    (read-json in)))
+
+(: test (-> Json))
+(define (test)
+  (let ((sjson "{\"__type\":\"com.amazon.coral.service#MissingAuthenticationTokenException\",\"message\":\"Requests must include an X-Amz-Security-Token header\"}"))
+    (let ((json (string->json  sjson)))
+      (pretty-print json)
+      (let ((sjson (json->string json)))
+	(pretty-print sjson)
+	sjson))))
+
+
+
