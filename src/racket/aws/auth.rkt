@@ -20,7 +20,8 @@
 
 (provide
  aws-auth-str aws-auth-mac aws-auth-mac-encode
- sdb-auth-str sdb-auth-mac-encode)
+ sdb-auth-str sdb-auth-mac-encode
+ ddb-request-signature)
   
 (require/typed srfi/13
 	       (string-trim-both (String -> String)))
@@ -68,8 +69,8 @@
 	   (let ((param (car params)))
 	     (hash-update! merged (car param) 
 			   (lambda: ((curr-value : String))
-				(ddb-merge-value (cdr params) curr-value))
-			   "")
+				(ddb-merge-value (cdr param) curr-value))
+			   (lambda () ""))
 	     (loop (cdr params)))))))
 
 (: ddb-canonicalize-headers (Params -> String))
@@ -86,6 +87,16 @@
 (: ddb-auth-str ((Listof (Pair String String)) String -> String))
 (define (ddb-auth-str params body)
   (string-append ddb-base (ddb-canonicalize-headers params) body))
+
+(: ddb-auth-mac-encode (String String -> String))
+(define (ddb-auth-mac-encode key str)
+  (url-encode-string (string-trim-both (base64-encode (hmac-sha256 (string->bytes/utf-8 key)
+								   (string->bytes/utf-8 str))))
+		     #f))
+
+(: ddb-request-signature (String (Listof (Pair String String)) String -> String))
+(define (ddb-request-signature key params body)
+  (ddb-auth-mac-encode key (ddb-auth-str params body)))
 
 ;; SimpleDB Auth String to sign
 (: sdb-auth-str (String String (Listof (Pair String String)) -> String))
