@@ -26,11 +26,14 @@
  (only-in (planet knozama/webkit:1/web/http/http11)
 	  HTTPConnection-in http-successful? http-close-connection http-invoke)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  Params)
+	  Param Params)
  (only-in (planet knozama/webkit:1/web/http/header)
-          make-header-string)
- (only-in (planet knozama/webkit:1/formats/json)
-	  json->sjon)
+          Header make-header-string header->string)
+ (only-in (planet knozama/common:1/type/date)
+	  current-time-rfc-2822
+	  current-time-iso-8601)
+ (only-in (planet knozama/webkit:1/formats/tjson)
+	  Json read-json write-json)
  (only-in "../auth.rkt"
 	  ddb-request-signature)
  (only-in "config.rkt"
@@ -38,7 +41,7 @@
  (only-in (planet knozama/aws:1/credential)
 	  Aws-Credential-secret-key Aws-Credential-access-key current-aws-credential))
 
-(define-type Json String)
+;; (define-type Json String)
 
 (define version "DynamoDB_20111205")
  
@@ -56,47 +59,59 @@
    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
    (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
    (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-   (make-header-string "Accept-Encoding" "gzip")
+   ;;(make-header-string "Accept-Encoding" "gzip")
    (make-header-string "Accept-Language" "en-US,en;q=0.8")
    (make-header-string "Cache-Control" "max-age=0")
    (make-header-string "Content-Type" "application/x-amz-json-1.0")
    (make-header-string "Connection" "Close")))
 
-(: auth-headers Params)
-(define auth-headers
+(: date-header (-> Header))
+(define (date-header)
+  (cons "x-amz-date" (current-time-rfc-2822)))
+
+(: auth-headers (-> Params))
+(define (auth-headers)
   (list 
    (cons "host" ddb-host)
+   (date-header)
    (cons "x-amz-target" "DynamoDB_20111205.ListTables")))
 
 (: list-tables ((Option String) (Option Integer) -> ListTablesResp))
 (define (list-tables startat limit)
   (ListTablesResp '() ""))
 
-(: dynamodb-invoke (Uri (Listof String) Json -> (U DynamoDBFailure Json)))
+(: dynamodb-invoke (Uri (Listof String) String -> (U DynamoDBFailure Json)))
 (define (dynamodb-invoke url headers payload)
   (with-handlers ([exn:fail?
-		   (lambda (ex) (DynamoDBFailure))])
-    (let ((conn (http-invoke 'POST url headers (string->bytes/utf-8 payload))))
+		   (lambda (ex) 
+		     (pretty-print ex)
+		     (DynamoDBFailure))])
+    (let ((conn (http-invoke 'POST url headers 
+			   (string->bytes/utf-8 payload))))
       (pretty-print conn)
-      "done")))
+      (let ((json (read-json (HTTPConnection-in conn))))
+	(pretty-print "---------")
+	(pretty-print json)
+	json))))
 
-(: sign-request (Params Json -> String))
+(: sign-request (Params String -> String))
 (define (sign-request params body)
   (string-append "Signature=" (ddb-request-signature (Aws-Credential-secret-key (current-aws-credential)) params body)))
 
 (: test (-> Void))
 (define (test)
   (let ((url (make-uri "http" #f ddb-host 80 "/" #f #f))
+      (auth-hdrs (auth-headers))
       (body "{\"ExclusiveStartTableName\":\"\",\"Limit\":99}"))
     (pretty-print (uri->string url))
     (let* ((auth (make-header-string "x-amzn-authorization"
 				   (string-append "AWS3 AWSAccessKeyId=" 
 						  (Aws-Credential-access-key (current-aws-credential))
-						  ",Algorithm=HmacSHA256," (sign-request auth-headers body))))
-	 (headers (cons auth request-headers)))
+						  ",Algorithm=HmacSHA256," (sign-request auth-hdrs body))))
+	 (headers (cons auth (append (map header->string auth-hdrs) request-headers))))
       (pretty-print headers)
-      (let (respons(dynamodb-invoke url headers body)
-      (void))))
+      (let ((response (dynamodb-invoke url headers body)))
+	(void)))))
     
 
 ;; x-amzn-authorization: AWS3 AWSAccessKeyId=*Current Access Key*,Algorithm=HmacSHA256,SignedHeaders=Host;x-amz-date;x-amz-target;x-amz-security-token,Signature=*Signature Value*=
