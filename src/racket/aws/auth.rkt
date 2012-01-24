@@ -20,7 +20,6 @@
 
 (provide
  aws-auth-str aws-auth-mac aws-auth-mac-encode
- sdb-auth-str sdb-auth-mac-encode
  ddb-request-signature)
   
 (require/typed srfi/13
@@ -38,18 +37,9 @@
 	  url-encode-string)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
 	  params->query Param Params)
- (only-in "configuration.rkt"
-	  sdb-host sdb-std-params)
  (only-in "credential.rkt"
 	  Aws-Credential-access-key
 	  current-aws-credential))
-
-(: param-sort ((Pair String String) (Pair String String) -> Boolean))
-(define (param-sort p1 p2)
-  (string<=? (car p1) (car p2)))
-
-(: sep String)
-(define sep "\n")
 
 (: ddb-base String)
 (define ddb-base "POST\n/\n\n")
@@ -97,21 +87,6 @@
 (: ddb-request-signature (String (Listof (Pair String String)) String -> String))
 (define (ddb-request-signature key params body)
   (ddb-auth-mac-encode key (ddb-auth-str params body)))
-
-;; SimpleDB Auth String to sign
-(: sdb-auth-str (String String (Listof (Pair String String)) -> String))
-(define (sdb-auth-str action path params)
-  (let ((qstr (params->query (sort params param-sort))))
-    (string-append (weave-string-separator sep  (list action sdb-host path qstr)))))
-
-(: sdb-auth-mac (String String -> String))
-(define (sdb-auth-mac key str)
-  (string-trim-both (base64-encode (hmac-sha256 (string->bytes/utf-8 key)
-						(string->bytes/utf-8 str)))))
-
-(: sdb-auth-mac-encode (String String -> String))
-(define (sdb-auth-mac-encode key str)
-  (url-encode-string (sdb-auth-mac key str) #f))
 	
 (: aws-auth-str (String String String String (Listof String) String -> String))
 (define (aws-auth-str verb md5 mime expiration amz-headers resource)

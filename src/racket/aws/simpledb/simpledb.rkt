@@ -1,22 +1,16 @@
 #lang typed/racket/base
 
-(provide
- create-domain list-domains delete-domain)
+(provide)
+;; create-domain list-domains delete-domain)
 
 (require
  racket/pretty
  (only-in (planet knozama/common:1/std/control)
 	  aif)
- (only-in (planet knozama/aws:1/auth)
-	  sdb-auth-str sdb-auth-mac-encode)
  (only-in (planet knozama/aws:1/credential)
 	  Aws-Credential-secret-key Aws-Credential-access-key current-aws-credential)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  params->query parse-params Param)
- (only-in (planet knozama/webkit:1/crypto/base64)
-	  base64-encode)
- (only-in (planet knozama/webkit:1/crypto/hmac)
-	  hmac-sha256)
+	  params->query parse-params param Param Params)
  (only-in (planet knozama/webkit:1/web/uri)
 	  Uri Uri-query make-uri parse-uri
 	  url-encode-string uri->string)
@@ -28,56 +22,10 @@
           make-header-string)
  (only-in (planet knozama/xml:1/sxml)
 	  Sxml SXPath sxpath html->sxml xml->sxml extract-text extract-integer)
- (only-in "../configuration.rkt"
-	  sdb-ns sdb-std-params))
-
-(: CREATE-ACTION String)
-(define CREATE-ACTION "CreateDomain")
-
-(: DELETE-ACTION String)
-(define DELETE-ACTION "DeleteDomain")
-
-(: LIST-ACTION String)
-(define LIST-ACTION "ListDomains")
-
-(: META-ACTION String)
-(define META-ACTION "DomainMetadata")
-
-(: GET-ACTION String)
-(define GET-ACTION "GetAttributes")
-
-(: PUT-ACTION String)
-(define PUT-ACTION "PutAttributes")
-
-(: request-signature (String -> String))
-(define (request-signature signee)
-  (url-encode-string (base64-encode (hmac-sha256 (Aws-Credential-secret-key (current-aws-credential)) signee)) #f))
-
-(: request-headers (Listof String))
-(define request-headers  
-  (list 
-   ;; (make-header-string "User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.2 Safari/535.11")
-   (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
-   (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-   (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-   (make-header-string "Accept-Encoding" "gzip")
-   (make-header-string "Accept-Language" "en-US,en;q=0.8")
-   (make-header-string "Cache-Control" "max-age=0")
-   (make-header-string "Connection" "Close")))
-
-;; Create the ("Signature" . "[signed request signature]")
-(: signature-param (String String (Listof (Pairof String String)) -> (Pairof String String)))
-(define (signature-param action path qparams)
-  (cons "Signature" (request-signature (sdb-auth-str action path qparams))))
-
-(: create-ephemeral-params ((Option String) String -> (Listof Param)))
-(define (create-ephemeral-params domain action)
-  (append (sdb-std-params (Aws-Credential-access-key (current-aws-credential)))
-	  (let ((ps (list (cons "Action" action)
-			(cons "Timestamp" (url-encode-string (current-time-iso-8601) #f)))))
-	    (if domain 
-	       (cons (cons "DomainName" domain) ps)
-	       ps))))
+ (only-in "../auth/authv2.rkt"
+	  authv2-signature)
+ (only-in "config.rkt"
+	  sdb-host sdb-ns sdb-api-version))
 
 (struct: SDBError () #:transparent)
 
@@ -101,13 +49,47 @@
 
 (define-type AEParam (U Expect Attr))
 
+(: CREATE-ACTION String)
+(define CREATE-ACTION "CreateDomain")
+
+(: DELETE-ACTION String)
+(define DELETE-ACTION "DeleteDomain")
+
+(: LIST-ACTION String)
+(define LIST-ACTION "ListDomains")
+
+(: META-ACTION String)
+(define META-ACTION "DomainMetadata")
+
+(: GET-ACTION String)
+(define GET-ACTION "GetAttributes")
+
+(: PUT-ACTION String)
+(define PUT-ACTION "PutAttributes")
+
+(: request-headers (Listof String))
+(define request-headers  
+  (list 
+   ;; (make-header-string "User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.2 Safari/535.11")
+   (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
+   (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+   (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
+   (make-header-string "Accept-Encoding" "gzip")
+   (make-header-string "Accept-Language" "en-US,en;q=0.8")
+   (make-header-string "Cache-Control" "max-age=0")
+   (make-header-string "Connection" "Close")))
+
+(: domain-param (String -> Param))
+(define (domain-param domain)
+  (param "DomainName" domain))
+
 (: invoke-uri (String String -> Uri))
 (define (invoke-uri path query)
-  (make-uri "https" #f "sdb.amazonaws.com" 443 path query ""))
+  (make-uri "https" #f sdb-host 443 path query ""))
 
-(: invoke-signed-query (String String (Listof (Pairof String String)) -> String))
-(define (invoke-signed-query action path qparams)
-  (params->query (cons (signature-param action path qparams) qparams)))
+(: signed-query (String String String (Listof (Pairof String String)) -> Params))
+(define (signed-query http-action cmd path qparams)
+  (authv2-signature sdb-api-version http-action sdb-host cmd path qparams))
 
 (: invoke-sdb-get (All (a) (Uri (Listof String) (Sxml -> (U SDBError a)) -> (U SDBError a))))
 (define (invoke-sdb-get url headers resp-parser)
@@ -125,9 +107,8 @@
 
 (: list-domains ((Option Integer) -> (U SDBError ListDomains)))
 (define (list-domains maxList)
-  (let ((qparams (create-ephemeral-params #f LIST-ACTION)))
-    (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
-      (invoke-sdb-get url request-headers parse-list-domains-resp))))
+  (let ((url (invoke-uri "/" (params->query (signed-query "GET" LIST-ACTION "/" '())))))
+    (invoke-sdb-get url request-headers parse-list-domains-resp)))
 
 (: parse-create-domain-resp (Sxml -> (U SDBError True)))
 (define (parse-create-domain-resp sxml)
@@ -135,9 +116,8 @@
 
 (: create-domain (String -> (U SDBError True)))
 (define (create-domain domain)
-  (let ((qparams (create-ephemeral-params domain CREATE-ACTION)))
-    (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
-      (invoke-sdb-get url request-headers parse-create-domain-resp))))
+    (let ((url (invoke-uri "/" (params->query (signed-query "GET" CREATE-ACTION "/" (list (domain-param domain)))))))
+      (invoke-sdb-get url request-headers parse-create-domain-resp)))
 
 (: parse-delete-domain-resp (Sxml -> (U SDBError True)))
 (define (parse-delete-domain-resp sxml)
@@ -145,9 +125,8 @@
 
 (: delete-domain (String -> (U SDBError True)))
 (define (delete-domain domain)
-  (let ((qparams (create-ephemeral-params domain DELETE-ACTION)))
-    (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
-      (invoke-sdb-get url request-headers parse-delete-domain-resp))))
+  (let ((url (invoke-uri "/" (params->query (signed-query "GET" DELETE-ACTION "/" (list (domain-param domain)))))))
+    (invoke-sdb-get url request-headers parse-delete-domain-resp)))
 
 (: mk-sxpath (String -> SXPath))
 (define (mk-sxpath path)
@@ -183,9 +162,8 @@
 
 (: meta-domain (String -> (U SDBError MetaDomain)))
 (define (meta-domain domain)
-  (let ((qparams (create-ephemeral-params domain META-ACTION)))
-    (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
-      (invoke-sdb-get url request-headers parse-meta-domain-resp))))
+  (let ((url (invoke-uri "/" (params->query (signed-query "GET" META-ACTION "/" (list (domain-param domain)))))))
+    (invoke-sdb-get url request-headers parse-meta-domain-resp)))
 
 (: attr-name-value (String Attr ->  (Listof Param)))
 (define (attr-name-value sid attr)
@@ -239,10 +217,9 @@
 (: put-attributes (String String (Listof AEParam) -> (U SDBError True)))
 (define (put-attributes domain item attrs)
   (let ((qparams (cons (item-param item)
-		     (append (create-ephemeral-params domain PUT-ACTION)
-			     (build-attribute-query attrs)))))
+		     (build-attribute-query attrs))))
     (pretty-print qparams)
-    (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
+    (let ((url (invoke-uri "/" (params->query (signed-query "GET" PUT-ACTION "/" qparams)))))
       (invoke-sdb-get url request-headers parse-put-attrs-response)
       (pretty-print (uri->string url))
       #t)))
@@ -268,30 +245,29 @@
 (define (get-attributes domain item attrs consistent?)
   (let ((qparams (cons (item-param item)
 		     (cons (consistent-param consistent?) 
-			   (append (create-ephemeral-params domain GET-ACTION)
-				   (build-attribute-get-query attrs))))))
+			   (build-attribute-get-query attrs)))))
     (pretty-print qparams)
-    (let ((url (invoke-uri "/" (invoke-signed-query "GET" "/" qparams))))
+    (let ((url (invoke-uri "/" (params->query (signed-query "GET" GET-ACTION "/" qparams)))))
       (invoke-sdb-get url request-headers parse-put-attrs-response)
       #t)))
 
-(: ptest (-> Void))
-(define (ptest)
-  (let ((domain "RayTest"))
-    (put-attributes domain "ray" (list (Attr "MAge" "22" #t)
-				       (Expect "LastName" "Smith" #f)))
-  (void)))
+;; (: ptest (-> Void))
+;; (define (ptest)
+;;   (let ((domain "RayTest"))
+;;     (put-attributes domain "ray" (list (Attr "MAge" "22" #t)
+;; 				       (Expect "LastName" "Smith" #f)))
+;;   (void)))
 
-(: gtest (-> Void))
-(define (gtest)
-  (let ((domain "RayTest"))
-    ;;(pretty-print (create-domain domain))
-    ;;(pretty-print (list-domains #f))    
-    ;;(put-attributes domain "ray" (list (Attr "LastName" "Racine" #f #f)
-    ;;				       (Attr "FirstName" "Ray" #f #f)))
-    ;;(put-attributes domain "ray" (list (Attr "Age" "21" #f #f)))
-    (get-attributes domain "ray" '() #f))
-  (void))
+;; (: gtest (-> Void))
+;; (define (gtest)
+;;   (let ((domain "RayTest"))
+;;     ;;(pretty-print (create-domain domain))
+;;     ;;(pretty-print (list-domains #f))    
+;;     ;;(put-attributes domain "ray" (list (Attr "LastName" "Racine" #f #f)
+;;     ;;				       (Attr "FirstName" "Ray" #f #f)))
+;;     ;;(put-attributes domain "ray" (list (Attr "Age" "21" #f #f)))
+;;     (get-attributes domain "ray" '() #f))
+;;   (void))
 
 ;; '(*TOP*
 ;;   (*PI* xml "version=\"1.0\"")
@@ -302,3 +278,35 @@
 ;;      (Message
 ;;       "If Expected.Exists = True or unspecified, then Expected.Value has to be specified")
 ;;      (BoxUsage "0.0000219907")))
+
+
+
+;; racket@simpledb.rkt> (gtest)
+;; '(("ItemName" . "ray")
+;;   ("ConsistentRead" . "false")
+;;   ("AWSAccessKeyId" . "0JQG3Q3MF57Z6FDP2MG2")
+;;   ("Version" . "2009-04-15")
+;;   ("SignatureVersion" . "2")
+;;   ("SignatureMethod" . "HmacSHA256")
+;;   ("DomainName" . "RayTest")
+;;   ("Action" . "GetAttributes")
+;;   ("Timestamp" . "2012-01-24T05%3A18%3A15-0500"))
+;; (HTTPConnection
+;;  (ResponseHeader
+;;   (Result "HTTP/1.1" 400 "Bad Request")
+;;   '(("Transfer-Encoding" . "chunked")
+;;     ("Date" . "Tue, 24 Jan 2012 10:18:15 GMT")
+;;     ("Connection" . "close")
+;;     ("Server" . "Amazon SimpleDB")))
+;;  #<output-port>
+;;  #<input-port:pipe>
+;;  #<input-port>)
+;; '(*TOP*
+;;   (*PI* xml "version=\"1.0\"")
+;;   (Response
+;;    (Errors
+;;     (Error
+;;      (Code "NoSuchDomain")
+;;      (Message "The specified domain does not exist.")
+;;      (BoxUsage "0.0000093202")))
+;;    (RequestID "eaf191ce-764c-b3bf-2da5-bb10bf47e354")))

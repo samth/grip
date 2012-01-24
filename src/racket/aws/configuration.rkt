@@ -6,8 +6,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (provide 
  s3-host
- a2s-host a2s-path a2s-ns a2s-nss
- sdb-host sdb-std-params sdb-ns)
+ a2s-host a2s-path a2s-ns a2s-nss)
 
 ;; host for Amazon Associate Services
 (define a2s-host "webservices.amazon.com")
@@ -24,46 +23,3 @@
 
 (define a2s-nss
   (list a2s-ns))
-
-;;;;;;;;;;;;;;;;;;
-;; AWS SimpleDB ;;
-;;;;;;;;;;;;;;;;;;
-
-(: sdb-host String)
-(define sdb-host "sdb.amazonaws.com")
-
-(: sdb-version String)
-(define sdb-version "2009-04-15")
-
-(: sdb-ns (Pairof Symbol String))
-(define sdb-ns (cons 'sdb "http://sdb.amazonaws.com/doc/2009-04-15/"))
-
-(: sdb-sig-version String)
-(define sdb-sig-version "2")
-
-(: sdb-sig-method String)
-(define sdb-sig-method "HmacSHA256")
-
-(: sdb-access-key String)
-(define sdb-access-key "AWSAccessKeyId")
-
-(: sdb-version-parm (Pairof String String))
-(define sdb-version-parm (cons "Version" sdb-version))
-
-(: sdb-sig-version-parm (Pairof String String))
-(define sdb-sig-version-parm (cons "SignatureVersion" sdb-sig-version))
-
-(: sdb-sig-method-parm (Pairof String String))
-(define sdb-sig-method-parm (cons "SignatureMethod" sdb-sig-method))
-
-(: sdb-access-key-parm (String -> (Pairof String String)))
-(define (sdb-access-key-parm key)
-  (cons sdb-access-key key))
-
-(: sdb-std-params (String -> (Listof (Pairof String String))))
-(define (sdb-std-params key)
-  (list (sdb-access-key-parm key)
-	sdb-version-parm 
-	sdb-sig-version-parm 
-	sdb-sig-method-parm))
-
