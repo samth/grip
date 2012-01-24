@@ -25,9 +25,12 @@
  set-aws-credential!
  init-aws-credential
  Aws-Credential
+ Aws-Credential?
  Aws-Credential-account-id
  Aws-Credential-access-key
  Aws-Credential-secret-key
+ Aws-Credential-token
+ Aws-Credential-expiration
  Aws-Credential-associate-tag)
 
 (require/typed racket/base
@@ -40,14 +43,16 @@
 (struct: Aws-Credential ((account-id : String)
 			 (access-key : String)
 			 (secret-key : String)
-			 (associate-tag : String)))
+			 (token      : (Option String))
+			 (expiration : (Option String))
+			 (associate-tag : String)) #:transparent)
 
 (: default-cred-path Path)
 (define default-cred-path
   (build-path (find-system-path 'home-dir) ".awscreds.sexp"))
 
 (: current-aws-credential (Parameterof Aws-Credential))
-(define current-aws-credential (make-parameter (Aws-Credential "" "" "" "")))
+(define current-aws-credential (make-parameter (Aws-Credential "" "" "" #f #f "")))
 
 (: set-aws-credential! (Aws-Credential -> Void))
 (define (set-aws-credential! cred)
@@ -73,6 +78,8 @@
 	(Aws-Credential (cred-value 'account-id props)
 			(cred-value 'access-key props)
 			(cred-value 'secret-key props)
+			#f
+			#f
 			(cred-value 'associate-tag props))))))
 
 (init-aws-credential default-cred-path)
