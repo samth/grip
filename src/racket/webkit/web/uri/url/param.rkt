@@ -19,7 +19,7 @@
 #lang typed/racket/base
 
 (provide parse-params encode-param encode-param-string params->query
-	 Param Param? Params)
+	 param Param Param? Params)
 
 (require 
  (only-in typed/srfi/14
@@ -63,6 +63,9 @@
      #f))
 
 (define-predicate Param? Param)
+
+(: param (String String -> Param))
+(define param cons)
 
 (: param-reserved-char? (Char -> Boolean))
 (define (param-reserved-char? ch)
