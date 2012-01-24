@@ -12,19 +12,22 @@
 	  Sxml SXPath sxpath xml->sxml extract-text extract-integer)
  (only-in (planet knozama/webkit:1/web/http/header)
           make-header-string)
+ (only-in "../credential.rkt"
+	  current-aws-credential Aws-Credential)
  (only-in "../auth/authv2.rkt"
 	  authv2-signature)
  (only-in "config.rkt"
 	  get-session-token-action sts-host sts-api-version)
+ (only-in "error.rkt"
+	  STSError)
  (only-in "session.rkt"
-	  SessionCredential STSError))
+	  parse-session-response))
 
 ;; https://sts.amazonaws.com/
 ;; ?Version=2011-06-15
 ;; &Action=GetSessionToken
 ;; &DurationSeconds=3600
 ;; &AUTHPARAMS
-
 
 (: request-headers (Listof String))
 (define request-headers  
@@ -49,10 +52,8 @@
 		     (pretty-print ex)
 		     (STSError))])
     (let ((conn (http-invoke 'GET url headers #f)))
-      (pretty-print conn)
       (let ((page (xml->sxml (HTTPConnection-in conn) '())))
 	(http-close-connection conn)
-	(pretty-print page)
 	(resp-parser page)))))
 
 (: signed-query (String (Listof (Pairof String String)) -> Params))
@@ -63,12 +64,10 @@
 (define (duration-param duration-secs)  
   (assert (and (>= duration-secs 3600) (<= duration-secs 129600)))
   (cons "DurationSeconds" (number->string duration-secs)))
-  
+
 ;; 3600s (one hour) to 129600s (36 hours), with 43200s (12 hours) as default
-(: get-session-token (Natural -> (U SessionCredential STSError)))
+(: get-session-token (Natural -> (U STSError Aws-Credential)))
 (define (get-session-token duration-secs)  
   (let ((url (invoke-uri "/" (params->query (signed-query get-session-token-action '())))))
     (pretty-print (uri->string url))
-    (invoke-sts-get url request-headers
-		    (lambda: ((sxml : Sxml)) (SessionCredential "" "" "" "")))))
-
+    (invoke-sts-get url request-headers parse-session-response)))
