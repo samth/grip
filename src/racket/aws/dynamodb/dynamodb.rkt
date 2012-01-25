@@ -20,6 +20,8 @@
 
 (require
  racket/pretty
+ (only-in (planet knozama/common:1/std/control)
+	  aif)
  (only-in (planet knozama/webkit:1/web/uri)
 	  Uri Uri-query make-uri parse-uri
 	  url-encode-string uri->string)
@@ -34,12 +36,15 @@
 	  current-time-iso-8601)
  (only-in (planet knozama/webkit:1/formats/tjson)
 	  Json read-json write-json)
+ (only-in "../sts/sts.rkt"
+	  get-session-token)
  (only-in "../auth.rkt"
 	  ddb-request-signature)
  (only-in "config.rkt"
 	  ddb-host)
  (only-in (planet knozama/aws:1/credential)
-	  Aws-Credential-secret-key Aws-Credential-access-key current-aws-credential))
+	  Aws-Credential? Aws-Credential-secret-key Aws-Credential-token
+	  Aws-Credential-access-key current-aws-credential))
 
 ;; (define-type Json String)
 
@@ -56,12 +61,12 @@
 (define request-headers  
   (list 
    ;; (make-header-string "User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.2 Safari/535.11")
-   (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
-   (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-   (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
+  ;; (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
+   ;; (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+   ;; (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
    ;;(make-header-string "Accept-Encoding" "gzip")
-   (make-header-string "Accept-Language" "en-US,en;q=0.8")
-   (make-header-string "Cache-Control" "max-age=0")
+   ;; (make-header-string "Accept-Language" "en-US,en;q=0.8")
+   ;; (make-header-string "Cache-Control" "max-age=0")
    (make-header-string "Content-Type" "application/x-amz-json-1.0")
    (make-header-string "Connection" "Close")))
 
@@ -69,10 +74,11 @@
 (define (date-header)
   (cons "x-amz-date" (current-time-rfc-2822)))
 
-(: auth-headers (-> Params))
-(define (auth-headers)
+(: auth-headers (String -> Params))
+(define (auth-headers tok)
   (list 
    (cons "host" ddb-host)
+   (cons "x-amzn-security-token" tok)
    (date-header)
    (cons "x-amz-target" "DynamoDB_20111205.ListTables")))
 
@@ -90,6 +96,7 @@
 			   (string->bytes/utf-8 payload))))
       (pretty-print conn)
       (let ((json (read-json (HTTPConnection-in conn))))
+	(http-close-connection conn)
 	(pretty-print "---------")
 	(pretty-print json)
 	json))))
@@ -100,18 +107,25 @@
 
 (: test (-> Void))
 (define (test)
-  (let ((url (make-uri "http" #f ddb-host 80 "/" #f #f))
-      (auth-hdrs (auth-headers))
-      (body "{\"ExclusiveStartTableName\":\"\",\"Limit\":99}"))
-    (pretty-print (uri->string url))
-    (let* ((auth (make-header-string "x-amzn-authorization"
-				   (string-append "AWS3 AWSAccessKeyId=" 
-						  (Aws-Credential-access-key (current-aws-credential))
-						  ",Algorithm=HmacSHA256," (sign-request auth-hdrs body))))
-	 (headers (cons auth (append (map header->string auth-hdrs) request-headers))))
-      (pretty-print headers)
-      (let ((response (dynamodb-invoke url headers body)))
-	(void)))))
+  (let ((tok (get-session-token 100)))
+    (pretty-print "****************************")
+    (when (Aws-Credential? tok)
+      (parameterize ((current-aws-credential tok))
+	(let ((stok (let ((tok (Aws-Credential-token (current-aws-credential))))
+		      (if (string? tok) tok ""))))
+	(let ((url (make-uri "http" #f ddb-host 80 "/" #f #f))
+	      (auth-hdrs (auth-headers stok))
+	      (body "{\"ExclusiveStartTableName\":\"\",\"Limit\":99}"))
+	  (pretty-print (uri->string url))
+	  (let* ((auth (make-header-string "x-amz-authorization"
+					   (string-append "AWS3 AWSAccessKeyId=" 
+							  (Aws-Credential-access-key (current-aws-credential))
+							  ",Algorithm=HmacSHA256," (sign-request auth-hdrs body))))
+		 (htok (make-header-string "x-amz-security-token" stok))
+		 (headers (cons htok (cons auth (append (map header->string auth-hdrs) request-headers)))))
+	    (pretty-print headers)
+	    (let ((response (dynamodb-invoke url headers body)))
+	      (void)))))))))
     
 
 ;; x-amzn-authorization: AWS3 AWSAccessKeyId=*Current Access Key*,Algorithm=HmacSHA256,SignedHeaders=Host;x-amz-date;x-amz-target;x-amz-security-token,Signature=*Signature Value*=
