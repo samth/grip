@@ -39,7 +39,6 @@
 		     [value-size : Integer]
 		     [timestamp : Integer]) #:transparent)
 
-
 (struct: Expect ([name : String] [value : String]
 		 [exist : Boolean]) #:transparent)
 

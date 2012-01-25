@@ -132,7 +132,6 @@
 	  (let ((url (make-uri "http" #f ddb-host 80 "/" #f #f))
 		(auth-hdrs (auth-headers stok))
 		(body "{\"Limit\":99}"))
-	    ;;		(body "{\"ExclusiveStartTableName\":\".\",\"Limit\":99}"))
 	    (let* ((auth (authorization-header auth-hdrs body))
 		   (hdrs (cons auth auth-hdrs))
 		   (shdrs (append (map header->string hdrs) request-headers)))
@@ -141,25 +140,3 @@
 		(pretty-print response)
 		(void)))))))))
     
-
-;; x-amzn-authorization: AWS3 AWSAccessKeyId=*Current Access Key*,Algorithm=HmacSHA256,SignedHeaders=Host;x-amz-date;x-amz-target;x-amz-security-token,Signature=*Signature Value*=
-;; Date: Mon, 31 Oct 2011 17:49:52 GMT
-
-;; POST / HTTP/1.1
-;; Host: dynamodb.us-east-1.amazonaws.com
-;; x-amz-date: Mon, 16 Jan 2012 17:50:52 GMT
-;; x-amzn-authorization: AWS3 AWSAccessKeyId=*Current Access Key*,Algorithm=HmacSHA256,SignedHeaders=Host;x-amz-date;x-amz-target;x-amz-security-token,Signature=*Signature Value*=
-;; Date: Mon, 31 Oct 2011 17:49:52 GMT
-;; x-amz-target: DynamoDB_20111205.GetItem
-;; x-amz-security-token: *Token Value*
-;; Content-Type: application/x-amz-json-1.0
-;; Content-Length: 135
-;; Connection: Keep-Alive
-;; User-Agent: aws-sdk-java/1.2.10 Windows_7/6.1 Java_HotSpot(TM)_64-Bit_Server_VM/20.2-b06
-
-;; {"TableName":"my-table",
-;;     "Keys":
-;;         [{"HashKeyElement":{"S":"Bill & Ted's Excellent Adventure"},
-;;         "RangeKeyElement":{"S":1989}}]
-;; }
-

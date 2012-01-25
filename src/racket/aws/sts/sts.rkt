@@ -64,7 +64,7 @@
 
 ;; 3600s (one hour) to 129600s (36 hours), with 43200s (12 hours) as default
 (: get-session-token (Natural -> (U STSError Aws-Credential)))
-(define (get-session-token duration-secs)  
+(define (get-session-token duration-secs)
   (let ((url (invoke-uri "/" (params->query (signed-query get-session-token-action '())))))
     (pretty-print (uri->string url))
     (invoke-sts-get url request-headers parse-session-response)))
