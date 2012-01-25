@@ -55,6 +55,8 @@
 
 (: read-json (Input-Port -> Json))
 (define (read-json port)
+  (display "CH: ")
+  (displayln (peek-char port))
   (case (peek-char port)
     [(#\{) (read/hash port)]
     [(#\[) (read/list port)]
@@ -67,34 +69,36 @@
 (: expect ((U EOF Char) (Listof Char) -> Char))
 (define (expect ch expected)
   (if (eof-object? ch)
-     (error 'read "unexpected EOF when expecting ~v" expected)
-     (begin
-       (unless (memq ch expected)
-	 (error 'read "expected: ~v, got: ~a" expected ch))
-       ch)))
+      (error 'read "unexpected EOF when expecting ~v" expected)
+      (begin
+	(unless (memq ch expected)
+	  (error 'read "expected: ~v, got: ~a" expected ch))
+	ch)))
 
 (: expect-string (Input-Port (Listof Char) -> String))
 (define (expect-string port expected)
   (list->string (for/list ([ch expected])
 			  (let ((c (read-char port)))
 			    (if (eof-object? c)
-			       (error 'read-string "expected ~v but unexpecte EOF" expected)
-			       (expect c (list ch)))))))
+				(error 'read-string "expected ~v but unexpecte EOF" expected)
+				(expect c (list ch)))))))
 
 (: skip-whitespace (Input-Port -> Void))
 (define (skip-whitespace port)
   (let ([ch (peek-char port)])
     (when (and (char? ch)
-	     (char-whitespace? ch))
+	       (char-whitespace? ch))
       (read-char port)
       (skip-whitespace port))))
 
 (: read-until (All (a) Input-Port (Input-Port -> a) (Input-Port -> Boolean) -> (Listof a)))
 (define (read-until port reader done?)
-  (let: loop : (Listof a) ((accum : (Listof a) '()))
-      (if (done? port)
-	 (reverse accum)
-	 (loop (cons (reader port) accum)))))
+  (if (done? port)
+      '()
+      (let: loop : (Listof a) ((accum : (Listof a) '()))
+	    (if (done? port)
+		(reverse accum)
+		(loop (cons (reader port) accum))))))
 
 (: read/hash (Input-Port -> JsObject))
 (define (read/hash port)
@@ -105,7 +109,11 @@
       (skip-whitespace port)
       (expect (read-char port) '(#\:))
       (skip-whitespace port)
+      (display "Key: ")
+      (pretty-print key)
       (let ([value (read-json port)])
+	(display "Value: ") 
+	(pretty-print value)
 	(skip-whitespace port)
 	(expect (peek-char port) '(#\, #\}))
 	(when (eq? (peek-char port) #\,)
@@ -116,29 +124,41 @@
   (skip-whitespace port)
 
   (let ((kvs (read-until port
-		       read-key-json
-		       (lambda: ((port : Input-Port))
-			 (eq? (peek-char port) #\})))))
+			 read-key-json
+			 (lambda: ((port : Input-Port))
+			   (eq? (peek-char port) #\})))))
+    (display "KVS: ")
+    (pretty-print kvs)
     (skip-whitespace port)
     (expect (read-char port) '(#\}))
     (make-hasheq kvs)))
 
 (: read/list (Input-Port -> JsList))
 (define (read/list port)
+  (displayln "Reading List")
   (expect (read-char port) '(#\[))
+  (displayln (peek-char port))
   (let: ((json : JsList  
-	     (for/list: : JsList ([value : Json
-					 (read-until port
-						     (lambda: ((port : Input-Port))
-						       (skip-whitespace port)
-						       (begin0 (read-json port)
+	       (for/list: : JsList ([value : Json
+					   (read-until port
+						       (lambda: ((port : Input-Port))
+							 (displayln "Read Json list element")
 							 (skip-whitespace port)
-							 (expect (peek-char port) '(#\, #\]))))
-						     (lambda: ((port : Input-Port))
-						       (eq? (peek-char port) '(#\]))))])
-			(when (eq? (peek-char port) '(#\,))
-			  (read-char port))
-			value)))
+							 (begin0 (read-json port)
+							   (skip-whitespace port)
+							   (expect (peek-char port) '(#\, #\]))))
+						       (lambda: ((port : Input-Port))
+							 (skip-whitespace port)
+							 (let ((ch (peek-char port)))
+							   (if (char? ch)
+							       (char=? ch #\])
+							       #f))))])
+			  (let ((ch (peek-char port)))
+			    (displayln "Peek list element")
+			    (when (and (char? ch)
+				       (char=? ch #\,))
+			      (read-char port))
+			  value))))
     (expect (read-char port) '(#\]))
     json))
 
@@ -155,21 +175,21 @@
 				 (error 'read "unexpected EOF"))
 				((char? ch)
 				 (if (eq? ch #\\)
-				    (let ([esc (read-char port)])
-				      (if (eof-object? esc)
-					 (error 'read "unexpected EOF")
-					 (case esc
-					   [(#\b) #\backspace]
-					   [(#\n) #\newline]
-					   [(#\r) #\return]
-					   [(#\f) #\page]
-					   [(#\t) #\tab]
-					   [(#\\) #\\]
-					   [(#\") #\"]
-					   [(#\/) #\/]
-					   [(#\u) (unescape (read-string 4 port))]
-					   [else esc])))
-				    ch)))))
+				     (let ([esc (read-char port)])
+				       (if (eof-object? esc)
+					   (error 'read "unexpected EOF")
+					   (case esc
+					     [(#\b) #\backspace]
+					     [(#\n) #\newline]
+					     [(#\r) #\return]
+					     [(#\f) #\page]
+					     [(#\t) #\tab]
+					     [(#\\) #\\]
+					     [(#\") #\"]
+					     [(#\/) #\/]
+					     [(#\u) (unescape (read-string 4 port))]
+					     [else esc])))
+				     ch)))))
 			   (lambda (port)
 			     (eq? (peek-char port) #\")))])
 		     ch))
@@ -178,14 +198,14 @@
 (: unescape ((U EOF String) -> Char))
 (define (unescape str)
   (if (eof-object? str)
-     (error 'read "unexpected EOF while reading \\u encoding")
-     (begin
-       (unless (regexp-match #px"[a-fA-F0-9]{4}" str)
-	 (error 'read "bad unicode escape sequence: \"\\u~a\"" str))
-       (let ((n (string->number str 16)))
-	 (if (exact-integer? n)
-	    (integer->char n)
-	    (error 'read "bad unicode escape sequence: \"\\u~a\"" str))))))
+      (error 'read "unexpected EOF while reading \\u encoding")
+      (begin
+	(unless (regexp-match #px"[a-fA-F0-9]{4}" str)
+	  (error 'read "bad unicode escape sequence: \"\\u~a\"" str))
+	(let ((n (string->number str 16)))
+	  (if (exact-integer? n)
+	      (integer->char n)
+	      (error 'read "bad unicode escape sequence: \"\\u~a\"" str))))))
 
 (: true-seq (Listof Char))
 (define true-seq (string->list "true"))
@@ -213,21 +233,22 @@
 
 (: read/digits (Input-Port -> (Listof Char)))
 (define (read/digits port)
+  (displayln "Reading digits")
   (let: ([digits : (Listof Char) 
-	       (for/list ([digit ((inst read-until Char)
-				  port
-				  (lambda (port) 
-				    (let ((ch (read-char port)))
-				      (if (eof-object? ch)
-					 (error 'read "unexpected eof while reading digits")
-					 ch)))
-				  (lambda (port)
-				    (let ((ch (peek-char port)))
-				      (cond 
-				       ((eof-object? ch) #t)
-				       ((char? ch)  (not (char-numeric? ch)))
-				       (else #f)))))])
-			 digit)])
+		 (for/list ([digit ((inst read-until Char)
+				    port
+				    (lambda (port) 
+				      (let ((ch (read-char port)))
+					(if (eof-object? ch)
+					    (error 'read "unexpected eof while reading digits")
+					    ch)))
+				    (lambda (port)
+				      (let ((ch (peek-char port)))
+					(cond 
+					 ((eof-object? ch) #t)
+					 ((char? ch)  (not (char-numeric? ch)))
+					 (else #f)))))])
+			   digit)])
     (when (and (null? digits) (eof-object? (peek-char port)))
       (error 'read "unexpected EOF"))
     (when (null? digits)
@@ -242,24 +263,24 @@
 (define (read/exponent port)
   (expect (read-char port) exponent-seq)
   (let ([sign (case (peek-char port)
-	      [(#\- #\+) (let ((ch (read-char port)))
-			   (if (eof-object? ch)
-			      (error 'read "unexpected file while reading exponent")
-			      (list ch)))]
-	      [else '()])])
+		[(#\- #\+) (let ((ch (read-char port)))
+			     (if (eof-object? ch)
+				 (error 'read "unexpected file while reading exponent")
+				 (list ch)))]
+		[else '()])])
     (append sign (read/digits port))))
 
 (: read/number (Input-Port -> Number))
 (define (read/number port)
   (let* ([sign (if (eq? (peek-char port) #\-) '(#\-) '())]
-       [digits (read/digits port)]
-       [frac (if (eq? (peek-char port) #\.) (read/digits port) '())]
-       [exp (if (memq (peek-char port) '(#\e #\E)) (read/exponent port) '())]
-       [nstr (append sign digits frac exp)])
+	 [digits (read/digits port)]
+	 [frac (if (eq? (peek-char port) #\.) (read/digits port) '())]
+	 [exp (if (memq (peek-char port) '(#\e #\E)) (read/exponent port) '())]
+	 [nstr (append sign digits frac exp)])
     (let ((n (string->number (list->string nstr))))
       (if (number? n)
-	 n
-	 (error 'read "failure parsing number ~a" nstr)))))
+	  n
+	  (error 'read "failure parsing number ~a" nstr)))))
 
 (: json->string (Json -> String))
 (define (json->string x)
@@ -274,7 +295,7 @@
 
 (: test (-> Json))
 (define (test)
-  (let ((sjson "{\"__type\":\"com.amazon.coral.service#MissingAuthenticationTokenException\",\"message\":\"Requests must include an X-Amz-Security-Token header\"}"))
+  (let ((sjson "{\"TableName\": [34]}"))
     (let ((json (string->json  sjson)))
       (pretty-print json)
       (let ((sjson (json->string json)))
