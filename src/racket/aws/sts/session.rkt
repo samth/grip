@@ -13,11 +13,6 @@
  (only-in "config.rkt"
 	  sts-ns))
 
-;; (struct: SessionCredential ([token : String] 
-;;    			       [access-key : String] 
-;; 			       [secret-key : String]
-;; 			       [expiration : String]))
-
 (: mk-sxpath (String -> SXPath))
 (define mk-sxpath
   (let ((sts-nss  `((sts . ,sts-ns))))
@@ -47,18 +42,3 @@
 			 (Aws-Credential-associate-tag curr-cred)))
        (STSError))))
  
-;; '(*TOP*
-;;   (https://sts.amazonaws.com/doc/2011-06-15/:GetSessionTokenResponse
-;;    (https://sts.amazonaws.com/doc/2011-06-15/:GetSessionTokenResult
-;;     (https://sts.amazonaws.com/doc/2011-06-15/:Credentials
-;;      (https://sts.amazonaws.com/doc/2011-06-15/:SessionToken
-;;       "AQoDYXdzEDUasAEP1SvcIUrE63HAiQKeuuhZPTmyTpjoeSRn8xOW6GvGrwxag6zlFRqvjbS1TOwqZrorQACrn6yNO17SmXAX28lEFviPsJHtYeFQtmp/b7MYoSGfbHzVZHoI9ZAG1z5NANlQFBA42CCqdfk8kukDQ5uABCuJdPSvqNDCFV5weNMV/K9Y+LdV+XsGFCt1yT6qvl1ukNA5YShArGQsUZUPZCPtwuhvcXoHALX/PUF0AWQDZSCynfz4BA==")
-;;      (https://sts.amazonaws.com/doc/2011-06-15/:SecretAccessKey
-;;       "J4IXIPOQxNsLu1CzmBxn/x79gpbpF1viCEOYG3Gy")
-;;      (https://sts.amazonaws.com/doc/2011-06-15/:Expiration
-;;       "2012-01-24T21:04:02.889Z")
-;;      (https://sts.amazonaws.com/doc/2011-06-15/:AccessKeyId
-;;       "ASIAIXS65R34AX3XFF3Q")))
-;;    (https://sts.amazonaws.com/doc/2011-06-15/:ResponseMetadata
-;;     (https://sts.amazonaws.com/doc/2011-06-15/:RequestId
-;;      "8fdbc91d-46c6-11e1-befd-43502c86b339"))))

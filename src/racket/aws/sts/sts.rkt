@@ -26,12 +26,6 @@
  (only-in "session.rkt"
 	  parse-session-response))
 
-;; https://sts.amazonaws.com/
-;; ?Version=2011-06-15
-;; &Action=GetSessionToken
-;; &DurationSeconds=3600
-;; &AUTHPARAMS
-
 (: request-headers (Listof String))
 (define request-headers  
   (list 
