@@ -53,7 +53,7 @@
 
 (: make-header-string (String String -> String))
 (define (make-header-string key value)
-  (string-append key ": " value))
+  (string-append key ":" value))
 
 (: header->string (Header -> String))
 (define (header->string hdr)
