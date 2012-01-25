@@ -1,5 +1,8 @@
 #lang typed/racket/base
 
+(provide 
+ get-session-token)
+
 (require
  racket/pretty
  (only-in (planet knozama/webkit:1/web/uri)
@@ -62,7 +65,7 @@
 
 (: duration-param (Natural -> Param))
 (define (duration-param duration-secs)  
-  (assert (and (>= duration-secs 3600) (<= duration-secs 129600)))
+  ;; (assert (and (>= duration-secs 3600) (<= duration-secs 129600)))
   (cons "DurationSeconds" (number->string duration-secs)))
 
 ;; 3600s (one hour) to 129600s (36 hours), with 43200s (12 hours) as default
