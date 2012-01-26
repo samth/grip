@@ -21,6 +21,7 @@
 #lang typed/racket/base
 
 (provide
+ add-session-credential
  current-aws-credential
  set-aws-credential!
  init-aws-credential
@@ -30,7 +31,6 @@
  BaseCredential-access-key
  BaseCredential-secret-key
  AwsCredential-session
- AwsCredential-set-session!
  SessionCredential
  SessionCredential?
  SessionCredential-token
@@ -54,6 +54,11 @@
 (struct: AwsCredential BaseCredential ([account-id    : String]
 				       [associate-tag : String]
 				       [session       : (Option SessionCredential)]) #:mutable #:transparent)
+
+;; struct-copy is broken in TR
+(: add-session-credential (SessionCredential -> AwsCredential))
+(define (add-session-credential session-cred)
+  (struct-copy AwsCredential (current-aws-credential) [session session-cred])) ;; BROKEN IN TypedRacket.
 
 (: default-cred-path Path)
 (define default-cred-path

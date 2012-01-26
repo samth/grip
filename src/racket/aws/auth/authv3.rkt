@@ -20,7 +20,7 @@
  (only-in (planet knozama/webkit:1/web/uri/url/param)
 	  param Param Params)
  (only-in (planet knozama/aws:1/credential)
-	  Aws-Credential-secret-key current-aws-credential))
+	  AwsCredential-session BaseCredential-secret-key current-aws-credential))
 
 (: filter-canonicalize-headers (Params -> Params))
 (define (filter-canonicalize-headers params)
@@ -54,7 +54,7 @@
 				  (lambda: ((curr-value : String))
 				    (merge-value v curr-value))
 				  (lambda () ""))))
-		(loop (cdr params)))))))	      
+		(loop (cdr params)))))))
 
 (: auth-signee (String Params String -> String))
 (define (auth-signee host params body)
@@ -65,10 +65,13 @@
 
 (: auth-signature (String Params String -> String))
 (define (auth-signature host params body)
-  (let ((secret-key (Aws-Credential-secret-key (current-aws-credential)))
-	(signee (auth-signee host params body)))
-    (base64-encode (hmac-sha256 secret-key (sha256 signee)))))
-
+  (let ((scred (let ((scred (AwsCredential-session (current-aws-credential))))
+		 (if scred scred (error "Missing session credentials")))))
+    (let ((secret-key (BaseCredential-secret-key scred))
+	  (signee (auth-signee host params body)))
+      (pretty-print signee)
+      (base64-encode (hmac-sha256 secret-key (sha256 signee))))))
+  
 ;; (require
 ;;  (only-in (planet knozama/common:1/type/date)
 ;; 	  current-time-rfc-2822
