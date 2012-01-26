@@ -37,14 +37,15 @@
  (only-in (planet knozama/webkit:1/formats/tjson)
 	  Json read-json write-json)
  (only-in "../sts/sts.rkt"
-	  get-session-token)
+	  ensure-session)
  (only-in "../auth/authv3.rkt"
 	  auth-signature)
  (only-in "config.rkt"
 	  ddb-host)
  (only-in (planet knozama/aws:1/credential)
-	  Aws-Credential? Aws-Credential-secret-key Aws-Credential-token
-	  Aws-Credential-access-key current-aws-credential))
+	  SessionCredential SessionCredential?
+	  AwsCredential-session AwsCredential? BaseCredential-secret-key BaseCredential-access-key
+	  SessionCredential-token current-aws-credential))
 
 (define version "DynamoDB_20111205")
  
@@ -62,7 +63,7 @@
    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
    ;; (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
    ;; (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-   ;; (make-header-string "Accept-Encoding" "gzip")
+   (make-header-string "Accept-Encoding" "gzip")
    ;; (make-header-string "Accept-Language" "en-US,en;q=0.8")
    ;; (make-header-string "Cache-Control" "max-age=0")
    (make-header-string "Content-Type" "application/x-amz-json-1.0")
@@ -72,13 +73,13 @@
 (define (date-header)
   (cons "x-amz-date" (current-time-rfc-2822)))
 
-(: auth-headers (String -> Params))
-(define (auth-headers tok)
+(: auth-headers (String String -> Params))
+(define (auth-headers cmd tok)
   (list 
    ;;(cons "host" ddb-host)
    (cons "x-amz-security-token" tok)
    (date-header)
-   (cons "x-amz-target" "DynamoDB_20111205.ListTables")))
+   (cons "x-amz-target" cmd)))
 
 (: list-tables ((Option String) (Option Integer) -> ListTablesResp))
 (define (list-tables startat limit)
@@ -100,29 +101,39 @@
 (define (sign-request params body)
   (string-append "Signature=" (auth-signature ddb-host params body)))
 
-(: authorization-header (Params String -> Param))
-(define (authorization-header headers body)
+(: authorization-header (Params String SessionCredential -> Param))
+(define (authorization-header headers body session-cred)
   (param "x-amzn-authorization"
 	 (string-append "AWS3 AWSAccessKeyId=" 
-			(Aws-Credential-access-key (current-aws-credential))
+			(BaseCredential-access-key session-cred)
 			",Algorithm=HmacSHA256,"
 			;; "SignedHeaders=host;x-amz-date;x-amz-target;x-amz-security-token,"
 			(sign-request headers body))))
 
+(: dynamodb (String String -> (U DynamoDBFailure Json)))
+(define (dynamodb cmd cmd-body)
+  (if (ensure-session)
+      (let* ((scred (let ((scred (AwsCredential-session (current-aws-credential))))
+		      (if scred scred (error "Failure to obtain session credentials"))))
+	     (stok (SessionCredential-token scred)))
+	(let ((url (make-uri "http" #f ddb-host 80 "/" #f #f))
+	      (auth-hdrs (auth-headers cmd stok)))
+	  (let* ((auth (authorization-header auth-hdrs cmd-body scred))
+		 (hdrs (cons auth auth-hdrs))
+		 (shdrs (append (map header->string hdrs) request-headers)))
+	    (dynamodb-invoke url shdrs cmd-body))))
+      (DynamoDBFailure)))
 
+(: ddb-list-tables (String Natural -> Void))
+(define (ddb-list-tables start-from cnt)
 
+  (define cmd "DynamoDB_20111205.ListTables")
+  (define cmd-body (format "{\"Limit\": ~s}" cnt))
 
-(: dynamodb (String -> Json))
-(define (dynamodb cmd-body)
-  (let ((tok (get-session-token 100))) 
-    (when (Aws-Credential? tok)
-      (parameterize ((current-aws-credential tok))
-	(let ((stok (let ((tok (Aws-Credential-token (current-aws-credential))))
-		      (if (string? tok) tok (error "Credentials lack a session token")))))
-	  (let ((url (make-uri "http" #f ddb-host 80 "/" #f #f))
-		(auth-hdrs (auth-headers stok)))
-	    (let* ((auth (authorization-header auth-hdrs cmd-body))
-		   (hdrs (cons auth auth-hdrs))
-		   (shdrs (append (map header->string hdrs) request-headers)))
-	      (dynamodb-invoke url shdrs cmd-body))))))))
+  (pretty-print (dynamodb cmd cmd-body))
+  (void))
+
+  
+  
+    
     
