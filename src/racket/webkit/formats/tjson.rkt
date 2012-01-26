@@ -55,8 +55,6 @@
 
 (: read-json (Input-Port -> Json))
 (define (read-json port)
-  (display "CH: ")
-  (displayln (peek-char port))
   (case (peek-char port)
     [(#\{) (read/hash port)]
     [(#\[) (read/list port)]
@@ -109,11 +107,7 @@
       (skip-whitespace port)
       (expect (read-char port) '(#\:))
       (skip-whitespace port)
-      (display "Key: ")
-      (pretty-print key)
       (let ([value (read-json port)])
-	(display "Value: ") 
-	(pretty-print value)
 	(skip-whitespace port)
 	(expect (peek-char port) '(#\, #\}))
 	(when (eq? (peek-char port) #\,)
@@ -127,38 +121,32 @@
 			 read-key-json
 			 (lambda: ((port : Input-Port))
 			   (eq? (peek-char port) #\})))))
-    (display "KVS: ")
-    (pretty-print kvs)
     (skip-whitespace port)
     (expect (read-char port) '(#\}))
     (make-hasheq kvs)))
 
 (: read/list (Input-Port -> JsList))
 (define (read/list port)
-  (displayln "Reading List")
   (expect (read-char port) '(#\[))
-  (displayln (peek-char port))
   (let: ((json : JsList  
 	       (for/list: : JsList ([value : Json
 					   (read-until port
 						       (lambda: ((port : Input-Port))
-							 (displayln "Read Json list element")
 							 (skip-whitespace port)
 							 (begin0 (read-json port)
 							   (skip-whitespace port)
-							   (expect (peek-char port) '(#\, #\]))))
+							   (let ((ch (peek-char port)))
+							     (expect ch '(#\, #\]))
+							     (when (and (char? ch)
+									(char=? ch #\,))
+							       (read-char port)))))
 						       (lambda: ((port : Input-Port))
 							 (skip-whitespace port)
 							 (let ((ch (peek-char port)))
 							   (if (char? ch)
 							       (char=? ch #\])
 							       #f))))])
-			  (let ((ch (peek-char port)))
-			    (displayln "Peek list element")
-			    (when (and (char? ch)
-				       (char=? ch #\,))
-			      (read-char port))
-			  value))))
+			  value)))
     (expect (read-char port) '(#\]))
     json))
 
@@ -233,7 +221,6 @@
 
 (: read/digits (Input-Port -> (Listof Char)))
 (define (read/digits port)
-  (displayln "Reading digits")
   (let: ([digits : (Listof Char) 
 		 (for/list ([digit ((inst read-until Char)
 				    port
@@ -295,7 +282,7 @@
 
 (: test (-> Json))
 (define (test)
-  (let ((sjson "{\"TableName\": [34]}"))
+  (let ((sjson "{\"TableName\": [\"ray\",\"eve\"   ,   30]}"))
     (let ((json (string->json  sjson)))
       (pretty-print json)
       (let ((sjson (json->string json)))
