@@ -16,7 +16,8 @@
  (only-in (planet knozama/webkit:1/web/http/header)
           make-header-string)
  (only-in "../credential.rkt"
-	  current-aws-credential Aws-Credential)
+	  current-aws-credential AwsCredential AwsCredential? AwsCredential-session 
+	  SessionCredential SessionCredential? SessionCredential-expiration)
  (only-in "../auth/authv2.rkt"
 	  authv2-signature)
  (only-in "config.rkt"
@@ -63,8 +64,25 @@
   (cons "DurationSeconds" (number->string duration-secs)))
 
 ;; 3600s (one hour) to 129600s (36 hours), with 43200s (12 hours) as default
-(: get-session-token (Natural -> (U STSError Aws-Credential)))
+(: get-session-token (Natural -> (U STSError AwsCredential)))
 (define (get-session-token duration-secs)
   (let ((url (invoke-uri "/" (params->query (signed-query get-session-token-action '())))))
     (pretty-print (uri->string url))
     (invoke-sts-get url request-headers parse-session-response)))
+
+(: expired-token? (SessionCredential -> Boolean))
+(define (expired-token? creds)
+  (let ((expiry (SessionCredential-expiration creds)))
+    (if expiry #t #f)))
+
+(: refresh-token (-> Boolean))
+(define (refresh-token)
+  (let ((tok (get-session-token 100)))
+    (if (AwsCredential? tok)
+	#t #f)))
+
+(: ensure-session (-> Boolean))
+(define (ensure-session)
+  (if (expired-token? (current-aws-credential))
+    (refresh-token)
+    #t))

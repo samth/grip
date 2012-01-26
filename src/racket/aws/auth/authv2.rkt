@@ -18,7 +18,7 @@
  (only-in (planet knozama/webkit:1/web/uri)
 	  url-encode-string)
  (only-in (planet knozama/aws:1/credential)
-	  Aws-Credential-secret-key Aws-Credential-access-key current-aws-credential))
+	  BaseCredential-secret-key BaseCredential-access-key current-aws-credential))
 
 (: sep String)
 (define sep "\n")
@@ -71,8 +71,8 @@
 
 (: authv2-signature (String String String String String Params -> Params))
 (define (authv2-signature api-version action host cmd path params)
-  (let ((access-key (Aws-Credential-access-key (current-aws-credential)))
-      (secret-key (Aws-Credential-secret-key (current-aws-credential))))    
+  (let ((access-key (BaseCredential-access-key (current-aws-credential)))
+      (secret-key (BaseCredential-secret-key (current-aws-credential))))    
     (let ((params (append params (authv2-params access-key cmd api-version))))
       (cons (param "Signature" (signature secret-key (auth-str action host path params)))
 	    params))))

@@ -7,7 +7,7 @@
  (only-in (planet knozama/xml:1/sxml)
 	  Sxml SXPath sxpath extract-text extract-integer)
  (only-in (planet knozama/aws:1/credential)
-	  Aws-Credential Aws-Credential-account-id Aws-Credential-associate-tag current-aws-credential)
+	  AwsCredential AwsCredential-set-session! SessionCredential current-aws-credential)
  (only-in "error.rkt"
 	  STSError)
  (only-in "config.rkt"
@@ -29,16 +29,11 @@
 (define (parse-session-response sxml)
   (let ((result (sx-session-result-creds sxml)))
     (if (pair? result)
-       (let ((token (extract-text (sx-session-token result)))
-	   (access (extract-text (sx-session-access-key result)))
-	   (secret (extract-text (sx-session-secret-key result)))
-	   (expiration (extract-text (sx-session-expiration result)))
-	   (curr-cred (current-aws-credential)))
-	 (Aws-Credential (Aws-Credential-account-id curr-cred)
-			 access
-			 secret
-			 token
-			 expiration
-			 (Aws-Credential-associate-tag curr-cred)))
-       (STSError))))
+	(let ((token (extract-text (sx-session-token result)))
+	      (access (extract-text (sx-session-access-key result)))
+	      (secret (extract-text (sx-session-secret-key result)))
+	      (expiration (extract-text (sx-session-expiration result))))
+	  (let ((session (SessionCredential access secret token expiration)))	    
+	    (struct-copy AwsCredential (current-aws-credential) [session session])))
+	(STSError))))
  

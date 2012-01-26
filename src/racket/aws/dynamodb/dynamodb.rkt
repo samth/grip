@@ -62,7 +62,7 @@
    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
    ;; (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
    ;; (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-   ;;(make-header-string "Accept-Encoding" "gzip")
+   ;; (make-header-string "Accept-Encoding" "gzip")
    ;; (make-header-string "Accept-Language" "en-US,en;q=0.8")
    ;; (make-header-string "Cache-Control" "max-age=0")
    (make-header-string "Content-Type" "application/x-amz-json-1.0")
@@ -92,11 +92,8 @@
 		     (DynamoDBFailure))])
     (let ((conn (http-invoke 'POST url headers 
 			   (string->bytes/utf-8 payload))))
-      (pretty-print conn)
       (let ((json (read-json (HTTPConnection-in conn))))
 	(http-close-connection conn)
-	(pretty-print "---------")
-	(pretty-print json)
 	json))))
 
 (: sign-request (Params String -> String))
@@ -109,34 +106,23 @@
 	 (string-append "AWS3 AWSAccessKeyId=" 
 			(Aws-Credential-access-key (current-aws-credential))
 			",Algorithm=HmacSHA256,"
-			"SignedHeaders=host;x-amz-date;x-amz-target;x-amz-security-token,"
+			;; "SignedHeaders=host;x-amz-date;x-amz-target;x-amz-security-token,"
 			(sign-request headers body))))
 
-(: encode-all-headers (Params -> Params))
-(define (encode-all-headers params)
-  (map (lambda: ((param : Param))
-	 (cons (car param)
-	       (url-encode-string (cdr param) #f)))
-       params))
 
-(: test (-> Void))
-(define (test)
+
+
+(: dynamodb (String -> Json))
+(define (dynamodb cmd-body)
   (let ((tok (get-session-token 100))) 
-   (pretty-print "****************************")
     (when (Aws-Credential? tok)
       (parameterize ((current-aws-credential tok))
-	(pretty-print (current-aws-credential))
 	(let ((stok (let ((tok (Aws-Credential-token (current-aws-credential))))
-		      (if (string? tok) tok "OOOOOHHHHH CRAP"))))
-	  (pretty-print stok)
+		      (if (string? tok) tok (error "Credentials lack a session token")))))
 	  (let ((url (make-uri "http" #f ddb-host 80 "/" #f #f))
-		(auth-hdrs (auth-headers stok))
-		(body "{\"Limit\":99}"))
-	    (let* ((auth (authorization-header auth-hdrs body))
+		(auth-hdrs (auth-headers stok)))
+	    (let* ((auth (authorization-header auth-hdrs cmd-body))
 		   (hdrs (cons auth auth-hdrs))
 		   (shdrs (append (map header->string hdrs) request-headers)))
-	      (pretty-print shdrs)
-	      (let ((response (dynamodb-invoke url shdrs body)))
-		(pretty-print response)
-		(void)))))))))
+	      (dynamodb-invoke url shdrs cmd-body))))))))
     
