@@ -18,6 +18,8 @@
 
 #lang typed/racket/base
 
+(provide dynamodb)
+
 (require
  racket/pretty
  (only-in (planet knozama/common:1/std/control)
@@ -123,17 +125,3 @@
 		 (shdrs (append (map header->string hdrs) request-headers)))
 	    (dynamodb-invoke url shdrs cmd-body))))
       (DynamoDBFailure)))
-
-(: ddb-list-tables (String Natural -> Void))
-(define (ddb-list-tables start-from cnt)
-
-  (define cmd "DynamoDB_20111205.ListTables")
-  (define cmd-body (format "{\"Limit\": ~s}" cnt))
-
-  (pretty-print (dynamodb cmd cmd-body))
-  (void))
-
-  
-  
-    
-    
