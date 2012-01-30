@@ -49,14 +49,8 @@
 	  AwsCredential-session AwsCredential? BaseCredential-secret-key BaseCredential-access-key
 	  SessionCredential-token current-aws-credential))
 
-(define version "DynamoDB_20111205")
- 
-(define LIST-TABLES (string-append version "ListTables"))
 
 (struct: DynamoDBFailure () #:transparent)
-
-(struct: ListTablesResp ([names : (Listof String)]
-			 [last : String]) #:transparent)
 
 (: request-headers (Listof String))
 (define request-headers  
@@ -65,7 +59,7 @@
    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
    ;; (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
    ;; (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-   (make-header-string "Accept-Encoding" "gzip")
+   ;; (make-header-string "Accept-Encoding" "gzip")
    ;; (make-header-string "Accept-Language" "en-US,en;q=0.8")
    ;; (make-header-string "Cache-Control" "max-age=0")
    (make-header-string "Content-Type" "application/x-amz-json-1.0")
@@ -82,10 +76,6 @@
    (cons "x-amz-security-token" tok)
    (date-header)
    (cons "x-amz-target" cmd)))
-
-(: list-tables ((Option String) (Option Integer) -> ListTablesResp))
-(define (list-tables startat limit)
-  (ListTablesResp '() ""))
 
 (: dynamodb-invoke (Uri (Listof String) String -> (U DynamoDBFailure Json)))
 (define (dynamodb-invoke url headers payload)
