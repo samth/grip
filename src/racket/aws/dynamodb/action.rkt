@@ -19,20 +19,32 @@
 #lang typed/racket/base
 
 (provide
- LIST-TABLES CREATE-TABLE)
+ LIST-TABLES CREATE-TABLE DESCRIBE-TABLE DELETE-TABLE)
 
 (require 
  (only-in "config.rkt"
 	  ddb-version))
 
-(: make-action (String -> String))
-(define (make-action cmd)
-  (string-append ddb-version ":" cmd))
+(: action (String -> String))
+(define (action cmd)
+  (string-append ddb-version "." cmd))
 
 (: CREATE-TABLE String)
 (define CREATE-TABLE
-  (make-action "CreateTable"))
+  (action "CreateTable"))
 
 (: LIST-TABLES String)
 (define LIST-TABLES
-  (make-action "ListTables"))
+  (action "ListTables"))
+
+(: DELETE-TABLE String)
+(define DELETE-TABLE
+  (action "DeleteTable"))
+
+(: DESCRIBE-TABLE String)
+(define DESCRIBE-TABLE
+  (action "DescribeTable"))
+
+(: PUT-ITEM String)
+(define PUT-ITEM
+  (action "PutItem"))
