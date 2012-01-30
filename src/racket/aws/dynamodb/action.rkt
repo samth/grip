@@ -19,7 +19,8 @@
 #lang typed/racket/base
 
 (provide
- LIST-TABLES CREATE-TABLE DESCRIBE-TABLE DELETE-TABLE PUT-ITEM)
+ LIST-TABLES CREATE-TABLE DESCRIBE-TABLE DELETE-TABLE 
+ PUT-ITEM GET-ITEM)
 
 (require 
  (only-in "config.rkt"
@@ -48,3 +49,7 @@
 (: PUT-ITEM String)
 (define PUT-ITEM
   (action "PutItem"))
+
+(: GET-ITEM String)
+(define GET-ITEM 
+  (action "GetItem"))

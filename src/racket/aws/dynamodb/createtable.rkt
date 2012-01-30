@@ -31,15 +31,13 @@
  (only-in "action.rkt"
 	  CREATE-TABLE)
  (only-in "types.rkt"
-	  DDBError DDBError? DDBError-code)
+	  DDBError DDBError? DDBError-code
+	  Key Key? Key-name Key-type)
  (only-in "invoke.rkt"
 	  dynamodb))
 
 (struct: Throughput ([read : Natural] 
 		     [write : Natural]) #:transparent)
-
-(struct: Key ([name : String]
-	      [type : DDBType]) #:transparent)
 
 (struct: CreateTableResp ())
 
@@ -48,6 +46,7 @@
 
   (: keys-json (Key (Option Key) -> JsObject))
   (define (keys-json hash-key range-key)
+
     (: key-json (Key -> JsObject))
     (define (key-json key)
       (make-hasheq `((AttributeName . ,(Key-name key))
@@ -72,7 +71,6 @@
 (define (create-table name hash-key range-key throughput) 
   (pretty-print (dynamodb CREATE-TABLE (create-request name hash-key range-key throughput)))
   (DDBError 'Test))
-
 
 (define (test)  
   (create-table "ray" (Key "sku" 'String) #f (Throughput 3 5)))
