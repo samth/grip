@@ -20,14 +20,19 @@
 
 (require
  racket/pretty
+ (only-in "action.rkt"
+	  LIST-TABLES)
  (only-in "dynamodb.rkt"
 	  dynamodb))
 
-(: list-tables ((Option String) Natural -> Void))
+(struct: ListTablesResp ([names : (Listof String)]
+			 [last : String]) #:transparent)
+
+(: list-tables ((Option String) Natural -> ListTablesResp))
 (define (list-tables start-from cnt)
 
-  (define cmd "DynamoDB_20111205.ListTables")
+  ;;(define cmd "DynamoDB_20111205.ListTables")
   (define cmd-body (format "{\"Limit\": ~s}" cnt))
 
-  (pretty-print (dynamodb cmd cmd-body))
-  (void))
+  (pretty-print (dynamodb LIST-TABLES cmd-body))
+  (ListTablesResp '() ""))
