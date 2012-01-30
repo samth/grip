@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide
+ jsobject attribute
  Json JsNull JsObject JsList JsObject? JsList?
  json->string string->json write-json read-json)
 
@@ -261,8 +262,12 @@
 (define (read/number port)
   (let* ([sign (if (eq? (peek-char port) #\-) '(#\-) '())]
 	 [digits (read/digits port)]
-	 [frac (if (eq? (peek-char port) #\.) (read/digits port) '())]
-	 [exp (if (memq (peek-char port) '(#\e #\E)) (read/exponent port) '())]
+	 [frac (if (eq? (peek-char port) #\.) 
+		   (begin
+		     (read-char port)
+		     (cons #\. (read/digits port)))
+		   '())]
+	 [exp (if (memq (peek-char port) exponent-seq) (read/exponent port) '())]
 	 [nstr (append sign digits frac exp)])
     (let ((n (string->number (list->string nstr))))
       (if (number? n)
@@ -280,14 +285,13 @@
   (let ([in (open-input-string s)])
     (read-json in)))
 
-(: test (-> Json))
-(define (test)
-  (let ((sjson "{\"TableName\": [\"ray\",\"eve\"   ,   30]}"))
-    (let ((json (string->json  sjson)))
-      (pretty-print json)
-      (let ((sjson (json->string json)))
-	(pretty-print sjson)
-	sjson))))
 
+;; Helpers to make json
 
-
+(: jsobject ((Listof (Pair Symbol Json)) -> JsObject))
+(define (jsobject attrs)
+  (make-hasheq attrs))
+  
+(: attribute (JsObject Symbol JsObject -> Void))
+(define (attribute obj key value)
+  (hash-set! obj key value))
