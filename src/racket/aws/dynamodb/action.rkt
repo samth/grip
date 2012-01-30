@@ -19,7 +19,7 @@
 #lang typed/racket/base
 
 (provide
- LIST-TABLES CREATE-TABLE DESCRIBE-TABLE DELETE-TABLE)
+ LIST-TABLES CREATE-TABLE DESCRIBE-TABLE DELETE-TABLE PUT-ITEM)
 
 (require 
  (only-in "config.rkt"

@@ -1,10 +1,14 @@
 #lang typed/racket/base
 
+(provide 
+ delete-table
+ DeleteTableResp DeleteTableResp?)
+
 (require
  racket/pretty
  (only-in "action.rkt"
 	  DELETE-TABLE)
- (only-in "dynamodb.rkt"
+ (only-in "invoke.rkt"
 	  dynamodb))
 
 (struct: DeleteTableResp ())

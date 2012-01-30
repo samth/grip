@@ -1,12 +1,39 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Knozama's Amazon API Library
+;; Copyright (C) 2012  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket/base
+
+ (provide
+  put-item
+  Item Item? Exists Exists? ReturnValues
+  PutItemResult PutItemResult?)
 
 (require 
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
 	  Json JsObject json->string jsobject attribute)
+ (only-in "action.rkt"
+	  PUT-ITEM)
  (only-in "types.rkt"
 	  DDBError
-	  DDBType ddbtype-symbol))
+	  DDBType ddbtype-symbol)
+ (only-in "invoke.rkt"
+	  dynamodb))
 
 ;; POST / HTTP/1.1 
 ;; x-amz-target: DynamoDB_20111205.PutItem
@@ -51,7 +78,7 @@
     ((None) "NONE")
     ((AllOld) "ALL_OLD")))
 
-(: put-item-request (String (Listof Item) (Option (U Exists Item)) ReturnValues -> JsObject))
+(: put-item-request (String (Listof Item) (Option (U Exists Item)) ReturnValues -> String))
 (define (put-item-request name items expected return-values)
   (let: ((req : JsObject (make-hasheq `((TableName . ,name)
 					(Item . ,(item-request items))
@@ -60,7 +87,7 @@
       (cond 
        ((Item? expected) (attribute req 'Expect (expected-json expected)))
        ((Exists? expected)   (attribute req 'Expect (exists-json expected)))))
-    req))
+    (json->string req)))
 
 (: put-item (String (Listof Item) (Option (U Exists Item)) ReturnValues -> (U DDBError PutItemResult)))
 (define (put-item name items expected return-values)

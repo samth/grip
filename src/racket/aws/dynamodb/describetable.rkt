@@ -1,10 +1,14 @@
 #lang typed/racket/base
 
+(provide
+ describe-table
+ DescribeTableResp DescribeTableResp?)
+
 (require
  racket/pretty
  (only-in "action.rkt"
 	  DESCRIBE-TABLE)
- (only-in "dynamodb.rkt"
+ (only-in "invoke.rkt"
 	  dynamodb))
 
 (struct: DescribeTableResp ())

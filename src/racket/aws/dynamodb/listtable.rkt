@@ -18,11 +18,14 @@
 
 #lang typed/racket/base
 
+(provide
+ list-tables ListTablesResp ListTablesResp?)
+
 (require
  racket/pretty
  (only-in "action.rkt"
 	  LIST-TABLES)
- (only-in "dynamodb.rkt"
+ (only-in "invoke.rkt"
 	  dynamodb))
 
 (struct: ListTablesResp ([names : (Listof String)]
