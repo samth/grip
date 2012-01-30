@@ -2,6 +2,9 @@
 
 (provide
  DDBError DDBError? DDBError-code
+ Key Key? Key-name Key-type
+ KeyVal KeyVal? KeyVal-value
+ Item Item? Item-name Item-value Item-type
  ddbtype-code ddbtype-symbol DDBType)
 
 (struct: DDBError ([code : Symbol]))
@@ -19,3 +22,10 @@
   (case type
     ((String) 'S)
     ((Number) 'N)))
+
+(struct: Key ([name : String]
+	      [type : DDBType]) #:transparent)
+
+(struct: KeyVal Key ([value : String]) #:transparent)
+
+(struct: Item ([name : String] [value : String] [type : DDBType]) #:transparent)

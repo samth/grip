@@ -19,8 +19,8 @@
 #lang typed/racket/base
 
  (provide
-  put-item
-  Item Item? Exists Exists? ReturnValues
+  put-item ReturnValues
+  Exists Exists?
   PutItemResult PutItemResult?)
 
 (require 
@@ -30,6 +30,7 @@
  (only-in "action.rkt"
 	  PUT-ITEM)
  (only-in "types.rkt"
+	  Item Item? Item-name Item-value Item-type
 	  DDBError
 	  DDBType ddbtype-symbol)
  (only-in "invoke.rkt"
@@ -48,8 +49,6 @@
 ;; 	"ReturnValues":"ReturnValuesConstant"}
 
 (define-type ReturnValues (U 'None 'AllOld))
-
-(struct: Item ([name : String] [value : String] [type : DDBType]) #:transparent)
 
 (struct: Exists ([name : String] [exists : Boolean]) #:transparent)
 
@@ -80,9 +79,9 @@
 
 (: put-item-request (String (Listof Item) (Option (U Exists Item)) ReturnValues -> String))
 (define (put-item-request name items expected return-values)
-  (let: ((req : JsObject (make-hasheq `((TableName . ,name)
-					(Item . ,(item-request items))
-					(ReturnValues . ,(return-values-request return-values))))))
+  (let: ((req : JsObject (jsobject `((TableName . ,name)
+				     (Item . ,(item-request items))
+				     (ReturnValues . ,(return-values-request return-values))))))
     (when expected
       (cond 
        ((Item? expected) (attribute req 'Expect (expected-json expected)))
@@ -93,7 +92,6 @@
 (define (put-item name items expected return-values)
   (pretty-print (dynamodb PUT-ITEM (put-item-request name items expected return-values)))
   (PutItemResult))
-
   
 ;; (define (test)
 ;;   (put-item "Ray" (list (Item "color" "red" 'String)

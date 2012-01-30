@@ -24,6 +24,8 @@
  Throughput Throughput? Throughput-read Throughput-write)
 
 (require 
+ (only-in "types.rkt"
+	  Item Item? Item-name Item-type Item-value)
  (only-in "createtable.rkt"
 	  Key Key? Key-name Key-type
 	  Throughput Throughput? Throughput-read Throughput-write
@@ -36,5 +38,5 @@
 	  list-tables ListTablesResp ListTablesResp?)
  (only-in "putitem.rkt"
 	  put-item
-	  Item Item? Exists Exists? ReturnValues
+	  Exists Exists? ReturnValues
 	  PutItemResult PutItemResult?))
