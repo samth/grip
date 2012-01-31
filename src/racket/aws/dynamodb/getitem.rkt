@@ -69,17 +69,17 @@
 
 ;;; Parse Response
 
-(: parse-fail (Json -> Nothing))
-(define (parse-fail json)
-  (error "Invalid response: " (json->string json)))
-
 (: parse-get-item-resp (JsObject -> GetItemResp))
 (define (parse-get-item-resp resp)
+
+  (: parse-fail (Json -> Nothing))
+  (define (parse-fail json)
+    (error "Invalid response: " (json->string json)))
 
   (: parse-item-value (Symbol Json -> String))
   (define (parse-item-value type json)    
     (if (JsObject? json)
-	(let ((value (hash-has-key? json type)))
+	(let ((value (hash-ref json type)))
 	  (if (string? value)
 	      value
 	      (parse-fail json)))
@@ -89,29 +89,41 @@
   (define (parse-item name json)
     (cond 
      ((hash-has-key? json 'S) (Item (parse-item-value 'S json) name 'String))
-     ((hash-has-key? json 'N) (Item (parse-item-value 'N json) name 'Number))
-     (else (error "Invalid response ~s" json))))
+     ((hash-has-key? json 'N) (Item (parse-item-value 'N json) name 'Number))	
+     (else (parse-fail json))))
 
   (: parse-items (JsObject -> (Listof Item)))
-  (define (parse-items attrs)
-    (let: loop : (Listof Item) ((attrs : (Listof (Pair Symbol JsObject)) (hash->list attrs)) 
+  (define (parse-items jattrs)
+    (let: loop : (Listof Item) ((attrs : (Listof (Pair Symbol Json)) ((inst hash->list Symbol Json) jattrs))
 				(items : (Listof Item) '()))
       (if (null? attrs)
 	  items
-	  (let* ((jitem (car items))
-		 (name (car jitem))
+	  (let* ((jitem (car attrs))
+		 (name (symbol->string (car jitem)))
 		 (type-value (cdr jitem)))
-	    (loop (cdr attrs) (cons (parse-item name type-value) items))))))
+	    (if (JsObject? type-value)
+		(loop (cdr attrs) (cons (parse-item name type-value) items))
+		(parse-fail jattrs))))))
 
-  (let ((jsresp (string->json resp)))
-    (let ((items (parse-items (hash-ref jsresp 'Item)))
-	  (consumed ((inst opt-orelse Number) (string->number (hash-ref jsresp 'ConsumedCapacityUnits)) 0.0)))      
-      (GetItemResp items consumed))))
+  (let ((jresp (hash-ref resp 'Item)))
+    (if (JsObject? jresp)
+	(let ((items (parse-items jresp))
+	      (jconsumed (hash-ref resp 'ConsumedCapacityUnits)))
+	  (if (flonum? jconsumed)
+	      (GetItemResp items jconsumed)
+	      (parse-fail resp)))
+	(parse-fail resp))))
 
 ;; (define (test)
 ;;   (get-item "raytbl" (ItemKey (KeyVal "sku" 'String "315515") 
 ;; 			      (KeyVal "date" 'String "20120130"))
 ;; 	    (list "price") #f))
+
+;; (define (ptest)
+;;   (let ((jsobj (string->json "{\"Item\":{\"AttributeName3\":{\"S\":\"AttributeValue3\"},\"AttributeName4\":{\"N\":\"AttributeValue4\"}},\"ConsumedCapacityUnits\": 0.5}")))
+;;     (when (JsObject? jsobj)
+;;       (parse-get-item-resp jsobj))))
+
   
 ;; POST / HTTP/1.1 
 ;; x-amz-target: DynamoDB_20111205.GetItem
@@ -125,6 +137,8 @@
 ;; 	"AttributesToGet":["AttributeName3","AttributeName4"],
 ;; 	"ConsistentRead":Boolean
 ;; }
+
+
 
 
 ;; HTTP/1.1 200 
