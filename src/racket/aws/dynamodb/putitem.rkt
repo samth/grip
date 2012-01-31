@@ -92,6 +92,14 @@
 (define (put-item name items expected return-values)
   (pretty-print (dynamodb PUT-ITEM (put-item-request name items expected return-values)))
   (PutItemResult))
+
+;; '#hasheq((Attributes
+;;           .
+;;           #hasheq((upc . #hasheq((S . "315515")))
+;;                   (price . #hasheq((N . "1.99")))
+;;                   (color . #hasheq((S . "red")))))
+;;          (ConsumedCapacityUnits . 1.0))
+
   
 ;; (define (test)
 ;;   (put-item "Ray" (list (Item "color" "red" 'String)
