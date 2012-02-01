@@ -42,14 +42,16 @@
  
 (require 
  (only-in (planet knozama/common:1/std/opt)
-	  opt-apply-orelse))
+	  opt-apply-orelse)
+ (only-in (planet knozama/common:1/type/date)
+	  Time))
 
 (struct: BaseCredential ((access-key : String)
 			 (secret-key : String)) #:transparent)
 
 (struct: SessionCredential BaseCredential
 	 ([token      : String]
-	  [expiration : String]) #:transparent)
+	  [expiration : Time]) #:transparent)
 
 (struct: AwsCredential BaseCredential ([account-id    : String]
 				       [associate-tag : String]
