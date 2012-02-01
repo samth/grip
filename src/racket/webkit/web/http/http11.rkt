@@ -485,7 +485,6 @@
   (if payload     
      (if (bytes? payload)
 	(begin 
-	  (display "Sending payload of size") (displayln (bytes-length payload))
 	  (send-header "Content-Length" (number->string (bytes-length payload) 10) op)
 	  (terminate-http-header op)
 	  (write-bytes payload op)
