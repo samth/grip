@@ -19,12 +19,16 @@
 #lang typed/racket/base
 
 (provide
+ Exists Exists? Exists-name Exists-exists
  Key Key? Key-name Key-type
  KeyVal KeyVal? KeyVal-value KeyVal-type
  Item Item? Item-name Item-value Item-type
- ddbtype-code ddbtype-symbol DDBType)
+ ItemKey ItemKey? ItemKey-hashkey ItemKey-rangekey
+ ddbtype-code ddbtype-symbol DDBType ReturnValues)
 
 (define-type DDBType (U 'String 'Number))
+
+(define-type ReturnValues (U 'None 'AllOld))
 
 (: ddbtype-code (DDBType -> String))
 (define (ddbtype-code type)
@@ -38,9 +42,14 @@
     ((String) 'S)
     ((Number) 'N)))
 
+(struct: Exists ([name : String] [exists : Boolean]) #:transparent)
+
 (struct: Key ([name : String]
 	      [type : DDBType]) #:transparent)
 
 (struct: KeyVal ([value : String] [type : DDBType]) #:transparent)
 
 (struct: Item ([name : String] [value : String] [type : DDBType]) #:transparent)
+
+(struct: ItemKey ([hashkey : KeyVal]
+		  [rangekey : (Option KeyVal)]) #:transparent)

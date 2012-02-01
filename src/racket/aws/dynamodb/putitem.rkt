@@ -19,8 +19,7 @@
 #lang typed/racket/base
 
  (provide
-  put-item ReturnValues
-  Exists Exists?
+  put-item
   PutItemResult PutItemResult?)
 
 (require 
@@ -30,14 +29,16 @@
  (only-in "action.rkt"
 	  PUT-ITEM)
  (only-in "types.rkt"
+	  ReturnValues
+	  Exists Exists? Exists-name Exists-exists
 	  Item Item? Item-name Item-value Item-type
 	  DDBType ddbtype-symbol)
  (only-in "invoke.rkt"
-	  dynamodb))
-
-;; POST / HTTP/1.1 
-;; x-amz-target: DynamoDB_20111205.PutItem
-;; content-type: application/x-amz-json-1.0
+	  dynamodb)
+ (only-in "request.rkt"
+	  items-obj
+	  expected/exists-json
+	  return-values-json))
 
 ;; {"TableName":"Table1",
 ;; 	"Item":{
@@ -47,44 +48,19 @@
 ;; 	"Expect":{"AttributeName3":{"Value": {"S":"AttributeValue"},{"Exists":Boolean}},
 ;; 	"ReturnValues":"ReturnValuesConstant"}
 
-(define-type ReturnValues (U 'None 'AllOld))
-
-(struct: Exists ([name : String] [exists : Boolean]) #:transparent)
-
 (struct: PutItemResult () #:transparent)
-
-(: items-obj (Item -> (Pair Symbol JsObject)))
-(define (items-obj item)
-  (cons (string->symbol (Item-name item))
-	(jsobject `((,(ddbtype-symbol (Item-type item)) . ,(Item-value item))))))
 
 (: item-request ((Listof Item) -> JsObject))
 (define (item-request items)
   (jsobject (map items-obj items)))
 
-(: expected-json (Item -> JsObject))
-(define (expected-json expected)
-  (jsobject (list (items-obj expected))))
-
-(: exists-json (Exists -> JsObject))
-(define (exists-json exists)
-  (jsobject `((,(string->symbol (Exists-name exists)) . ,(jsobject `((Exists . ,(Exists-exists exists))))))))
-
-(: return-values-request (ReturnValues -> String))
-(define (return-values-request rtnval)
-  (case rtnval
-    ((None) "NONE")
-    ((AllOld) "ALL_OLD")))
-
 (: put-item-request (String (Listof Item) (Option (U Exists Item)) ReturnValues -> String))
 (define (put-item-request name items expected return-values)
   (let: ((req : JsObject (jsobject `((TableName . ,name)
 				     (Item . ,(item-request items))
-				     (ReturnValues . ,(return-values-request return-values))))))
+				     (ReturnValues . ,(return-values-json return-values))))))
     (when expected
-      (cond 
-       ((Item? expected) (attribute req 'Expect (expected-json expected)))
-       ((Exists? expected)   (attribute req 'Expect (exists-json expected)))))
+      (attribute req 'Expect (expected/exists-json expected)))
     (json->string req)))
 
 (: put-item (String (Listof Item) (Option (U Exists Item)) ReturnValues -> PutItemResult))

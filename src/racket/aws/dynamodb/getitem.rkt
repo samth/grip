@@ -19,8 +19,7 @@
 #lang typed/racket/base
 
 (provide 
- get-item
- ItemKey ItemKey?)
+ get-item)
 
 (require
  racket/pretty
@@ -32,40 +31,28 @@
 	  ddbtype-symbol DDBType
 	  Item
 	  Key Key? Key-name Key-type
-	  KeyVal KeyVal? KeyVal-value KeyVal-type)
+	  KeyVal KeyVal? KeyVal-value KeyVal-type
+	  ItemKey)
  (only-in "action.rkt"
 	  GET-ITEM)
  (only-in "invoke.rkt"
-	  dynamodb))
+	  dynamodb)
+ (only-in "request.rkt"
+	  itemkey-json))	  
  
 (struct: GetItemResp ([items : (Listof Item)] [consumed : Float]) #:transparent)
 
-(struct: ItemKey ([hashkey : KeyVal]
-		  [rangekey : (Option KeyVal)]) #:transparent)
-
-(: keyvalue-json (KeyVal -> JsObject))
-(define (keyvalue-json keyval)
-  (jsobject `((,(ddbtype-symbol (KeyVal-type keyval)) . ,(KeyVal-value keyval)))))
-
-(: itemkey-json (ItemKey -> JsObject))
-(define (itemkey-json item-key)
-  (let ((jsobj (jsobject `((HashKeyElement . ,(keyvalue-json (ItemKey-hashkey item-key)))))))
-    (let ((rnge-key (ItemKey-rangekey item-key)))
-      (when rnge-key 
-	(attribute jsobj 'RangeKeyElement (keyvalue-json rnge-key))))
-    jsobj))
-
 (: get-item-request (String ItemKey (Listof String) Boolean -> String))
-(define (get-item-request name key attrs consistent?)
-  (let ((req (jsobject `((TableName . ,name)
+(define (get-item-request table key attrs consistent?)
+  (let ((req (jsobject `((TableName . ,table)
 			 (Key . ,(itemkey-json key))
 			 (AttributesToGet . ,attrs)
 			 (ConsistentRead . ,(if consistent? "true" "false"))))))
     (json->string req)))
 
 (: get-item  (String ItemKey (Listof String) Boolean -> GetItemResp))
-(define (get-item name item-key attrs consistent?)
-  (let ((req (get-item-request name item-key attrs consistent?)))
+(define (get-item table item-key attrs consistent?)
+  (let ((req (get-item-request table item-key attrs consistent?)))
     (let ((resp (dynamodb GET-ITEM req)))
       (if (JsObject? resp)
 	  (parse-get-item-resp resp)
