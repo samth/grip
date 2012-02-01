@@ -19,8 +19,11 @@
 #lang typed/racket/base
 
 (provide
- create-table
+ create-table delete-table
+ get-item
+ put-item ReturnValues
  Key Key? Key-name Key-type
+ Item Item?
  Throughput Throughput? Throughput-read Throughput-write)
 
 (require 

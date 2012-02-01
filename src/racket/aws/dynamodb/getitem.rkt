@@ -18,6 +18,9 @@
 
 #lang typed/racket/base
 
+(provide 
+ get-item)
+
 (require
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
