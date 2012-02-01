@@ -31,7 +31,6 @@
  (only-in "action.rkt"
 	  CREATE-TABLE)
  (only-in "types.rkt"
-	  DDBError DDBError? DDBError-code
 	  Key Key? Key-name Key-type)
  (only-in "invoke.rkt"
 	  dynamodb))
@@ -67,13 +66,10 @@
 			       (KeySchema . ,(keys-json hash-key range-key))
 			       (ProvisionedThroughput . ,(throughput-json throughput))))))
 
-(: create-table (String Key (Option Key) Throughput -> (U DDBError CreateTableResp)))
+(: create-table (String Key (Option Key) Throughput -> CreateTableResp))
 (define (create-table name hash-key range-key throughput) 
-  (pretty-print (dynamodb CREATE-TABLE (create-request name hash-key range-key throughput)))
-  (DDBError 'Test))
-
-(define (test)  
-  (create-table "ray" (Key "sku" 'String) #f (Throughput 3 5)))
+  (let ((resp (dynamodb CREATE-TABLE (create-request name hash-key range-key throughput))))
+    (CreateTableResp)))
 
 ;; POST / HTTP/1.1 
 ;; x-amz-target: DynamoDB_20111205.CreateTable 

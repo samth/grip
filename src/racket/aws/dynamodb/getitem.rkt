@@ -30,7 +30,6 @@
 	  opt-orelse)
  (only-in "types.rkt"
 	  ddbtype-symbol DDBType
-	  DDBError DDBError? DDBError-code
 	  Item
 	  Key Key? Key-name Key-type
 	  KeyVal KeyVal? KeyVal-value KeyVal-type)
