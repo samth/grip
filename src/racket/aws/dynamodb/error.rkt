@@ -42,7 +42,7 @@
 (define-syntax throw
   (syntax-rules ()
     ((throw excn)
-     (raise excn #t))))
+     (raise (ddb-exception excn)))))  ;; FIXME - Should be bug in TR: (raise (ddb-exception excn) #t))))
 
 (: is-exception-response? (JsObject -> Boolean))
 (define (is-exception-response? jsobj)
