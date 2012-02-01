@@ -19,15 +19,18 @@
 #lang typed/racket/base
 
 (provide
- create-table delete-table
- get-item
- put-item ReturnValues
+ create-table delete-table describe-table
+ get-item put-item ReturnValues
+ list-tables ListTablesResp 
  Key Key? Key-name Key-type
+ KeyVal KeyVal?
+ ItemKey ItemKey?
  Item Item?
  Throughput Throughput? Throughput-read Throughput-write)
 
-(require 
+(require
  (only-in "types.rkt"
+	  KeyVal KeyVal?
 	  Item Item? Item-name Item-type Item-value)
  (only-in "createtable.rkt"
 	  Key Key? Key-name Key-type
@@ -39,6 +42,9 @@
 	  describe-table DescribeTableResp DescribeTableResp?)
  (only-in "listtable.rkt"
 	  list-tables ListTablesResp ListTablesResp?)
+ (only-in "getitem.rkt"
+	  get-item
+	  ItemKey ItemKey?)
  (only-in "putitem.rkt"
 	  put-item
 	  Exists Exists? ReturnValues

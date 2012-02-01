@@ -3,7 +3,7 @@
 (provide
  DDBError DDBError? DDBError-code
  Key Key? Key-name Key-type
- KeyVal KeyVal? KeyVal-value
+ KeyVal KeyVal? KeyVal-value KeyVal-type
  Item Item? Item-name Item-value Item-type
  ddbtype-code ddbtype-symbol DDBType)
 
@@ -26,6 +26,6 @@
 (struct: Key ([name : String]
 	      [type : DDBType]) #:transparent)
 
-(struct: KeyVal Key ([value : String]) #:transparent)
+(struct: KeyVal ([value : String] [type : DDBType]) #:transparent)
 
 (struct: Item ([name : String] [value : String] [type : DDBType]) #:transparent)

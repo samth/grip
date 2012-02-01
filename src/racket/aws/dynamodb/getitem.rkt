@@ -19,7 +19,8 @@
 #lang typed/racket/base
 
 (provide 
- get-item)
+ get-item
+ ItemKey ItemKey?)
 
 (require
  racket/pretty
@@ -32,7 +33,7 @@
 	  DDBError DDBError? DDBError-code
 	  Item
 	  Key Key? Key-name Key-type
-	  KeyVal KeyVal? KeyVal-value)
+	  KeyVal KeyVal? KeyVal-value KeyVal-type)
  (only-in "action.rkt"
 	  GET-ITEM)
  (only-in "invoke.rkt"
@@ -45,7 +46,7 @@
 
 (: keyvalue-json (KeyVal -> JsObject))
 (define (keyvalue-json keyval)
-  (jsobject `((,(string->symbol (Key-name keyval)) . ,(jsobject `((,(ddbtype-symbol (Key-type keyval)) . ,(KeyVal-value keyval))))))))
+  (jsobject `((,(ddbtype-symbol (KeyVal-type keyval)) . ,(KeyVal-value keyval)))))
 
 (: itemkey-json (ItemKey -> JsObject))
 (define (itemkey-json item-key)
@@ -59,6 +60,7 @@
 (define (get-item-request name key attrs consistent?)
   (let ((req (jsobject `((TableName . ,name)
 			 (Key . ,(itemkey-json key))
+			 (AttributesToGet . ,attrs)
 			 (ConsistentRead . ,(if consistent? "true" "false"))))))
     (json->string req)))
 
@@ -108,6 +110,8 @@
 		(loop (cdr attrs) (cons (parse-item name type-value) items))
 		(parse-fail jattrs))))))
 
+
+  (pretty-print (json->string resp))
   (let ((jresp (hash-ref resp 'Item)))
     (if (JsObject? jresp)
 	(let ((items (parse-items jresp))
