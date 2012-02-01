@@ -34,11 +34,13 @@
  (only-in (planet knozama/webkit:1/web/http/header)
           Header make-header-string header->string)
  (only-in (planet knozama/common:1/type/date)
-	  current-time-rfc-2822
-	  current-time-iso-8601)
+	  current-date-string-rfc-2822
+	  current-date-string-iso-8601)
  (only-in (planet knozama/webkit:1/formats/tjson)
-	  Json read-json write-json)
- (only-in "../sts/sts.rkt"
+	  Json JsObject JsObject? read-json write-json)
+ (only-in "error.rkt"
+	  is-exception-response? throw)
+ (only-in "../sts/session.rkt"
 	  ensure-session)
  (only-in "../auth/authv3.rkt"
 	  auth-signature)
@@ -59,7 +61,7 @@
    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
    ;; (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
    ;; (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-   ;; (make-header-string "Accept-Encoding" "gzip")
+   (make-header-string "Accept-Encoding" "gzip")
    ;; (make-header-string "Accept-Language" "en-US,en;q=0.8")
    ;; (make-header-string "Cache-Control" "max-age=0")
    (make-header-string "Content-Type" "application/x-amz-json-1.0")
@@ -67,7 +69,7 @@
 
 (: date-header (-> Header))
 (define (date-header)
-  (cons "x-amz-date" (current-time-rfc-2822)))
+  (cons "x-amz-date" (current-date-string-rfc-2822)))
 
 (: auth-headers (String String -> Params))
 (define (auth-headers cmd tok)
@@ -77,17 +79,21 @@
    (date-header)
    (cons "x-amz-target" cmd)))
 
-(: dynamodb-invoke (Uri (Listof String) String -> (U DynamoDBFailure Json)))
+(: dynamodb-invoke (Uri (Listof String) String -> JsObject))
 (define (dynamodb-invoke url headers payload)
   (with-handlers ([exn:fail?
 		   (lambda (ex) 
 		     (pretty-print ex)
-		     (DynamoDBFailure))])
+		     (raise ex))])
     (let ((conn (http-invoke 'POST url headers 
 			   (string->bytes/utf-8 payload))))
       (let ((json (read-json (HTTPConnection-in conn))))
 	(http-close-connection conn)
-	json))))
+	(if (JsObject? json)
+	    (if (is-exception-response? json)
+		(throw json)
+		json)
+	    (error "Invalid DynamoDB response: not a Json Object"))))))
 
 (: sign-request (Params String -> String))
 (define (sign-request params body)
@@ -102,7 +108,7 @@
 			;; "SignedHeaders=host;x-amz-date;x-amz-target;x-amz-security-token,"
 			(sign-request headers body))))
 
-(: dynamodb (String String -> (U DynamoDBFailure Json)))
+(: dynamodb (String String -> Json))
 (define (dynamodb cmd cmd-body)
   (if (ensure-session)
       (let* ((scred (let ((scred (AwsCredential-session (current-aws-credential))))
@@ -114,4 +120,4 @@
 		 (hdrs (cons auth auth-hdrs))
 		 (shdrs (append (map header->string hdrs) request-headers)))
 	    (dynamodb-invoke url shdrs cmd-body))))
-      (DynamoDBFailure)))
+      (error "DynamoDB failed to obtain a valid session token")))

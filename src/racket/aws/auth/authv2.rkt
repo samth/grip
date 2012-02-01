@@ -6,7 +6,7 @@
 (require
  racket/pretty
  (only-in (planet knozama/common:1/type/date)
-	  current-time-iso-8601)
+	  current-date-string-iso-8601)
  (only-in (planet knozama/common:1/text/util)
 	  weave-string-separator)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
@@ -56,7 +56,7 @@
   (cons (access-key-parm access-key)
 	(cons (param "Action" cmd)
 	      (cons (param "Version" api-version)
-		    (cons (param "Timestamp" (url-encode-string (current-time-iso-8601) #f))
+		    (cons (param "Timestamp" (url-encode-string (current-date-string-iso-8601 #t) #f))
 			  fixed-params)))))
 
 (: auth-str (String String String Params -> String))
@@ -66,7 +66,6 @@
 
 (: signature (String String -> String))
 (define (signature secret-key signee)
-  (pretty-print signee)
   (url-encode-string (base64-encode (hmac-sha256 secret-key signee)) #f))
 
 (: authv2-signature (String String String String String Params -> Params))
