@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide 
- ensure-session)
+ get-session-token)
 
 (require
  racket/pretty
@@ -16,16 +16,12 @@
  (only-in (planet knozama/webkit:1/web/http/header)
           make-header-string)
  (only-in "../credential.rkt"
-	  set-aws-credential! add-session-credential
-	  current-aws-credential AwsCredential AwsCredential? AwsCredential-session 
-	  SessionCredential SessionCredential? SessionCredential-expiration)
+  	  SessionCredential SessionCredential?)
  (only-in "../auth/authv2.rkt"
 	  authv2-signature)
  (only-in "config.rkt"
 	  get-session-token-action sts-host sts-api-version)
- (only-in "error.rkt"
-	  STSError)
- (only-in "session.rkt"
+ (only-in "response.rkt"
 	  parse-session-response))
 
 (: request-headers (Listof String))
@@ -44,16 +40,12 @@
 (define (invoke-uri path query)
   (make-uri "https" #f sts-host 443 path query ""))
 
-(: invoke-sts-get (All (a) (Uri (Listof String) (Sxml -> (U STSError a)) -> (U STSError a))))
+(: invoke-sts-get (All (a) (Uri (Listof String) (Sxml -> a) -> a)))
 (define (invoke-sts-get url headers resp-parser)
-  (with-handlers ([exn:fail?
-		   (lambda (ex) 
-		     (pretty-print ex)
-		     (STSError))])
-    (let ((conn (http-invoke 'GET url headers #f)))
-      (let ((page (xml->sxml (HTTPConnection-in conn) '())))
-	(http-close-connection conn)
-	(resp-parser page)))))
+  (let ((conn (http-invoke 'GET url headers #f)))
+    (let ((page (xml->sxml (HTTPConnection-in conn) '())))
+      (http-close-connection conn)
+      (resp-parser page))))
 
 (: signed-query (String (Listof (Pairof String String)) -> Params))
 (define (signed-query cmd qparams)
@@ -65,32 +57,7 @@
   (cons "DurationSeconds" (number->string duration-secs)))
 
 ;; 3600s (one hour) to 129600s (36 hours), with 43200s (12 hours) as default
-(: get-session-token (Natural -> (U STSError SessionCredential)))
+(: get-session-token (Natural -> SessionCredential))
 (define (get-session-token duration-secs)
   (let ((url (invoke-uri "/" (params->query (signed-query get-session-token-action '())))))
     (invoke-sts-get url request-headers parse-session-response)))
-
-(: expired-token? (SessionCredential -> Boolean))
-(define (expired-token? creds)
-  (let ((expiry (SessionCredential-expiration creds)))
-    (if expiry #t #t)))
-
-(: refresh-token (-> Boolean))
-(define (refresh-token)
-  (let ((tok (get-session-token 100)))
-    (if (SessionCredential? tok)
-	(begin
-	  (set-aws-credential! (add-session-credential tok))
-	  #t)
-	#f)))
-
-;; consider chaperone-procedure or make-derived-parameter
-(: ensure-session (-> Boolean))
-(define (ensure-session)
-  (let ((stok (AwsCredential-session (current-aws-credential))))
-    (if stok
-	(if (expired-token? stok)
-	    (refresh-token)
-	    #t)
-	(refresh-token))))
-	    

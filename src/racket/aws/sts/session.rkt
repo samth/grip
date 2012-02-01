@@ -1,39 +1,40 @@
 #lang typed/racket/base
 
 (provide
- parse-session-response)
+ ensure-session)
 
 (require
- racket/pretty 
- (only-in (planet knozama/xml:1/sxml)
-	  Sxml SXPath sxpath extract-text extract-integer)
- (only-in (planet knozama/aws:1/credential)
-	  SessionCredential current-aws-credential)
- (only-in "error.rkt"
-	  STSError)
- (only-in "config.rkt"
-	  sts-ns))
+ racket/pretty
+ (only-in (planet knozama/common:1/type/date)
+	  time< current-time)
+ (only-in "../credential.rkt"
+	  set-aws-credential! add-session-credential
+	  current-aws-credential AwsCredential AwsCredential? AwsCredential-session 
+	  SessionCredential SessionCredential? SessionCredential-expiration)
+ (only-in "sts.rkt"
+	  get-session-token))
 
-(: mk-sxpath (String -> SXPath))
-(define mk-sxpath
-  (let ((sts-nss  `((sts . ,sts-ns))))
-    (lambda (path)
-      (sxpath path sts-nss))))
+(: expired-token? (SessionCredential -> Boolean))
+(define (expired-token? creds)
+  (let ((expiry (SessionCredential-expiration creds)))
+    (time< expiry (current-time))))	
 
-(define sx-session-result-creds 
-  (mk-sxpath "/sts:GetSessionTokenResponse/sts:GetSessionTokenResult/sts:Credentials"))
-(define sx-session-token        (mk-sxpath "/sts:SessionToken/text()"))
-(define sx-session-access-key   (mk-sxpath "/sts:AccessKeyId/text()"))
-(define sx-session-secret-key   (mk-sxpath "/sts:SecretAccessKey/text()"))
-(define sx-session-expiration   (mk-sxpath "/sts:Expiration/text()"))
+(: refresh-token (-> Boolean))
+(define (refresh-token)
+  (let ((tok (get-session-token 100)))
+    (if (SessionCredential? tok)
+	(begin
+	  (set-aws-credential! (add-session-credential tok))
+	  #t)
+	#f)))
 
-(: parse-session-response (Sxml -> (U STSError SessionCredential)))
-(define (parse-session-response sxml)
-  (let ((result (sx-session-result-creds sxml)))
-    (if (pair? result)
-	(let ((token (extract-text (sx-session-token result)))
-	      (access (extract-text (sx-session-access-key result)))
-	      (secret (extract-text (sx-session-secret-key result)))
-	      (expiration (extract-text (sx-session-expiration result))))
-	  (SessionCredential access secret token expiration))
-	(STSError))))
+;; consider chaperone-procedure or make-derived-parameter
+(: ensure-session (-> Boolean))
+(define (ensure-session)
+  (let ((stok (AwsCredential-session (current-aws-credential))))
+    (if stok
+	(if (expired-token? stok)
+	    (refresh-token)
+	    #t)
+	(refresh-token))))
+	    
