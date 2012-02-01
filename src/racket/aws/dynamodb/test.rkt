@@ -2,25 +2,39 @@
 
 (require
  (only-in "dynamodb.rkt"
-	  create-table Key Throughput
-	  put-item ReturnValues Item))
+	  create-table delete-table describe-table list-tables 
+	  get-item put-item 
+	  Item Key ItemKey KeyVal
+	  ReturnValues Throughput))
+
+(define table "product")
 
 (define (create)
-  (create-table "product" (Key "upc" 'String) #f (Throughput 3 5)))
+  (create-table table (Key "sku" 'String) #f (Throughput 3 5)))
+
+(define (describe)
+  (describe-table table))
 
 (define (add)
-  (put-item "product" (list (Item "color" "red" 'String)
-			    (Item "price" "1.99" 'Number)
-			    (Item "upc" "315515" 'String))
+  (put-item table (list (Item "color" "red" 'String)
+			(Item "price" "1.99" 'Number)
+			(Item "sku" "315515" 'String))
 	    #f 'AllOld))
 
+(define (add2)
+  (put-item table (list (Item "color" "blue" 'String)
+			(Item "price" "5.00" 'Number)
+			(Item "sku" "123456" 'String))
+	    #f 'AllOld))
 
-;;(define (get)
-;;  (get-item 
-
-
+(define (get)
+  (get-item table (ItemKey (KeyVal "315515" 'String) #f) '("sku" "price") #f))
+ 
 (define (delete)
-  (delete-table "product"))
+  (delete-table table))
+
+(define (dir)
+  (list-tables #f 10))
 
 ;; '#hasheq((TableDescription
 ;;           .
@@ -59,3 +73,6 @@
 ;;          (ConsumedCapacityUnits . 1.0))
 ;; - : (U DDBError PutItemResult)
 ;; (PutItemResult)
+
+
+;; "{\"message\": \"Supplied AttributebValue is empty, must contain exactly one of the supported datatypes\", \"__type\": \"com.amazon.coral.validate#ValidationException\"}"
