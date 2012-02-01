@@ -20,7 +20,7 @@
 
 (provide
  LIST-TABLES CREATE-TABLE DESCRIBE-TABLE DELETE-TABLE 
- PUT-ITEM GET-ITEM DELETE-ITEM)
+ PUT-ITEM GET-ITEM DELETE-ITEM UPDATE-ITEM)
 
 (require 
  (only-in "config.rkt"
@@ -57,3 +57,7 @@
 (: DELETE-ITEM String)
 (define DELETE-ITEM
   (action "DeleteItem"))
+
+(: UPDATE-ITEM String)
+(define UPDATE-ITEM
+  (action "UpdateItem"))
