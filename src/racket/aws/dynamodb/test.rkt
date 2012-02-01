@@ -29,7 +29,7 @@
 
 (define (get)
   (get-item table (ItemKey (KeyVal "315515" 'String) #f) '("sku" "price") #f))
- 
+
 (define (delete)
   (delete-table table))
 
