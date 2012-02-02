@@ -31,6 +31,8 @@
 (require
  (only-in "types.rkt"
 	  KeyVal KeyVal?
+	  Exists Exists? ReturnValues
+	  ItemKey ItemKey?
 	  Item Item? Item-name Item-type Item-value)
  (only-in "createtable.rkt"
 	  Key Key? Key-name Key-type
@@ -43,9 +45,7 @@
  (only-in "listtable.rkt"
 	  list-tables ListTablesResp ListTablesResp?)
  (only-in "getitem.rkt"
-	  get-item
-	  ItemKey ItemKey?)
+	  get-item)
  (only-in "putitem.rkt"
 	  put-item
-	  Exists Exists? ReturnValues
 	  PutItemResult PutItemResult?))
