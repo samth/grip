@@ -36,9 +36,11 @@
 	  KeySchema Throughput Throughput? DDBType? Key)
  (only-in (planet knozama/webkit:1/formats/tjson)
 	  Json JsObject JsObject? json->string jsobject attribute))
-		
+
+
+;; Some values are optional and/or set to 0 to support when a table is state transitioning i.e. deleting.
 (struct: DescribeTableResp ([name : String]
-			    [schema : KeySchema]
+			    [schema : (Option KeySchema)]
 			    [size : Integer]
 			    [item-cnt : Integer]
 			    [creation : Float]
@@ -66,34 +68,8 @@
 	      (status (let ((status (string->TableStatus (attr-value table 'TableStatus string?))))
 			(if status status (invalid-error 'TablesStatus resp))))
 	      (capacity (parse-capacity (attr-value table 'ProvisionedThroughput JsObject?)))
-	      (schema (parse-key-schema (attr-value table 'KeySchema JsObject?))))
+	      (schema (if (hash-has-key? table 'KeySchema)
+			  (parse-key-schema (attr-value table 'KeySchema JsObject?))
+			  #f)))
 	  (DescribeTableResp name schema size item-cnt creation status capacity)))
       (invalid-error 'DescribeTableResp resp)))
-
-;; '#hasheq((Table
-;;           .
-;;           #hasheq((TableSizeBytes . 0)
-;;                   (TableName . "product")
-;;                   (ProvisionedThroughput
-;;                    .
-;;                    #hasheq((WriteCapacityUnits . 5) (ReadCapacityUnits . 3)))
-;;                   (KeySchema
-;;                    .
-;;                    #hasheq((HashKeyElement
-;;                             .
-;;                             #hasheq((AttributeName . "sku")
-;;                                     (AttributeType . "S")))))
-;;                   (ItemCount . 0)
-;;                   (CreationDateTime . 1.3284053674979)
-;;                   (TableStatus . "ACTIVE"))))
-;; - : DescribeTableResp
-
-
-
-;; // This header is abbreviated. 
-;; // For a sample of a complete header, see Sample Amazon DynamoDB JSON Request and Response.
-;; POST / HTTP/1.1 
-;; x-amz-target: DynamoDB_20111205.DescribeTable
-;; content-type: application/x-amz-json-1.0
-
-;; {"TableName":"Table1"}

@@ -55,19 +55,3 @@
 	  (DeleteTableResp name status capacity)))
       (invalid-error 'DeleteTable resp)))
 	  
-;; '#hasheq((TableDescription
-;;           .
-;;           #hasheq((TableStatus . "DELETING")
-;;                   (ProvisionedThroughput
-;;                    .
-;;                    #hasheq((WriteCapacityUnits . 5) (ReadCapacityUnits . 3)))
-;;                   (TableName . "product"))))
-
-
-;; // This header is abbreviated. 
-;; // For a sample of a complete header, see Sample Amazon DynamoDB JSON Request and Response.
-;; POST / HTTP/1.1 
-;; x-amz-target: DynamoDB_20111205.DeleteTable 
-;; content-type: application/x-amz-json-1.0
-
-;; {"TableName":"Table1"}

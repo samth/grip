@@ -39,6 +39,12 @@
 			(Item "sku" "315515" 'String))
 	    #f 'AllOld))
 
+(define (add0)
+  (put-item table (list (Item "color" "blue" 'String)
+			(Item "price" "4.99" 'Number)
+			(Item "sku" "315515" 'String))
+	    #f 'AllOld))
+
 (define (add2)
   (put-item table (list (Item "color" "blue" 'String)
 			(Item "price" "5.00" 'Number)
@@ -46,7 +52,7 @@
 	    #f 'AllOld))
 
 (define (get)
-  (get-item table (ItemKey (KeyVal "315515" 'String) #f) '("sku" "price") #f))
+  (get-item table (ItemKey (KeyVal "315515" 'String) #f) '("sku" "price" "color") #f))
 
 (define (get2)
   (get-item table (ItemKey (KeyVal "123456" 'String) #f) '("sku" "price") #f))

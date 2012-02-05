@@ -112,24 +112,3 @@
 		       (consumed jsobj)))
 	(error (string-append "Invalid response: " (json->string jsobj))))))
 
-;; '#hasheq((Attributes
-;;           .
-;;           #hasheq((upc . #hasheq((S . "315515")))
-;;                   (price . #hasheq((N . "1.99")))
-;;                   (color . #hasheq((S . "red")))))
-;;          (ConsumedCapacityUnits . 1.0))
-
-  
-;; (define (test)
-;;   (put-item "Ray" (list (Item "color" "red" 'String)
-;; 			(Item "age" "50" 'Number))
-;; 	    (Item "Name" "ray" 'String) 'None)
-  
-;;   (put-item "Ray" (list (Item "color" "red" 'String)
-;; 			(Item "age" "50" 'Number)) #f 'None))
-
-;; (define (etest)
-;;   (pretty-print (json->string (expected-json (Item "color" "red" 'String)))))
-
-;; (define (xtest)
-;;   (pretty-print (json->string (exists-json (Exists "color" #t)))))

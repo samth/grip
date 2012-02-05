@@ -87,29 +87,3 @@
 			(if status status (invalid-error 'TablesStatus desc)))))
 	  (CreateTableResp name status creation capacity schema)))
       (invalid-error 'TableDescription resp)))
-
-
-;;           #hasheq((TableStatus . "CREATING")
-;;                   (CreationDateTime . 1.3280218373939)
-;;                   (ProvisionedThroughput
-;;                    .
-;;                    #hasheq((WriteCapacityUnits . 5) (ReadCapacityUnits . 3)))
-;;                   (KeySchema
-;;                    .
-;;                    #hasheq((HashKeyElement
-;;                             .
-;;                             #hasheq((AttributeType . "S")
-;;                                     (AttributeName . "upc")))))
-;;                   (TableName . "product"))))
-
-
-;; POST / HTTP/1.1 
-;; x-amz-target: DynamoDB_20111205.CreateTable 
-;; content-type: application/x-amz-json-1.0 
-
-;; {"TableName":"Table1",
-;;     "KeySchema":
-;;         {"HashKeyElement":{"AttributeName":"AttributeName1","AttributeType":"S"},
-;;         "RangeKeyElement":{"AttributeName":"AttributeName2","AttributeType":"N"}},
-;;     "ProvisionedThroughput":{"ReadCapacityUnits":5,"WriteCapacityUnits":10}
-;; }
