@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Knozama's Amazon API Library
+; Knozama's Amazon API Library
 ;; Copyright (C) 2012  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -27,14 +27,67 @@
  (only-in "action.rkt"
 	  DESCRIBE-TABLE)
  (only-in "invoke.rkt"
-	  dynamodb))
-
-(struct: DescribeTableResp ())
+	  dynamodb)
+ (only-in "parse.rkt"
+	  parse-capacity parse-key-schema
+	  invalid-error attr-value)
+ (only-in "types.rkt"
+	  TableStatus TableStatus? string->TableStatus
+	  KeySchema Throughput Throughput? DDBType? Key)
+ (only-in (planet knozama/webkit:1/formats/tjson)
+	  Json JsObject JsObject? json->string jsobject attribute))
+		
+(struct: DescribeTableResp ([name : String]
+			    [schema : KeySchema]
+			    [size : Integer]
+			    [item-cnt : Integer]
+			    [creation : Float]
+			    [status : TableStatus]
+			    [capacity : Throughput]) #:transparent)
 
 (: describe-table (String -> DescribeTableResp))
 (define (describe-table name)
-  (pretty-print (dynamodb DESCRIBE-TABLE (format "{\"TableName\": ~s}" name)))
-  (DescribeTableResp))
+  (parse-describe-table-resp (dynamodb DESCRIBE-TABLE (format "{\"TableName\": ~s}" name))))
+
+(: parse-describe-table-resp (Json -> DescribeTableResp))
+(define (parse-describe-table-resp resp)
+  (if (JsObject? resp)      
+      (let ((table (attr-value resp 'Table JsObject?)))
+	(let ((size (if (hash-has-key? table 'TableSizeBytes)
+			(attr-value table 'TableSizeBytes exact-integer?)
+			0))
+	      (name (attr-value table 'TableName string?))
+	      (item-cnt (if (hash-has-key? table 'ItemCount)			    
+			    (attr-value  table 'ItemCount exact-integer?)
+			    0))
+	      (creation (if (hash-has-key? table 'CreationDateTime)
+			    (attr-value table 'CreationDateTime flonum?)
+			    0.0))
+	      (status (let ((status (string->TableStatus (attr-value table 'TableStatus string?))))
+			(if status status (invalid-error 'TablesStatus resp))))
+	      (capacity (parse-capacity (attr-value table 'ProvisionedThroughput JsObject?)))
+	      (schema (parse-key-schema (attr-value table 'KeySchema JsObject?))))
+	  (DescribeTableResp name schema size item-cnt creation status capacity)))
+      (invalid-error 'DescribeTableResp resp)))
+
+;; '#hasheq((Table
+;;           .
+;;           #hasheq((TableSizeBytes . 0)
+;;                   (TableName . "product")
+;;                   (ProvisionedThroughput
+;;                    .
+;;                    #hasheq((WriteCapacityUnits . 5) (ReadCapacityUnits . 3)))
+;;                   (KeySchema
+;;                    .
+;;                    #hasheq((HashKeyElement
+;;                             .
+;;                             #hasheq((AttributeName . "sku")
+;;                                     (AttributeType . "S")))))
+;;                   (ItemCount . 0)
+;;                   (CreationDateTime . 1.3284053674979)
+;;                   (TableStatus . "ACTIVE"))))
+;; - : DescribeTableResp
+
 
 
 ;; // This header is abbreviated. 

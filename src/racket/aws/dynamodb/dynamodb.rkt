@@ -30,13 +30,13 @@
 
 (require
  (only-in "types.rkt"
+	  Throughput Throughput? Throughput-read Throughput-write
+	  Key Key? Key-name Key-type
 	  KeyVal KeyVal?
 	  Exists Exists? ReturnValues
 	  ItemKey ItemKey?
 	  Item Item? Item-name Item-type Item-value)
  (only-in "createtable.rkt"
-	  Key Key? Key-name Key-type
-	  Throughput Throughput? Throughput-read Throughput-write
 	  create-table)
  (only-in "deletetable.rkt"
 	  delete-table DeleteTableResp)
@@ -48,4 +48,4 @@
 	  get-item)
  (only-in "putitem.rkt"
 	  put-item
-	  PutItemResult PutItemResult?))
+	  PutItemResp PutItemResp?))

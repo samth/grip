@@ -23,7 +23,9 @@
 (provide
  throw is-exception-response?
  DDBException? 
- ValidationException ValidationException?)
+ ValidationException ValidationException?
+ ResourceNotFound ResourceNotFound?
+ InUseException InUseException?)
 
 (require 
  racket/pretty
@@ -35,6 +37,10 @@
 (struct: IllFormedResponse DDBException ([json : String]) #:transparent)
 
 (struct: ValidationException DDBException () #:transparent)
+
+(struct: InUseException DDBException () #:transparent)
+
+(struct: ResourceNotFound DDBException () #:transparent)
 
 (define unknown-msg "Unknown error message type: ")
 (define ill-formed-msg "Unparsable error response")
@@ -59,6 +65,10 @@
 	    (cond
 	     ((string=? type "com.amazon.coral.validate#ValidationException")
 	      (ValidationException msg (current-continuation-marks)))
+	     ((string=? type "com.amazonaws.dynamodb.v20111205#ResourceInUseException")
+	      (InUseException msg (current-continuation-marks)))
+	     ((string=? type "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException")
+	      (ResourceNotFound msg (current-continuation-marks)))
 	     (else (raise (IllFormedResponse (string-append unknown-msg type) (current-continuation-marks) (json->string jsobj)))))
 	    (raise (IllFormedResponse ill-formed-msg (current-continuation-marks) (json->string jsobj)))))
       (raise (IllFormedResponse ill-formed-msg (current-continuation-marks) (json->string jsobj)))))

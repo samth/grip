@@ -20,12 +20,12 @@
 
  (provide
   put-item
-  PutItemResult PutItemResult?)
+  PutItemResp PutItemResp?)
 
 (require 
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
-	  Json JsObject json->string jsobject attribute)
+	  Json JsObject JsObject? json->string jsobject attribute)
  (only-in "action.rkt"
 	  PUT-ITEM)
  (only-in "types.rkt"
@@ -48,7 +48,8 @@
 ;; 	"Expect":{"AttributeName3":{"Value": {"S":"AttributeValue"},{"Exists":Boolean}},
 ;; 	"ReturnValues":"ReturnValuesConstant"}
 
-(struct: PutItemResult () #:transparent)
+(struct: PutItemResp ([items : (Listof Item)]
+		      [consumed : Float]) #:transparent)
 
 (: item-request ((Listof Item) -> JsObject))
 (define (item-request items)
@@ -63,10 +64,53 @@
       (attribute req 'Expect (expected/exists-json expected)))
     (json->string req)))
 
-(: put-item (String (Listof Item) (Option (U Exists Item)) ReturnValues -> PutItemResult))
+(: put-item (String (Listof Item) (Option (U Exists Item)) ReturnValues -> PutItemResp))
 (define (put-item name items expected return-values)
-  (pretty-print (dynamodb PUT-ITEM (put-item-request name items expected return-values)))
-  (PutItemResult))
+  (let ((resp (dynamodb PUT-ITEM (put-item-request name items expected return-values))))
+    (if (JsObject? resp)		   
+	(parse-put-item-resp resp)
+	(error (string-append "Invalid response: " (json->string resp))))))
+
+(: parse-put-item-resp (JsObject -> PutItemResp))
+(define (parse-put-item-resp jsobj)
+  
+  (: invalid-error (Symbol Json -> Nothing))
+  (define (invalid-error symbol json)
+    (error (string-append "Invalid attribute in response: " (symbol->string symbol) " -> " (json->string jsobj))))
+
+  (: extract-string-value (JsObject Symbol -> String))
+  (define (extract-string-value jsobj key)
+    (let ((value (hash-ref jsobj key)))
+      (if (string? value)
+	  value
+	  (invalid-error key jsobj))))
+
+  (: parse-item (Symbol Json -> Item))
+  (define (parse-item name json-value)
+    (if (JsObject? json-value)
+	(cond
+	 ((hash-has-key? json-value 'N)
+	  (Item (symbol->string name) (extract-string-value json-value 'N) 'Number))
+	 ((hash-has-key? json-value 'S)
+	  (Item (symbol->string name) (extract-string-value json-value 'S) 'String))
+	 (else 	(invalid-error name json-value)))
+	(invalid-error name json-value)))
+
+  (: consumed (JsObject -> Float))
+  (define (consumed jsobj)
+    (let ((consumed (hash-ref jsobj 'ConsumedCapacityUnits)))
+      (if (flonum? consumed)
+	  consumed
+	  0.00)))
+
+  (let ((attrs (hash-ref jsobj 'Attributes (lambda () ((inst make-hasheq Symbol Json))))))
+    (if (JsObject? attrs)
+	(let ((attrs ((inst hash->list Symbol Json) attrs)))
+	  (PutItemResp (map (lambda: ((attr : (Pair Symbol Json)))
+			      (parse-item (car attr) (cdr attr)))
+			      attrs)
+		       (consumed jsobj)))
+	(error (string-append "Invalid response: " (json->string jsobj))))))
 
 ;; '#hasheq((Attributes
 ;;           .

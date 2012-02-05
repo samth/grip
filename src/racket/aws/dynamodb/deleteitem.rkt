@@ -29,6 +29,7 @@
       (pretty-print resp)))
   (DeleteItemResult))
 
+
 ;; (define (test)
 ;;  (delete-item-request "mytable" (ItemKey (KeyVal "315515" 'String) (KeyVal "20120101" 'String)) #f 'None))
 

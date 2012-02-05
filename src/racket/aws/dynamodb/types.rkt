@@ -19,14 +19,20 @@
 #lang typed/racket/base
 
 (provide
+ Throughput Throughput? Throughput-read Throughput-write
  Exists Exists? Exists-name Exists-exists
  Key Key? Key-name Key-type
  KeyVal KeyVal? KeyVal-value KeyVal-type
+ KeySchema KeySchema? KeySchema-hash-key KeySchema-range-key
  Item Item? Item-name Item-value Item-type
  ItemKey ItemKey? ItemKey-hashkey ItemKey-rangekey
- ddbtype-code ddbtype-symbol DDBType ReturnValues)
+ ddbtype-code ddbtype-symbol string->DDBType DDBType DDBType? 
+ TableStatus TableStatus? string->TableStatus
+ ReturnValues)
 
 (define-type DDBType (U 'String 'Number))
+
+(define-predicate DDBType? DDBType)
 
 (define-type ReturnValues (U 'None 'AllOld))
 
@@ -41,6 +47,33 @@
   (case type
     ((String) 'S)
     ((Number) 'N)))
+
+(: string->DDBType (String -> (Option DDBType)))
+(define (string->DDBType str)
+  (cond
+   ((string=? "S" str)
+    'String)
+   ((string=? "N" str)
+    'Number)
+   (else #f)))
+
+(define-type TableStatus (U 'Active 'Deleting 'Creating))
+
+(define-predicate TableStatus? TableStatus)
+
+(: string->TableStatus (String -> (Option TableStatus)))
+(define (string->TableStatus str)
+  (cond 
+   ((string=? str "ACTIVE") 'Active)
+   ((string=? str "DELETING") 'Deleting)
+   ((string=? str "CREATING") 'Creating)
+   (else #f)))
+
+(struct: KeySchema ([hash-key : Key]
+		    [range-key : (Option Key)]) #:transparent)
+
+(struct: Throughput ([read : Natural] 
+		     [write : Natural]) #:transparent)
 
 (struct: Exists ([name : String] [exists : Boolean]) #:transparent)
 

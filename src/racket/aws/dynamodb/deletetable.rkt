@@ -24,17 +24,44 @@
 
 (require
  racket/pretty
+ (only-in (planet knozama/webkit:1/formats/tjson)
+	  Json JsObject JsObject? json->string jsobject attribute)
+ (only-in "types.rkt"
+	  Throughput
+	  TableStatus string->TableStatus)
  (only-in "action.rkt"
 	  DELETE-TABLE)
  (only-in "invoke.rkt"
-	  dynamodb))
+	  dynamodb)
+ (only-in "parse.rkt"
+	  invalid-error attr-value parse-capacity))
 
-(struct: DeleteTableResp ())
+(struct: DeleteTableResp ([name : String]
+			  [status : TableStatus]
+			  [capacity : Throughput]) #:transparent)
 
 (: delete-table (String -> DeleteTableResp))
 (define (delete-table name)
-  (pretty-print (dynamodb DELETE-TABLE (format "{\"TableName\": ~s}" name)))
-  (DeleteTableResp))
+  (parse-delete-table-resp (dynamodb DELETE-TABLE (format "{\"TableName\": ~s}" name))))
+
+(: parse-delete-table-resp (Json -> DeleteTableResp))
+(define (parse-delete-table-resp resp)
+  (if (JsObject? resp)
+      (let ((desc (attr-value resp 'TableDescription JsObject?)))
+	(let ((status (let ((status (string->TableStatus (attr-value desc 'TableStatus string?))))
+			(if status status (invalid-error 'TableStatus resp))))
+	      (name (attr-value desc 'TableName string?))
+	      (capacity (parse-capacity (attr-value desc 'ProvisionedThroughput JsObject?))))
+	  (DeleteTableResp name status capacity)))
+      (invalid-error 'DeleteTable resp)))
+	  
+;; '#hasheq((TableDescription
+;;           .
+;;           #hasheq((TableStatus . "DELETING")
+;;                   (ProvisionedThroughput
+;;                    .
+;;                    #hasheq((WriteCapacityUnits . 5) (ReadCapacityUnits . 3)))
+;;                   (TableName . "product"))))
 
 
 ;; // This header is abbreviated. 
