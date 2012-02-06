@@ -3,7 +3,7 @@
 ;; Common functions to build a request
 
 (provide 
- items-obj
+ item-json items-json
  expected/exists-json
  ;;expected-json exists-json
  return-values-json
@@ -40,14 +40,14 @@
 
 (: expected-json (Item -> JsObject))
 (define (expected-json expected)
-  (jsobject (list (items-obj expected))))
+  (jsobject (list (item-json expected))))
 
 (: exists-json (Exists -> JsObject))
 (define (exists-json exists)
   (jsobject `((,(string->symbol (Exists-name exists)) . ,(jsobject `((Exists . ,(Exists-exists exists))))))))
 
-(: items-obj (Item -> (Pair Symbol JsObject)))
-(define (items-obj item)
+(: item-json (Item -> (Pair Symbol JsObject)))
+(define (item-json item)
   (cons (string->symbol (Item-name item))
 	(jsobject `((,(ddbtype-symbol (Item-type item)) . ,(Item-value item))))))
 
@@ -56,3 +56,7 @@
   (cond 
    ((Item? expected)   (expected-json expected))
    ((Exists? expected) (exists-json expected))))
+
+(: items-json ((Listof Item) -> JsObject))
+(define (items-json items)
+  (jsobject (map item-json items)))

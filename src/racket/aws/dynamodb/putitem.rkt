@@ -36,7 +36,7 @@
  (only-in "invoke.rkt"
 	  dynamodb)
  (only-in "request.rkt"
-	  items-obj
+	  items-obj item-json
 	  expected/exists-json
 	  return-values-json))
 
@@ -51,14 +51,10 @@
 (struct: PutItemResp ([items : (Listof Item)]
 		      [consumed : Float]) #:transparent)
 
-(: item-request ((Listof Item) -> JsObject))
-(define (item-request items)
-  (jsobject (map items-obj items)))
-
 (: put-item-request (String (Listof Item) (Option (U Exists Item)) ReturnValues -> String))
 (define (put-item-request name items expected return-values)
   (let: ((req : JsObject (jsobject `((TableName . ,name)
-				     (Item . ,(item-request items))
+				     (Item . ,(item-json items))
 				     (ReturnValues . ,(return-values-json return-values))))))
     (when expected
       (attribute req 'Expect (expected/exists-json expected)))
