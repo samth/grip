@@ -84,7 +84,7 @@
   (with-handlers ([exn:fail?
 		   (lambda (ex) 
 		     (pretty-print ex)
-		     (raise ex))])
+		     (raise ex #t))])
     (let ((conn (http-invoke 'POST url headers 
 			   (string->bytes/utf-8 payload))))
       (let ((json (read-json (HTTPConnection-in conn))))
