@@ -7,28 +7,59 @@
  (only-in "action.rkt"
 	  UPDATE-ITEM)
  (only-in "types.rkt"
-	  ItemKey Exists Item ReturnValues)
+	  Action action->string ddbtype-symbol
+	  KeyVal Item Item-name Item-type Item-value
+	  ItemVal ItemVal-value ItemVal-type
+	  ItemUpdate ItemUpdate-action ItemUpdate-value 
+	  ItemKey Exists ReturnValues)
  (only-in "invoke.rkt"
 	  dynamodb)
  (only-in "request.rkt"
-	  return-values-json itemkey-json))
+	  return-values-json item-json itemkey-json))
 
 (struct: UpdateItemResp ())
 
-(: update-item-request (String ItemKey (U Exists Item) (Listof Item) ReturnValues -> String))
+(: itemupdate-json (ItemUpdate -> Json))
+(define (itemupdate-json item)
+  (let ((attrs `((Action . ,(action->string (ItemUpdate-action item))))))
+    (let ((value (ItemUpdate-value item)))
+      (if value
+	  (jsobject (cons `(Value . ,(jsobject `((,(ddbtype-symbol (Item-type item)) . ,(Item-value item))))) attrs))
+	  (jsobject attrs)))))
+
+(: itemupdates-json ((Listof ItemUpdate) -> JsObject))
+(define (itemupdates-json updates)
+  (jsobject ((inst map (Pairof Symbol Json) ItemUpdate)
+	     (lambda: ((item : ItemUpdate))
+	       `(,(string->symbol (Item-name item)) . ,(itemupdate-json item)))
+	     updates)))
+
+(: update-item-request (String ItemKey (Option (U Exists Item)) (Listof ItemUpdate) ReturnValues -> String))
 (define (update-item-request table item-key expected attrs return-values)
   (let ((req (jsobject `((TableName . , table)
-			 (Key . ,(itemkey-json item-key))
-			 (ReturnValues . ,(return-values-json return-values))))))
+ 			 (Key . ,(itemkey-json item-key))
+ 			 (AtttributeUpdates . ,(itemupdates-json attrs))
+ 			 (ReturnValues . ,(return-values-json return-values))))))
     (json->string req)))
 
-(: update-item (String ItemKey (U Exists Item) (Listof Item) ReturnValues -> UpdateItemResp))
-(define (update-item table item-key expected attrs return-values)
-  (let ((req (update-item-request table item-key expected attrs return-values)))
-    (let ((resp (dynamodb UPDATE-ITEM req)))
-      (pretty-print resp)))
-  (UpdateItemResp))
+;; (: update-item (String ItemKey (Option (U Exists Item)) (Listof ItemUpdate) ReturnValues -> UpdateItemResp))
+;; (define (update-item table item-key expected attrs return-values)
+;;   (let ((req (update-item-request table item-key expected attrs return-values)))
+;;     (let ((resp (dynamodb UPDATE-ITEM req)))
+;;       (pretty-print resp)))
+;;   (UpdateItemResp))
 
+;;(define (test)
+;;  (pretty-print (json->string (itemupdates-json (list (ItemUpdate "AttributeName3" "Attr3Valu_New" 'String 'PUT))))))
+
+(define (test)
+  (pretty-print (update-item-request "Table1" 
+				     (ItemKey (KeyVal "AttrbuteValue1" 'String) #f)
+				     #f
+				     (list (ItemUpdate "AttributeName3" (ItemVal "Attr3Valu_New" 'String) 'PUT))
+				     (list (ItemUpdate "AttributeName4" #f  'DELETE))
+				     'AllOld)))
+				     		    
 ;; {"TableName":"Table1",
 ;;     "Key":
 ;;         {"HashKeyElement":{"S":"AttributeValue1"},

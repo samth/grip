@@ -20,11 +20,13 @@
 
 (provide
  Throughput Throughput? Throughput-read Throughput-write
+ Action action->string
  Exists Exists? Exists-name Exists-exists
  Key Key? Key-name Key-type
  KeyVal KeyVal? KeyVal-value KeyVal-type
  KeySchema KeySchema? KeySchema-hash-key KeySchema-range-key
  Item Item? Item-name Item-value Item-type
+ ItemUpdate ItemUpdate? ItemUpdate-name ItemUpdate-action ItemUpdate-value
  ItemKey ItemKey? ItemKey-hashkey ItemKey-rangekey
  ddbtype-code ddbtype-symbol string->DDBType DDBType DDBType? 
  TableStatus TableStatus? string->TableStatus
@@ -75,6 +77,12 @@
 (struct: Throughput ([read : Natural] 
 		     [write : Natural]) #:transparent)
 
+(define-type Action (U 'PUT 'ADD 'DELETE))
+
+(: action->string (Action -> String))
+(define (action->string action)
+  (symbol->string action))
+
 (struct: Exists ([name : String] [exists : Boolean]) #:transparent)
 
 (struct: Key ([name : String]
@@ -82,7 +90,11 @@
 
 (struct: KeyVal ([value : String] [type : DDBType]) #:transparent)
 
+(struct: ItemVal ([value : String] [type : DDBType]) #:transparent)
+
 (struct: Item ([name : String] [value : String] [type : DDBType]) #:transparent)
 
 (struct: ItemKey ([hashkey : KeyVal]
 		  [rangekey : (Option KeyVal)]) #:transparent)
+
+(struct: ItemUpdate  ([name : String] [value : (Option ItemVal)] [action : Action]) #:transparent)
