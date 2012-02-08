@@ -18,9 +18,9 @@
 
 #lang typed/racket/base
 
- (provide
-  put-item
-  PutItemResp PutItemResp?)
+(provide
+ put-item
+ PutItemResp PutItemResp?)
 
 (require 
  racket/pretty
@@ -36,7 +36,7 @@
  (only-in "invoke.rkt"
 	  dynamodb)
  (only-in "request.rkt"
-	  items-obj item-json
+	  items-json item-json
 	  expected/exists-json
 	  return-values-json))
 
@@ -54,7 +54,7 @@
 (: put-item-request (String (Listof Item) (Option (U Exists Item)) ReturnValues -> String))
 (define (put-item-request name items expected return-values)
   (let: ((req : JsObject (jsobject `((TableName . ,name)
-				     (Item . ,(item-json items))
+				     (Item . ,(items-json items))
 				     (ReturnValues . ,(return-values-json return-values))))))
     (when expected
       (attribute req 'Expect (expected/exists-json expected)))
@@ -104,7 +104,7 @@
 	(let ((attrs ((inst hash->list Symbol Json) attrs)))
 	  (PutItemResp (map (lambda: ((attr : (Pair Symbol Json)))
 			      (parse-item (car attr) (cdr attr)))
-			      attrs)
+			    attrs)
 		       (consumed jsobj)))
 	(error (string-append "Invalid response: " (json->string jsobj))))))
 

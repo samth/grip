@@ -54,17 +54,16 @@
 		       [link    : String]) #:transparent)
 
 ;; HTTP Stuff
-
 (: search-request-headers (Listof String))
 (define search-request-headers  
   (list 
    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
    (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-   (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
+   ;; (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
    (make-header-string "Accept-Encoding" "gzip")
-   (make-header-string "Accept-Language" "en-US,en;q=0.8")
+   ;;(make-header-string "Accept-Language" "en-US,en;q=0.8")
    (make-header-string "Cache-Control" "max-age=0")
-   (make-header-string "Connection" "keep-alive")))
+   (make-header-string "Connection" "close")))
 
 (: query-q-param (String -> Param))
 (define (query-q-param query)
