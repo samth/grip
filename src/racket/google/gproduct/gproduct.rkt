@@ -21,7 +21,7 @@
 (provide
  SearchResult SearchResult? 
  SearchResult-company SearchResult-account 
- SearchResult-title SearchResult-gtin SearchResult-link
+ SearchResult-title SearchResult-gtin SearchResult-link SearchResult-gid
  product-search)
 
 (require
@@ -50,6 +50,7 @@
 		       [account : Integer]
 		       [title   : String]
 		       [gtin    : String]
+		       [gid     : String]
 		       [link    : String]) #:transparent)
 
 ;; HTTP Stuff
@@ -99,16 +100,20 @@
 (: sx-gtin SXPath)
 (define sx-gtin (sxpath "/g:gtin/text()" gns))
 
+(: sx-gid SXPath)
+(define sx-gid (sxpath "/g:googleId/text()" gns))
+
 (: parse-search-result (Sxml -> (Option SearchResult)))
 (define (parse-search-result prod)
   (let ((gtin (extract-text (sx-gtin prod)))
-      (title (extract-text (sx-title prod)))
-      (name (extract-text (sx-name prod)))
-      (account (extract-integer (sx-account prod)))
-      (link (extract-text (sx-link prod))))
+	(title (extract-text (sx-title prod)))
+	(name (extract-text (sx-name prod)))
+	(account (extract-integer (sx-account prod)))
+	(link (extract-text (sx-link prod)))
+	(gid (extract-text (sx-gid prod))))
     (if (and account gtin)
-       (SearchResult name account title gtin link)
-       #f)))
+	(SearchResult name account title gtin gid link)
+	#f)))
 
 (: product-search (String Params -> (Listof SearchResult)))
 (define (product-search query restrictions)
@@ -122,7 +127,7 @@
 	(if (http-successful? conn)       
 	   (let ((page (xml->sxml (HTTPConnection-in conn) '())))
 	     (http-close-connection conn)
-	     ;;(pretty-print page)
+	     (pretty-print page)
 	     (let ((prods (sx-prods page)))
 	       ;;(pretty-print prods)
 	       (if (andmap list? prods)
