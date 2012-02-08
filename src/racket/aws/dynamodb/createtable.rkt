@@ -18,7 +18,7 @@
 
 #lang typed/racket/base
 
-(provide create-table)
+(provide create-table CreateTableResp)
 
 (require 
  racket/pretty
