@@ -19,8 +19,11 @@
 #lang typed/racket/base
 
 (provide
- create-table delete-table describe-table
- get-item put-item ReturnValues
+ create-table CreateTableResp 
+ delete-table describe-table
+ get-item 
+ put-item PutItemResp
+ ReturnValues
  list-tables ListTablesResp 
  Key Key? Key-name Key-type
  KeyVal KeyVal?
@@ -37,7 +40,7 @@
 	  ItemKey ItemKey?
 	  Item Item? Item-name Item-type Item-value)
  (only-in "createtable.rkt"
-	  create-table)
+	  create-table CreateTableResp)
  (only-in "deletetable.rkt"
 	  delete-table DeleteTableResp)
  (only-in "describetable.rkt"
