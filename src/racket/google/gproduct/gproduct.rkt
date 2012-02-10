@@ -118,7 +118,7 @@
 (define (product-search query restrictions)
   (let ((url (make-query-uri (append (list (query-q-param query) access-key-param)
 				   restrictions))))
-    (pretty-print (uri->string url))
+    ;; (pretty-print (uri->string url))
     (with-handlers ([exn:fail? 
 		     (lambda (ex) '())])
       (let ((conn (http-invoke 'GET url search-request-headers #f)))
