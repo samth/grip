@@ -22,6 +22,7 @@
  Header Headers
  make-header make-header-string header->string  empty-headers 
  add-header get-header get-header-value opt-header-value
+ agent-header host-header
  date-header content-type content-length content-md5)
 
 (define-type Header (Pairof String String))
@@ -62,6 +63,14 @@
 (: make-header (String String -> Header))
 (define (make-header hdr val)
   (cons hdr val))
+
+(: host-header (String -> Header))
+(define (host-header host)
+  (make-header "Host" host))
+
+(: agent-header (String -> Header))
+(define (agent-header agent)
+  (make-header "User-Agent" agent))
 
 (: date-header (String -> Header))
 (define (date-header date)

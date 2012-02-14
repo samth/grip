@@ -33,11 +33,11 @@
  (only-in "credential.rkt"
 	  current-aws-credential
 	  init-aws-credential
-	  Aws-Credential
-	  Aws-Credential-account-id
-	  Aws-Credential-access-key
-	  Aws-Credential-secret-key
-	  Aws-Credential-associate-tag)
+	  AwsCredential
+	  AwsCredential-account-id
+	  BaseCredential-access-key
+	  BaseCredential-secret-key
+	  AwsCredential-associate-tag)
  (only-in "s3/s3.rkt"
 	  s3-list-buckets
 	  s3-list-bucket-objects))

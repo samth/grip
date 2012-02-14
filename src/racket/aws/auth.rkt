@@ -36,10 +36,7 @@
  (only-in (planet knozama/webkit:1/web/uri)
 	  url-encode-string)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  params->query Param Params)
- (only-in "credential.rkt"
-	  Aws-Credential-access-key
-	  current-aws-credential))
+	  params->query Param Params))
 
 (: ddb-base String)
 (define ddb-base "POST\n/\n\n")

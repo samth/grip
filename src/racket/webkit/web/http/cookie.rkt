@@ -23,16 +23,24 @@
 (provide make-cookie
 	 parse-cookie)
 
-(require/typed 
- racket/base
- (opaque Date date?)
- (seconds->date (Integer -> Date)))
+;; (require/typed 
+;;  racket/base
+;;  (opaque Date date?)
+;;  (seconds->date (Integer -> Date)))
 
-(require/typed
- racket/date
- (current-date (-> Date))
- (date-display-format (Parameterof Symbol))
- (date->string (Date -> String)))
+;; (require/typed
+;;  racket/date
+;;  (current-date (-> Date))
+;;  (date-display-format (Parameterof Symbol))
+;;  (date->string (Date -> String)))
+
+(require
+ (only-in "heading.rkt"
+	  COOKIE SET-COOKIE)
+ (only-in "header.rkt"
+	  make-header
+	  get-header-value))
+
 
 ;;-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Get the cookie header from a headers

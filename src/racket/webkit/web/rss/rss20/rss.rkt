@@ -8,29 +8,21 @@
   sx-media-content sx-media-content-url sx-media-content-medium
   sx-media-content-width sx-media-content-height)
 
-(require/typed (planet lizorkin/ssax:2:0/ssax)
-	       (ssax:xml->sxml (Input-Port (Listof String) -> (List Any))))
- 
-(require/typed
- (planet lizorkin/sxml:2:1/sxml)
- (sxpath (String (Listof (Pair Symbol String)) -> ((Listof Any) -> (Listof Any)))))
-
  (require
   racket/pretty
- (only-in (planet knozama/xml:1/util)
-	  select-single-node-text)
  (only-in (planet knozama/webkit:1/web/uri)
-	  uri-authority authority-host
-	  uri make-uri uri->string) 
+	  Uri-authority Authority-host
+	  Uri make-uri uri->string) 
  (only-in (planet knozama/webkit:1/web/http/http11)
-	  http-response-from-headers
-	  response-line-code
-	  http-invoke)
- (only-in (planet knozama/webkit:1/web/http/headers)
+	  http-invoke http-close-connection
+	  HTTPConnection-in)
+ (only-in (planet knozama/webkit:1/web/http/header)
+	  header->string
 	  agent-header
 	  host-header)
- (only-in "../../http/util.rkt"
-	  ok-response?))
+ (only-in (planet knozama/xml:1/sxml)
+	  Sxml SXPath 
+	  sxpath xml->sxml select-single-node-text))
 
 (: content-ns (Pair Symbol String))
 (define content-ns
@@ -101,22 +93,15 @@
 
  ;; fetch RSS2.0 content and parse to SXML
  ;; on parse error returns a '()
-(: fetch-rss (uri -> (Listof Any)))
+(: fetch-rss (Uri -> (Listof Any)))
 (define (fetch-rss uri)
-  (let-values (((hdrs ip) (http-invoke 'GET uri 
-				     `(,(agent-header "curl/7.16.4 (x86_64-redhat-linux-gnu) libcurl/7.16.4 OpenSSL/0.9.8b zlib/1.2.3 libidn/0.6.8")
-				       "Accept: */*")
-				     #f)))
-    (if (ok-response? hdrs)
-       (with-handlers ((exn:fail?  
-			(lambda (e)
-			  (pretty-print "ERROR in Generic RSS fetch.")
-			  (pretty-print (uri->string uri))
-			  (pretty-print e)
-			  (close-input-port ip)
-			  '())))
-	 (let ((results (ssax:xml->sxml ip '())))
-	   (close-input-port ip)
-	   results))
-       '())))
-   
+  (let ((headers (map header->string `(,(agent-header "curl/7.16.4 (x86_64-redhat-linux-gnu) libcurl/7.16.4 OpenSSL/0.9.8b zlib/1.2.3 libidn/0.6.8")))))
+    (let ((connection (http-invoke 'GET uri headers #f)))
+      (with-handlers [(exn:fail? (lambda (ex)
+				   ((error-display-handler) "ERROR in S3 invocation." ex)
+				   (displayln ex) 
+				   (http-close-connection connection)
+				   (raise ex #t)))]
+	(let ((results (xml->sxml (HTTPConnection-in connection) '())))
+	  (http-close-connection connection)
+	  results)))))   

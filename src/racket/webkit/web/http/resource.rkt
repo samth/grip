@@ -27,15 +27,13 @@
 
 (require
  (only-in "../uri.rkt"
-	  uri
-	  uri-authority authority-host)
- (only-in "headers.rkt"
+	  Uri
+	  Uri-authority Authority-host)
+ (only-in "header.rkt"
 	  Headers
 	  agent-header
 	  host-header)
  (only-in "http11.rkt"
-	  http-response-from-headers
-	  response-line-code
 	  http-invoke)
  (only-in "util.rkt"
 	  ok-response?))
@@ -54,16 +52,16 @@
 (define (fetch-resource-xml url headers)
   (let ((auth (uri-authority url)))
     (if auth
-       (let ((headers (append `(,(host-header (authority-host auth))
-			      ,(agent-header "SOS/RL3/0.1")
-			      "Accept: */*"))))
-	 (let-values (((resp-data ip) (http-invoke 'GET url headers #f)))
-	   (if (ok-response? resp-data)
-	      (let ((result (ssax:xml->sxml ip '())))
-		(close-input-port ip)
-		result)
-	      #f)))
-       #f)))
+	(let ((headers (append `(,(host-header (authority-host auth))
+				 ,(agent-header "SOS/RL3/0.1")
+				 "Accept: */*"))))
+	  (let-values (((resp-data ip) (http-invoke 'GET url headers #f)))
+	    (if (ok-response? resp-data)
+		(let ((result (ssax:xml->sxml ip '())))
+		  (close-input-port ip)
+		  result)
+		#f)))
+	#f)))
 
 ;; return a resource via HTTP GET
 ;; returns the value of invoking error-proc on an error

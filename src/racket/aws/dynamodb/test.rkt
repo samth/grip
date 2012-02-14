@@ -25,7 +25,7 @@
 	  Item Key ItemKey KeyVal
 	  ReturnValues Throughput))
 
-(define table "product")
+(define table "prodtest")
 
 (define (create)
   (create-table table (Key "sku" 'String) #f (Throughput 3 5)))

@@ -26,11 +26,11 @@
  racket/pretty
  (only-in "../credential.rkt"
 	  current-aws-credential
-	  Aws-Credential
-	  Aws-Credential-access-key
-	  Aws-Credential-secret-key)
+	  AwsCredential
+	  BaseCredential-access-key
+	  BaseCredential-secret-key)
  (only-in (planet knozama/common:1/type/date)
-	  current-time-rfc-2822)
+	  current-date-string-rfc-2822)
  (only-in (planet knozama/webkit:1/web/http/heading)
 	  DATE HOST)
  (only-in (planet knozama/webkit:1/web/http/header)
@@ -46,7 +46,7 @@
 	  HTTPConnection-in HTTPConnection-header
 	  http-invoke http-close-connection make-client-error-response)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  parms->query)
+	  params->query)
  (only-in (planet knozama/xml:1/sxml)
 	  Sxml SXPath 
 	  sxpath xml->sxml select-single-node-text)
@@ -87,19 +87,19 @@
   (: make-bucket-host (-> String))
   (define (make-bucket-host)
     (if bucket
-       (string-append bucket "." s3-host)
-       s3-host))
+	(string-append bucket "." s3-host)
+	s3-host))
   (make-uri "http" #f (make-bucket-host) 80 path #f #f))
 
 (: aws-error (String -> Void))
 (define (aws-error s)
   (display s) (newline))
 
-(: authorization-header (Aws-Credential String -> Header))
+(: authorization-header (AwsCredential String -> Header))
 (define (authorization-header credential auth-str)
   (make-header "Authorization" 
-	       (string-append  "AWS " (Aws-Credential-access-key credential) 
-			       ":" (aws-auth-mac (Aws-Credential-secret-key credential)
+	       (string-append  "AWS " (BaseCredential-access-key credential) 
+			       ":" (aws-auth-mac (BaseCredential-secret-key credential)
 						 auth-str))))
 
 ;; (define (make-bucket-url bucket)
@@ -115,13 +115,13 @@
 
 (: s3-get-invoke (Uri -> (Listof Any)))
 (define (s3-get-invoke url)
-  (let* ((datetime (current-time-rfc-2822))
-       (headers (map header->string 
-		     (list (make-header DATE datetime)
-			   (authorization-header (current-aws-credential) 
-						 (aws-auth-str "GET" "" "" 
-							       datetime '() 
-							       (Uri-path url)))))))
+  (let* ((datetime (current-date-string-rfc-2822))
+	 (headers (map header->string 
+		       (list (make-header DATE datetime)
+			     (authorization-header (current-aws-credential) 
+						   (aws-auth-str "GET" "" "" 
+								 datetime '() 
+								 (Uri-path url)))))))
     (let ((connection (http-invoke 'GET url headers #f)))
       (with-handlers [(exn:fail? (lambda (ex)
 				   ((error-display-handler) "ERROR in S3 invocation." ex)
@@ -140,7 +140,7 @@
     (define sx-id (select-single-node-text "/s3:Owner/s3:ID" nss))
     (define sx-name (select-single-node-text "/s3:Owner/s3:DisplayName" nss))
     (let ((id (sx-id sxml))
-	(name (sx-name sxml)))
+	  (name (sx-name sxml)))
       (Owner id name)))
 
   (: parse-bucket (Sxml -> Bucket))
@@ -148,7 +148,7 @@
     (define sx-name (select-single-node-text "/s3:Name" nss))
     (define sx-create (select-single-node-text "/s3:CreationDate" nss))
     (let ((name (sx-name sxml))
-	(create (sx-create sxml)))
+	  (create (sx-create sxml)))
       (Bucket name create)))
 
   (: parse-buckets (Sxml -> (Listof Bucket)))
@@ -157,8 +157,8 @@
     (define sx-buckets (sxpath "/s3:Buckets/s3:Bucket" nss))
     (let ((bs (sx-buckets sxml)))
       (if (andmap list? bs)
-	 (map parse-bucket bs)
-	 '())))
+	  (map parse-bucket bs)
+	  '())))
 
   (: parse-response (Sxml -> Buckets))
   (define (parse-response sxml)
@@ -166,11 +166,11 @@
     (define sx-resp (sxpath "/s3:ListAllMyBucketsResult" nss))
     (let ((resp (sx-resp sxml)))
       (if resp
-	 (begin
-	   (let ((owner (parse-owner resp))
-	       (buckets (parse-buckets resp)))
-	     (Buckets owner buckets)))
-	 (error "S3 call failed"))))
+	  (begin
+	    (let ((owner (parse-owner resp))
+		  (buckets (parse-buckets resp)))
+	      (Buckets owner buckets)))
+	  (error "S3 call failed"))))
 
   (let ((url (make-base-uri #f "/")))
     (parse-response (s3-get-invoke (assert url)))))
@@ -187,8 +187,8 @@
   (define (s->i s)
     (let ((i (string->number s)))
       (if (exact-integer? i)
-	 i
-	 #f)))
+	  i
+	  #f)))
   (: s->b (String -> Boolean))
   (define (s->b s)
     (not (string=? s "false")))
@@ -198,7 +198,7 @@
     (define sx-id (select-single-node-text "/s3:Owner/s3:ID" nss))
     (define sx-name (select-single-node-text "/s3:Owner/s3:DisplayName" nss))
     (let ((id (sx-id sxml))
-	(name (sx-name sxml)))
+	  (name (sx-name sxml)))
       (Owner id name)))
 
   (: parse-object (Sxml -> Object))
@@ -209,21 +209,21 @@
     (define sx-size (select-single-node-text "/s3:Size" nss))
     ;;(define sx-storage (select-single-node-text "/s3:StorageClass" nss))
     (let ((key (sx-key sxml))
-	(last-modified (sx-last-modified sxml))
-	(etag (sx-etag sxml))
-	(size (s->i (sx-size sxml)))
-	;;(storage (sx-storage sxml))
-	(owner (parse-owner sxml)))
+	  (last-modified (sx-last-modified sxml))
+	  (etag (sx-etag sxml))
+	  (size (s->i (sx-size sxml)))
+	  ;;(storage (sx-storage sxml))
+	  (owner (parse-owner sxml)))
       (Object key last-modified ;; storage 
 	      etag (assert size) owner)))
-    
+  
   (: parse-objects (Sxml -> (Listof Object)))
   (define (parse-objects sxml)
     (define sx-objects (sxpath "/s3:Contents" nss))
     (let ((objs (sx-objects sxml)))
       (if (andmap list? objs)
-	 (map parse-object objs)
-	 '())))
+	  (map parse-object objs)
+	  '())))
 
   (: parse-response (Sxml -> Objects))
   (define (parse-response sxml)
@@ -233,25 +233,25 @@
     (define sx-max-keys (select-single-node-text "/s3:MaxKeys" nss))
     (define sx-is-truncated (select-single-node-text "/s3:IsTruncated" nss))
     (let ((name (sx-name sxml))
-	(prefix (sx-prefix sxml))
-	(marker (sx-marker sxml))
-	(max-keys (s->i (sx-max-keys sxml)))
-	(is-truncated (s->b (sx-is-truncated sxml)))
-	(objs (parse-objects sxml)))
+	  (prefix (sx-prefix sxml))
+	  (marker (sx-marker sxml))
+	  (max-keys (s->i (sx-max-keys sxml)))
+	  (is-truncated (s->b (sx-is-truncated sxml)))
+	  (objs (parse-objects sxml)))
       (Objects name prefix marker (assert max-keys) is-truncated objs)))
 
   (define sx-result (sxpath "s3:ListBucketResult" nss))
   
   (let ((url (make-uri "http" #f s3-host 80
-		     (string-append "/" bucket)
-		     (parms->query `(("prefix" . ,prefix)
-				     ("marker" . ,marker)
-				     ("max" . ,(number->string max))))
-		     #f)))
+		       (string-append "/" bucket)
+		       (params->query `(("prefix" . ,prefix)
+				       ("marker" . ,marker)
+				       ("max" . ,(number->string max))))
+		       #f)))
     (let ((resp (s3-get-invoke (assert url))))
       (if resp
-	 (parse-response (sx-result resp))
-	 (error "S3 call failed")))))
+	  (parse-response (sx-result resp))
+	  (error "S3 call failed")))))
 
 ;; (: create-bucket (String -> Void))
 ;; (define (create-bucket bucket)
@@ -276,63 +276,64 @@
 (: put-file-object (String String String -> ResponseHeader))
 (define (put-file-object in-file-path bucket path)
   (if (file-exists? in-file-path)
-     (let* ((size (file-size in-file-path))
-	  (ip (open-input-file in-file-path))
-	  (buff (read-bytes size ip))
-	  (close-input-port ip))
-       (if (not (eof-object? buff))
-	  (put-object buff bucket path)
-	  (make-client-error-response 404 
-				      (string-append "File " in-file-path " is 0 byte file."))))
-     (make-client-error-response 404 (string-append "File " in-file-path " does not exist to PUT"))))
+      (let* ((size (file-size in-file-path))
+	     (ip (open-input-file in-file-path))
+	     (buff (read-bytes size ip))
+	     (close-input-port ip))
+	(if (not (eof-object? buff))
+	    (put-object buff bucket path)
+	    (make-client-error-response 404 
+					(string-append "File " in-file-path " is 0 byte file."))))
+      (make-client-error-response 404 (string-append "File " in-file-path " does not exist to PUT"))))
 
 (: put-object (Bytes String String -> ResponseHeader))
 (define (put-object bytes bucket path)
   (let* ((size (bytes-length bytes))
-       (hash64 (base64-encode (md5-bytes bytes)))
-       (mime "binary/octet-stream")
-       (datetime (current-time-rfc-2822))
-       (url (make-base-uri bucket path))
-       (headers (map header->string 
-		     (list (date-header datetime)
-			   (content-type mime)
-			   (content-md5 hash64)
-			   (authorization-header (current-aws-credential)
-						 (aws-auth-str "PUT" hash64 mime datetime '()
-							       (string-append "/" bucket path)))))))
-        
+	 (hash64 (base64-encode (md5-bytes bytes)))
+	 (mime "binary/octet-stream")
+	 (datetime (current-date-string-rfc-2822))
+	 (url (make-base-uri bucket path))
+	 (headers (map header->string 
+		       (list (date-header datetime)
+			     (content-type mime)
+			     (content-md5 hash64)
+			     (authorization-header (current-aws-credential)
+						   (aws-auth-str "PUT" hash64 mime datetime '()
+								 (string-append "/" bucket path)))))))
+    
     (if url
-       (let ((connection (http-invoke 'PUT url headers bytes)))
-	 (with-handlers [(exn:fail? (lambda (ex)
-				      (http-close-connection connection)
-				      (make-client-error-response 500 (exn-message ex))))]
-	   ;; START HERE
-	   (if (has-content-length response)
-	      (parse-s3-error (xml->sxml (HTTPConnection-in connection) '()))
-	   (http-close-connection connection)
-	   (HTTPConnection-header connection)))
-       (make-client-error-response 400 "Bad URL given in client call - not invoking server"))))
-
+	(let ((connection (http-invoke 'PUT url headers bytes)))
+	  (with-handlers [(exn:fail? (lambda (ex)
+				       (http-close-connection connection)
+				       (make-client-error-response 500 (exn-message ex))))]
+	    (HTTPConnection-header connection)))
+	;; (if (has-content-length response)
+	;; 	(begin
+	;; 	  (parse-s3-error (xml->sxml (HTTPConnection-in connection) '()))
+	;; 	  (http-close-connection connection)
+	;; 	  (HTTPConnection-header connection))
+	;; 	(make-client-error-response 400 "Bad URL given in client call - not invoking server"))))
+	(error "Invalid URL in S3 call"))))
 
 (: delete-object (String String -> ResponseHeader))
 (define (delete-object bucket path)
-  (let* ((datetime (current-time-rfc-2822))
-       (url (make-base-uri bucket path))
-       (headers (map header->string
-		     (list ;; (date-header datetime)
-			   (authorization-header (current-aws-credential)
-						 (aws-auth-str "DELETE" "" "" datetime '() 
-							       (string-append "/" bucket path)))))))
+  (let* ((datetime (current-date-string-rfc-2822))
+	 (url (make-base-uri bucket path))
+	 (headers (map header->string
+		       (list ;; (date-header datetime)
+			(authorization-header (current-aws-credential)
+					      (aws-auth-str "DELETE" "" "" datetime '() 
+							    (string-append "/" bucket path)))))))
     (if url
-       (let ((connection (http-invoke 'DELETE url headers #f)))
-	 (with-handlers [(exn:fail? (lambda (ex)
-				      (http-close-connection connection)
-				      (make-client-error-response 500 (exn-message ex))))]
-	   (pretty-print (xml->sxml (HTTPConnection-in connection) '()))
-	   (http-close-connection connection)
-	   (HTTPConnection-header connection)))
-       (make-client-error-response 400 "Bad URL given in client call - not invoking server"))))
-    
+	(let ((connection (http-invoke 'DELETE url headers #f)))
+	  (with-handlers [(exn:fail? (lambda (ex)
+				       (http-close-connection connection)
+				       (make-client-error-response 500 (exn-message ex))))]
+	    (pretty-print (xml->sxml (HTTPConnection-in connection) '()))
+	    (http-close-connection connection)
+	    (HTTPConnection-header connection)))
+	(make-client-error-response 400 "Bad URL given in client call - not invoking server"))))
+
 
 ;; FIX ME - Sometimes the response has expository xml payload e.g. for a failed delete.
 ;; consider struct S3Response ([http : ResponseHeader][payload : Sxml]) or S3Error
