@@ -131,7 +131,9 @@
 				     restrictions))))
     ;; (pretty-print (uri->string url))
     (with-handlers ([exn:fail? 
-		     (lambda (ex) '())])
+		     (lambda (ex) 
+		       (pretty-print ex)
+		       '())])
       (let ((conn (http-invoke 'GET url search-request-headers #f)))
 	;;(pretty-print conn)
 	(if (http-successful? conn)       
