@@ -20,8 +20,9 @@
 
 (provide
  SearchResult SearchResult? 
- SearchResult-company SearchResult-account 
+ SearchResult-company SearchResult-account SearchResult-brand
  SearchResult-title SearchResult-gtin SearchResult-link SearchResult-gid
+ SearchResult-price
  product-search)
 
 (require
@@ -42,7 +43,7 @@
 	  load-key)
  (only-in "config.rkt"
 	  gproduct-host gproduct-path std-query-params gproduct-nss))
-	  	 
+
 (: key String)
 (define key (load-key #f))
 
@@ -51,7 +52,9 @@
 		       [title   : String]
 		       [gtin    : String]
 		       [gid     : String]
-		       [link    : String]) #:transparent)
+		       [link    : String]
+		       [brand   : String]
+		       [price   : String]) #:transparent)
 
 ;; HTTP Stuff
 (: search-request-headers (Listof String))
@@ -79,7 +82,7 @@
 
 (: gns (Listof (Pairof Symbol String)))
 (define gns `((g . ,gproduct-nss) 
-	 (a . "http://www.w3.org/2005/Atom")))
+	      (a . "http://www.w3.org/2005/Atom")))
 
 (: sx-prods SXPath)
 (define sx-prods (sxpath "/a:feed/a:entry/g:product" gns))
@@ -102,6 +105,12 @@
 (: sx-gid SXPath)
 (define sx-gid (sxpath "/g:googleId/text()" gns))
 
+(: sx-price SXPath)
+(define sx-price (sxpath "/g:inventories/g:inventory[@channel='online']/g:price/text()" gns))
+
+(: sx-brand SXPath)
+(define sx-brand (sxpath "/g:brand/text()" gns))
+
 (: parse-search-result (Sxml -> (Option SearchResult)))
 (define (parse-search-result prod)
   (let ((gtin (extract-text (sx-gtin prod)))
@@ -109,29 +118,31 @@
 	(name (extract-text (sx-name prod)))
 	(account (extract-integer (sx-account prod)))
 	(link (extract-text (sx-link prod)))
-	(gid (extract-text (sx-gid prod))))
+	(gid (extract-text (sx-gid prod)))
+	(brand (extract-text (sx-brand prod)))
+	(price (extract-text (sx-price prod))))
     (if (and account gtin)
-	(SearchResult name account title gtin gid link)
+	(SearchResult name account title gtin gid link brand price)
 	#f)))
 
 (: product-search (String Params -> (Listof SearchResult)))
 (define (product-search query restrictions)
   (let ((url (make-query-uri (append (list (query-q-param query) access-key-param)
-				   restrictions))))
+				     restrictions))))
     ;; (pretty-print (uri->string url))
     (with-handlers ([exn:fail? 
 		     (lambda (ex) '())])
       (let ((conn (http-invoke 'GET url search-request-headers #f)))
-	;; (pretty-print conn)
+	;;(pretty-print conn)
 	(if (http-successful? conn)       
-	   (let ((page (xml->sxml (HTTPConnection-in conn) '())))
-	     (http-close-connection conn)
-	     ;; (pretty-print page)
-	     (let ((prods (sx-prods page)))
-	       ;;(pretty-print prods)
-	       (if (andmap list? prods)
-		  (filter SearchResult? (map parse-search-result prods))
-		  '())))
-	   (begin
-	     (http-close-connection conn)
-	     '()))))))
+	    (let ((page (xml->sxml (HTTPConnection-in conn) '())))
+	      (http-close-connection conn)
+	       ;;(pretty-print page)
+	      (let ((prods (sx-prods page)))
+		;;(pretty-print prods)
+		(if (andmap list? prods)
+		    (filter SearchResult? (map parse-search-result prods))
+		    '())))
+	    (begin
+	      (http-close-connection conn)
+	      '()))))))
