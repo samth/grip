@@ -2,23 +2,25 @@
 
 (provide sha256 sha256-bytes)
 
-(require (only-in (planet knozama/r6rs:1/bytevectors)
-		  bytevector?
-		  string->utf8
-		  make-bytevector
-		  bytevector-copy
-		  bytevector-copy!
-		  bytevector-fill!
-		  bytevector-u32-set!
-		  bytevector-u32-ref
-		  bytevector-length
-		  bytevector-u8-ref
-		  bytevector-u8-set!))
+(require 
+ racket/pretty
+ (only-in (planet knozama/r6rs:1/bytevectors)
+	  bytevector?
+	  string->utf8
+	  make-bytevector
+	  bytevector-copy
+	  bytevector-copy!
+	  bytevector-fill!
+	  bytevector-u32-set!
+	  bytevector-u32-ref
+	  bytevector-length
+	  bytevector-u8-ref
+	  bytevector-u8-set!))
 
 (require (only-in (planet knozama/r6rs:1/arithmetic/bitwise)
  		  bitwise-arithmetic-shift-right
  		  bitwise-arithmetic-shift-left))
-	 
+
 (require racket/fixnum)
 
 (require (only-in "../private/util.rkt"
@@ -98,51 +100,51 @@
 (define (expand-chunk! w64)
   (do: : Void ((i : Fixnum 16 (fx1+ i)))
        ((fx= i 64))
-    (let ((s0 (let ((w (word-ref w64 (fx- i 15))))
-	      (bitwise-xor (rotate w 7)
-			   (rotate w 18)
-			   (bitwise-arithmetic-shift-right w 3))))
-	(s1 (let ((w (word-ref w64 (fx- i 2))))
-	      (bitwise-xor (rotate w 17)
-			   (rotate w 19)
-			   (bitwise-arithmetic-shift-right w 10)))))
-      (word-set! w64 i (m32+ (word-ref w64 (fx- i 16))
-			     (m32+ s0 (m32+ (word-ref w64 (fx- i 7)) s1)))))))
+       (let ((s0 (let ((w (word-ref w64 (fx- i 15))))
+		   (bitwise-xor (rotate w 7)
+				(rotate w 18)
+				(bitwise-arithmetic-shift-right w 3))))
+	     (s1 (let ((w (word-ref w64 (fx- i 2))))
+		   (bitwise-xor (rotate w 17)
+				(rotate w 19)
+				(bitwise-arithmetic-shift-right w 10)))))
+	 (word-set! w64 i (m32+ (word-ref w64 (fx- i 16))
+				(m32+ s0 (m32+ (word-ref w64 (fx- i 7)) s1)))))))
 
 ;; set the data length in # of bits in the chunk
 (: chunk-data-length! (Bytes Integer -> Void))
 (define (chunk-data-length! w64 len)
   (let ((bits (* len 8)))
     (let ((low (m32 bits))
-	(high (m32 (bitwise-arithmetic-shift-right bits 32))))
+	  (high (m32 (bitwise-arithmetic-shift-right bits 32))))
       (word-set! w64 14 high)
       (word-set! w64 15 low))))
 
 (: sha256-bytes (Bytes -> Bytes))
 (define (sha256-bytes bv)
   (let ((len (bytevector-length bv))  ;; size of data to hash
-      (w64 (make-bytevector 256 0)) ;; working buffer 64 32-bit words (256 bytes)
-      (h0 H0)(h1 H1)(h2 H2)(h3 H3)(h4 H4)(h5 H5)(h6 H6)(h7 H7)) ;; init the hash
+	(w64 (make-bytevector 256 0)) ;; working buffer 64 32-bit words (256 bytes)
+	(h0 H0)(h1 H1)(h2 H2)(h3 H3)(h4 H4)(h5 H5)(h6 H6)(h7 H7)) ;; init the hash
     
     ;; process all the 64 bytes (512 bit) chunks available
     (let-values (((chunks remainder)(fxdiv-and-mod len 64))) ;; # of 64 byte chunks and remainder
       (let ((hash-and-update 	       ;; Hash the chunk and update running hash values
-	   (lambda ()
-	     (let ((a h0)(b h1)(c h2)(d h3)(e h4)(f h5)(g h6)(h h7))
-	       (do ((i 0 (fx1+ i)))
-		   ((fx= i 64))
-		 (let ((s0  (bitwise-xor (rotate a 2) (rotate a 13) (rotate a 22)))
-		     (maj (bitwise-xor (bitwise-and a b) (bitwise-and a c) (bitwise-and b c))))
-		   (let ((t2 (m32+ s0 maj))
-		       (s1 (bitwise-xor (rotate e 6) (rotate e 11) (rotate e 25)))
-		       (ch (bitwise-xor (bitwise-and e f) (bitwise-and (bitwise-not e) g))))
-		     (let ((t1 (m32+ h (m32+ s1 (m32+ ch (m32+ (word-ref k i) (word-ref w64 i)))))))
-		       (set! h g)(set! g f)(set! f e)(set! e (m32+ d t1))(set! d c)(set! c b)(set! b a)
-		       (set! a (m32+ t1 t2))))))
-	       ;; update hash with chunk's hashed values
-	       (set! h0 (m32+ h0 a))(set! h1 (m32+ h1 b))(set! h2 (m32+ h2 c))
-	       (set! h3 (m32+ h3 d))(set! h4 (m32+ h4 e))(set! h5 (m32+ h5 f))
-	       (set! h6 (m32+ h6 g))(set! h7 (m32+ h7 h))))))
+	     (lambda ()
+	       (let ((a h0)(b h1)(c h2)(d h3)(e h4)(f h5)(g h6)(h h7))
+		 (do ((i 0 (fx1+ i)))
+		     ((fx= i 64))
+		   (let ((s0  (bitwise-xor (rotate a 2) (rotate a 13) (rotate a 22)))
+			 (maj (bitwise-xor (bitwise-and a b) (bitwise-and a c) (bitwise-and b c))))
+		     (let ((t2 (m32+ s0 maj))
+			   (s1 (bitwise-xor (rotate e 6) (rotate e 11) (rotate e 25)))
+			   (ch (bitwise-xor (bitwise-and e f) (bitwise-and (bitwise-not e) g))))
+		       (let ((t1 (m32+ h (m32+ s1 (m32+ ch (m32+ (word-ref k i) (word-ref w64 i)))))))
+			 (set! h g)(set! g f)(set! f e)(set! e (m32+ d t1))(set! d c)(set! c b)(set! b a)
+			 (set! a (m32+ t1 t2))))))
+		 ;; update hash with chunk's hashed values
+		 (set! h0 (m32+ h0 a))(set! h1 (m32+ h1 b))(set! h2 (m32+ h2 c))
+		 (set! h3 (m32+ h3 d))(set! h4 (m32+ h4 e))(set! h5 (m32+ h5 f))
+		 (set! h6 (m32+ h6 g))(set! h7 (m32+ h7 h))))))
 	
 	;; hash all full 64 byte chunks
 	(do ((i chunks (fx1- i))
@@ -155,24 +157,24 @@
 	;; do final partial chunk(s) 
 	(bytevector-copy! bv (fx* chunks 64) w64 0 remainder)
 	(bytevector-u8-set! w64 remainder #x80)  ;; 10000000 1-bit byte
-	(if (fx<= remainder 56)                  ;; enough room in this block for 8 byte bv length
-	   (begin
-	     (do ((i (fx1+ remainder) (fx1+ i))) ;; padd with 0s
-		 ((fx= i 56))
-	       (bytevector-u8-set! w64 i 0))
-	     (chunk-data-length! w64 len)
-	     (expand-chunk! w64)
-	     (hash-and-update))
-	   (begin                                    ;; not enough room, do another block for bv length
-	     (do ((i (fx1+ remainder) (fx1+ i))) ;; padd with 0s
-		 ((fx= i 64))
-	       (bytevector-u8-set! w64 i 0))
-	     (expand-chunk! w64)                 ;; process the partial 1-bit byte appended block first
-	     (hash-and-update)
-	     (bytevector-fill! w64 0)            ;; last block solely for the bv length in bits
-	     (chunk-data-length! w64 len)
-	     (expand-chunk! w64)
-	     (hash-and-update)))))
+	(if (fx< remainder 56)                  ;; enough room in this block for 8 byte bv length
+	    (begin
+	      (do ((i (fx1+ remainder) (fx1+ i))) ;; padd with 0s
+		  ((fx= i 56))
+		(bytevector-u8-set! w64 i 0))
+	      (chunk-data-length! w64 len)
+	      (expand-chunk! w64)
+	      (hash-and-update))
+	    (begin                                    ;; not enough room, do another block for bv length
+	      (do ((i (fx1+ remainder) (fx1+ i))) ;; padd with 0s
+		  ((fx= i 64))
+		(bytevector-u8-set! w64 i 0))
+	      (expand-chunk! w64)                 ;; process the partial 1-bit byte appended block first
+	      (hash-and-update)
+	      (bytevector-fill! w64 0)            ;; last block solely for the bv length in bits
+	      (chunk-data-length! w64 len)
+	      (expand-chunk! w64)
+	      (hash-and-update)))))
     ;; return the final hash value 
     (let ((hc (make-bytevector 32 0)))
       (word-set! hc 0 h0)
@@ -211,8 +213,8 @@
 ;; (sha256 (mk-msg "0123456789012345678901234567890123456789012345678901234567890123456789"))
 
 
- ;; (define msg "GET\nwebservices.amazon.com\n/onca/xml\nAWSAccessKeyId=00000000000000000000&ItemId=0679722769&Operation=ItemLookup&ResponseGroup=ItemAttributes%2COffers%2CImages%2CReviews&Service=AWSECommerceService&Timestamp=2009-01-01T12%3A00%3A00Z&Version=2009-01-06")
+;; (define msg "GET\nwebservices.amazon.com\n/onca/xml\nAWSAccessKeyId=00000000000000000000&ItemId=0679722769&Operation=ItemLookup&ResponseGroup=ItemAttributes%2COffers%2CImages%2CReviews&Service=AWSECommerceService&Timestamp=2009-01-01T12%3A00%3A00Z&Version=2009-01-06")
 
- ;; (define key "1234567890")
- ;; (base64-encode (hmac-sha256 key msg))
- ;; "Nace+U3Az4OhN7tISqgs1vdLBHBEijWcBeCqL5xN9xg="
+;; (define key "1234567890")
+;; (base64-encode (hmac-sha256 key msg))
+;; "Nace+U3Az4OhN7tISqgs1vdLBHBEijWcBeCqL5xN9xg="
