@@ -59,7 +59,7 @@
     (let: ((keys : JsObject (make-hasheq)))
       (hash-set! keys 'HashKeyElement (key-json hash-key))
       (when range-key
-	(hash-set! keys 'RangeKeyElement (key-json hash-key)))
+	(hash-set! keys 'RangeKeyElement (key-json range-key)))
       keys))
 
   (: throughput-json (Throughput -> JsObject))
