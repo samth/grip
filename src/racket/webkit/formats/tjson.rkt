@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide
+ JsObject-empty
  jsobject attribute
  Json JsNull JsObject JsList JsObject? JsList?
  json->string string->json write-json read-json)
@@ -20,6 +21,9 @@
 
 (define-type JsList (Listof Json))
 (define-predicate JsList? JsList)
+
+(: JsObject-empty JsObject)
+(define JsObject-empty (make-hash))
 
 (: write-json (Json Output-Port -> Void))
 (define (write-json json port)
