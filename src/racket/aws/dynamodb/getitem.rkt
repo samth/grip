@@ -19,11 +19,12 @@
 #lang typed/racket/base
 
 (provide 
- get-item)
+ get-item GetItemResp GetItemResp-items GetItemResp-consumed)
 
 (require
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
+	  JsObject-empty
  	  Json JsObject JsObject? json->string string->json jsobject attribute)
  (only-in (planet knozama/common:1/std/opt)
 	  opt-orelse)
@@ -40,7 +41,7 @@
  (only-in "request.rkt"
 	  itemkey-json))	  
  
-(struct: GetItemResp ([items : (Listof Item)] [consumed : Float]) #:transparent)
+(struct: GetItemResp ([items : (HashTable String Item)] [consumed : Float]) #:transparent)
 
 (: get-item-request (String ItemKey (Listof String) Boolean -> String))
 (define (get-item-request table key attrs consistent?)
@@ -79,31 +80,33 @@
   (: parse-item (String JsObject -> Item))
   (define (parse-item name json)
     (cond 
-     ((hash-has-key? json 'S) (Item (parse-item-value 'S json) name 'String))
-     ((hash-has-key? json 'N) (Item (parse-item-value 'N json) name 'Number))	
+     ((hash-has-key? json 'S) (Item name (parse-item-value 'S json) 'String))
+     ((hash-has-key? json 'N) (Item name (parse-item-value 'N json) 'Number))	
      (else (parse-fail json))))
 
-  (: parse-items (JsObject -> (Listof Item)))
+  (: parse-items (JsObject -> (HashTable String Item)))
   (define (parse-items jattrs)
-    (let: loop : (Listof Item) ((attrs : (Listof (Pair Symbol Json)) ((inst hash->list Symbol Json) jattrs))
-				(items : (Listof Item) '()))
-      (if (null? attrs)
-	  items
-	  (let* ((jitem (car attrs))
-		 (name (symbol->string (car jitem)))
-		 (type-value (cdr jitem)))
-	    (if (JsObject? type-value)
-		(loop (cdr attrs) (cons (parse-item name type-value) items))
-		(parse-fail jattrs))))))
-
+    (let: ((items : (HashTable String Item) (make-hash)))
+      (let: loop : (HashTable String Item) 
+	    ((attrs : (Listof (Pair Symbol Json)) ((inst hash->list Symbol Json) jattrs)))
+	    (if (null? attrs)
+		items
+		(let* ((jitem (car attrs))
+		       (name (symbol->string (car jitem)))
+		       (type-value (cdr jitem)))
+		  (if (JsObject? type-value)
+		      (begin
+			(hash-set! items name (parse-item name type-value))
+			(loop (cdr attrs)))
+		      (parse-fail jattrs)))))))
 
   (pretty-print (json->string resp))
-  (let ((jresp (hash-ref resp 'Item)))
-    (if (JsObject? jresp)
-	(let ((items (parse-items jresp))
-	      (jconsumed (hash-ref resp 'ConsumedCapacityUnits)))
-	  (if (flonum? jconsumed)
-	      (GetItemResp items jconsumed)
-	      (parse-fail resp)))
-	(parse-fail resp))))
+  (if (hash-has-key? resp 'ConsumedCapacityUnits)
+      (let ((jconsumed (hash-ref resp 'ConsumedCapacityUnits)))
+	(let ((items (hash-ref resp 'Item (lambda: () JsObject-empty))))
+	  (if (and (JsObject? items)
+		   (flonum? jconsumed))
+	      (GetItemResp (parse-items items) jconsumed)
+	      (parse-fail resp))))
+      (parse-fail resp)))
 
