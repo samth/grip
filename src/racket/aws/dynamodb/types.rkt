@@ -32,7 +32,7 @@
  TableStatus TableStatus? string->TableStatus
  ReturnValues)
 
-(define-type DDBType (U 'String 'Number))
+(define-type DDBType (U 'String 'Number 'StringSet 'NumberSet))
 
 (define-predicate DDBType? DDBType)
 
@@ -42,13 +42,17 @@
 (define (ddbtype-code type)
   (case type
     ((String) "S")
-    ((Number) "N")))
+    ((Number) "N")
+    ((StringSet) "SS")
+    ((NumberSet) "NN")))
 
 (: ddbtype-symbol (DDBType -> Symbol))
 (define (ddbtype-symbol type)
   (case type
     ((String) 'S)
-    ((Number) 'N)))
+    ((Number) 'N)
+    ((StringSet) 'SS)
+    ((NumberSet) 'NN)))
 
 (: string->DDBType (String -> (Option DDBType)))
 (define (string->DDBType str)
@@ -57,6 +61,10 @@
     'String)
    ((string=? "N" str)
     'Number)
+   ((string=? "SS" str)
+    'StringSet)
+   ((string=? "NN" str)
+    'NumberSet)
    (else #f)))
 
 (define-type TableStatus (U 'Active 'Deleting 'Creating))
