@@ -21,14 +21,14 @@
 (provide
  create-table CreateTableResp 
  delete-table describe-table
- get-item 
+ get-item GetItemResp GetItemResp-items
  put-item PutItemResp
  ReturnValues
  list-tables ListTablesResp 
  Key Key? Key-name Key-type
  KeyVal KeyVal?
  ItemKey ItemKey?
- Item Item?
+ Item Item? Item-name Item-value Item-type
  Throughput Throughput? Throughput-read Throughput-write)
 
 (require
@@ -48,7 +48,7 @@
  (only-in "listtable.rkt"
 	  list-tables ListTablesResp ListTablesResp?)
  (only-in "getitem.rkt"
-	  get-item)
+	  get-item GetItemResp GetItemResp-consumed GetItemResp-items)
  (only-in "putitem.rkt"
 	  put-item
 	  PutItemResp PutItemResp?))
