@@ -54,7 +54,7 @@
 		       [gid     : String]
 		       [link    : String]
 		       [brand   : String]
-		       [price   : String]) #:transparent)
+		       [price   : String]) #:prefab)
 
 ;; HTTP Stuff
 (: search-request-headers (Listof String))
