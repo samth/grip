@@ -1,5 +1,8 @@
 #lang typed/racket/base
 
+(provide
+ delete-item DeleteItemResult)
+
 (require
  racket/pretty
  (only-in "types.rkt" KeyVal

@@ -29,6 +29,8 @@
  (only-in "types.rkt"
 	  Throughput
 	  TableStatus string->TableStatus)
+ (only-in "error.rkt"
+	  DDBFailure DDBFailure?)
  (only-in "action.rkt"
 	  DELETE-TABLE)
  (only-in "invoke.rkt"
@@ -40,9 +42,12 @@
 			  [status : TableStatus]
 			  [capacity : Throughput]) #:transparent)
 
-(: delete-table (String -> DeleteTableResp))
+(: delete-table (String -> (U DDBFailure DeleteTableResp)))
 (define (delete-table name)
-  (parse-delete-table-resp (dynamodb DELETE-TABLE (format "{\"TableName\": ~s}" name))))
+  (let ((result (dynamodb DELETE-TABLE (format "{\"TableName\": ~s}" name))))
+    (if (DDBFailure? result)
+	result
+	(parse-delete-table-resp result))))
 
 (: parse-delete-table-resp (Json -> DeleteTableResp))
 (define (parse-delete-table-resp resp)

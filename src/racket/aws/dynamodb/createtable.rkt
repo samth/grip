@@ -23,10 +23,12 @@
 (require 
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
-	  Json JsObject JsObject? json->string)
+	  Json JsObject JsObject? json->string) 
  (only-in "types.rkt"
 	  Throughput-write Throughput-read Throughput Throughput?
 	  DDBType ddbtype-code)
+ (only-in "error.rkt"
+	  DDBFailure DDBFailure?)
  (only-in "action.rkt"
 	  CREATE-TABLE)
  (only-in "types.rkt"
@@ -71,9 +73,12 @@
 			       (KeySchema . ,(keys-json hash-key range-key))
 			       (ProvisionedThroughput . ,(throughput-json throughput))))))
 
-(: create-table (String Key (Option Key) Throughput -> CreateTableResp))
+(: create-table (String Key (Option Key) Throughput -> (U DDBFailure CreateTableResp)))
 (define (create-table name hash-key range-key throughput) 
-  (parse-create-table-resp  (dynamodb CREATE-TABLE (create-request name hash-key range-key throughput))))
+  (let ((result (dynamodb CREATE-TABLE (create-request name hash-key range-key throughput))))
+    (if (DDBFailure? result)
+	result
+	(parse-create-table-resp result))))
 
 (: parse-create-table-resp (Json -> CreateTableResp))
 (define (parse-create-table-resp resp)

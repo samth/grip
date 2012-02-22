@@ -39,6 +39,7 @@
  (only-in (planet knozama/webkit:1/formats/tjson)
 	  Json JsObject JsObject? read-json write-json)
  (only-in "error.rkt"
+	  DDBFailure DDBFailure? ddb-failure
 	  is-exception-response? throw)
  (only-in "../sts/session.rkt"
 	  ensure-session)
@@ -50,7 +51,6 @@
 	  SessionCredential SessionCredential?
 	  AwsCredential-session AwsCredential? BaseCredential-secret-key BaseCredential-access-key
 	  SessionCredential-token current-aws-credential))
-
 
 (struct: DynamoDBFailure () #:transparent)
 
@@ -79,7 +79,7 @@
    (date-header)
    (cons "x-amz-target" cmd)))
 
-(: dynamodb-invoke (Uri (Listof String) String -> JsObject))
+(: dynamodb-invoke (Uri (Listof String) String -> (U DDBFailure JsObject)))
 (define (dynamodb-invoke url headers payload)
   (with-handlers ([exn:fail?
 		   (lambda (ex) 
@@ -91,7 +91,7 @@
 	(http-close-connection conn)
 	(if (JsObject? json)
 	    (if (is-exception-response? json)
-		(throw json)
+		(ddb-failure json)
 		json)
 	    (error "Invalid DynamoDB response: not a Json Object"))))))
 
@@ -108,7 +108,7 @@
 			;; "SignedHeaders=host;x-amz-date;x-amz-target;x-amz-security-token,"
 			(sign-request headers body))))
 
-(: dynamodb (String String -> Json))
+(: dynamodb (String String -> (U DDBFailure Json)))
 (define (dynamodb cmd cmd-body)
   (if (ensure-session)
       (let* ((scred (let ((scred (AwsCredential-session (current-aws-credential))))

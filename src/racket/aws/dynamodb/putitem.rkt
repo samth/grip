@@ -33,6 +33,8 @@
 	  Exists Exists? Exists-name Exists-exists
 	  Item Item? Item-name Item-value Item-type
 	  DDBType ddbtype-symbol)
+ (only-in "error.rkt" 
+	  DDBFailure DDBFailure?)
  (only-in "invoke.rkt"
 	  dynamodb)
  (only-in "request.rkt"
@@ -57,17 +59,20 @@
 				     (Item . ,(items-json items))
 				     (ReturnValues . ,(return-values-json return-values))))))
     (when expected
-      (attribute req 'Expect (expected/exists-json expected)))
+      (attribute req 'Expected (expected/exists-json expected)))
+    (pretty-print (json->string req))
     (json->string req)))
 
-(: put-item (String (Listof Item) (Option (U Exists Item)) ReturnValues -> PutItemResp))
+(: put-item (String (Listof Item) (Option (U Exists Item)) ReturnValues -> (U DDBFailure PutItemResp)))
 (define (put-item name items expected return-values)
   (let ((resp (dynamodb PUT-ITEM (put-item-request name items expected return-values))))
-    (if (JsObject? resp)		   
-	(parse-put-item-resp resp)
-	(error (string-append "Invalid response: " (json->string resp))))))
+    (cond
+     ((JsObject? resp) (parse-put-item-resp resp))
+     ((DDBFailure? resp) resp)
+     (else
+      (error (string-append "Invalid response: " (json->string resp)))))))
 
-(: parse-put-item-resp (JsObject -> PutItemResp))
+(: parse-put-item-resp (JsObject -> (U DDBFailure PutItemResp)))
 (define (parse-put-item-resp jsobj)
   
   (: invalid-error (Symbol Json -> Nothing))

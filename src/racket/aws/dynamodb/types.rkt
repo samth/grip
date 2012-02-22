@@ -28,6 +28,7 @@
  Item Item? Item-name Item-value Item-type
  ItemUpdate ItemUpdate? ItemUpdate-name ItemUpdate-action ItemUpdate-value
  ItemKey ItemKey? ItemKey-hashkey ItemKey-rangekey
+ ItemVal ItemVal? ItemVal-value ItemVal-type
  ddbtype-code ddbtype-symbol string->DDBType DDBType DDBType? 
  TableStatus TableStatus? string->TableStatus
  ReturnValues)
@@ -36,7 +37,7 @@
 
 (define-predicate DDBType? DDBType)
 
-(define-type ReturnValues (U 'None 'AllOld))
+(define-type ReturnValues (U 'None 'AllOld 'AllNew 'UpdatedOld 'UpdatedNew))
 
 (: ddbtype-code (DDBType -> String))
 (define (ddbtype-code type)
@@ -49,8 +50,8 @@
 (: ddbtype-symbol (DDBType -> Symbol))
 (define (ddbtype-symbol type)
   (case type
-    ((String) 'S)
-    ((Number) 'N)
+    ((String)    'S)
+    ((Number)    'N)
     ((StringSet) 'SS)
     ((NumberSet) 'NN)))
 

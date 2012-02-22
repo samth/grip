@@ -21,8 +21,9 @@
 ;; "{\"message\": \"Supplied AttributebValue is empty, must contain exactly one of the supported datatypes\", \"__type\": \"com.amazon.coral.validate#ValidationException\"}"
 
 (provide
- throw is-exception-response?
- DDBException? 
+ throw is-exception-response? ddb-failure
+ DDBFailure DDBFailure? 
+ ConditionalCheckFailed ConditionalCheckFailed?
  ValidationException ValidationException?
  ResourceNotFound ResourceNotFound?
  InUseException InUseException?)
@@ -32,15 +33,17 @@
  (only-in (planet knozama/webkit:1/formats/tjson)
  	  Json JsObject JsObject? json->string string->json jsobject attribute))
  	
-(struct: DDBException exn:fail () #:transparent)
+(struct: DDBFailure exn:fail () #:transparent)
 
-(struct: IllFormedResponse DDBException ([json : String]) #:transparent)
+(struct: IllFormedResponse DDBFailure ([json : String]) #:transparent)
 
-(struct: ValidationException DDBException () #:transparent)
+(struct: ValidationException DDBFailure () #:transparent)
 
-(struct: InUseException DDBException () #:transparent)
+(struct: InUseException DDBFailure () #:transparent)
 
-(struct: ResourceNotFound DDBException () #:transparent)
+(struct: ResourceNotFound DDBFailure () #:transparent)
+
+(struct: ConditionalCheckFailed DDBFailure () #:transparent)
 
 (define unknown-msg "Unknown error message type: ")
 (define ill-formed-msg "Unparsable error response")
@@ -48,15 +51,15 @@
 (define-syntax throw
   (syntax-rules ()
     ((throw excn)
-     (raise (ddb-exception excn)))))  ;; FIXME - Should be bug in TR: (raise (ddb-exception excn) #t))))
+     (raise (ddb-failure excn)))))  ;; FIXME - Should be bug in TR: (raise (ddb-exception excn) #t))))
 
 (: is-exception-response? (JsObject -> Boolean))
 (define (is-exception-response? jsobj)
   (and (hash-has-key? jsobj 'message)
        (hash-has-key? jsobj '__type)))
 
-(: ddb-exception (JsObject -> DDBException))
-(define (ddb-exception jsobj)
+(: ddb-failure (JsObject -> DDBFailure))
+(define (ddb-failure jsobj)
   (if (is-exception-response? jsobj)
       (let ((type (hash-ref jsobj '__type))
 	    (msg  (hash-ref jsobj 'message)))
@@ -69,6 +72,8 @@
 	      (InUseException msg (current-continuation-marks)))
 	     ((string=? type "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException")
 	      (ResourceNotFound msg (current-continuation-marks)))
+	     ((string=? type "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException")
+	      (ConditionalCheckFailed msg (current-continuation-marks)))			
 	     (else (raise (IllFormedResponse (string-append unknown-msg type) (current-continuation-marks) (json->string jsobj)))))
 	    (raise (IllFormedResponse ill-formed-msg (current-continuation-marks) (json->string jsobj)))))
       (raise (IllFormedResponse ill-formed-msg (current-continuation-marks) (json->string jsobj)))))

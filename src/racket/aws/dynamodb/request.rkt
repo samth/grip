@@ -35,8 +35,11 @@
 (: return-values-json (ReturnValues -> String))
 (define (return-values-json rtnval)
   (case rtnval
-    ((None) "NONE")
-    ((AllOld) "ALL_OLD")))
+    ((None)       "NONE")
+    ((AllOld)     "ALL_OLD")
+    ((AllNew)     "ALL_NEW")
+    ((UpdatedNew) "UPDATED_NEW")
+    ((UpdatedOld) "UPDATED_OLD")))
 
 (: expected-json (Item -> JsObject))
 (define (expected-json expected)

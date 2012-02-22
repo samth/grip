@@ -24,6 +24,8 @@
 
 (require
  racket/pretty
+ (only-in (planet knozama/webkit:1/formats/tjson)
+	  Json JsObject JsObject? json->string jsobject attribute)
  (only-in "action.rkt"
 	  DESCRIBE-TABLE)
  (only-in "invoke.rkt"
@@ -34,9 +36,8 @@
  (only-in "types.rkt"
 	  TableStatus TableStatus? string->TableStatus
 	  KeySchema Throughput Throughput? DDBType? Key)
- (only-in (planet knozama/webkit:1/formats/tjson)
-	  Json JsObject JsObject? json->string jsobject attribute))
-
+ (only-in "error.rkt"
+	  DDBFailure DDBFailure?))
 
 ;; Some values are optional and/or set to 0 to support when a table is state transitioning i.e. deleting.
 (struct: DescribeTableResp ([name : String]
@@ -47,9 +48,12 @@
 			    [status : TableStatus]
 			    [capacity : Throughput]) #:transparent)
 
-(: describe-table (String -> DescribeTableResp))
+(: describe-table (String -> (U DDBFailure DescribeTableResp)))
 (define (describe-table name)
-  (parse-describe-table-resp (dynamodb DESCRIBE-TABLE (format "{\"TableName\": ~s}" name))))
+   (let ((result (dynamodb DESCRIBE-TABLE (format "{\"TableName\": ~s}" name))))
+     (if (DDBFailure? result)
+	 result
+	 (parse-describe-table-resp result))))
 
 (: parse-describe-table-resp (Json -> DescribeTableResp))
 (define (parse-describe-table-resp resp)
