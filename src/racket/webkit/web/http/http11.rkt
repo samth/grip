@@ -21,6 +21,8 @@
 #lang typed/racket
 
 (provide
+ Action
+ http-action->string
  ResponseHeader
  ResponseHeader?
  ResponseHeader-result
@@ -33,6 +35,8 @@
  HTTPConnection-in
  HTTPConnection-header
  http-successful?
+ http-status-code
+ http-has-content?
  http-close-connection
  http-invoke
  make-client-error-response)
@@ -79,6 +83,8 @@
  (only-in "header.rkt"
           make-header-string get-header get-header-value
           Header Headers))
+
+(define-type Action (U 'GET 'PUT 'POST 'DELETE 'HEAD))
 
 (struct: Result [(proto : String)
 		 (code  : Integer)
@@ -420,15 +426,14 @@
   ;; 	   (write-bytes bs outp)
   ;; 	   (loop (read-bytes buffsz inp))))))
 
-(: http-action->string (Symbol -> String))
+(: http-action->string (Action -> String))
 (define (http-action->string action)
   (case action
     ((GET)    "GET")
     ((PUT)    "PUT")
     ((POST)   "POST")
     ((DELETE) "DELETE")
-    ((HEAD)   "HEAD")
-    (else (error 'http-invoke "HTTP method not support." action))))
+    ((HEAD)   "HEAD")))
 
 (: send-header (String String Output-Port -> Void))
 (define (send-header header value op)
@@ -441,7 +446,7 @@
 ;; Write out the HTTP header line and accompaning headers converted to strings.
 ;; NOTE the headers are NOT terminated which is done by send-payload as
 ;; a content-length may be required if not chunked.
-(: send-http-header (Output-Port Symbol Uri (Listof String) -> Void))
+(: send-http-header (Output-Port Action Uri (Listof String) -> Void))
 (define (send-http-header op action url headers)
   (write-string (http-action->string action) op)
   (write-string space op)
@@ -503,7 +508,7 @@
 ;; ;; (provide/contract (http-invoke (-> symbol? uri? any/c (or/c boolean? bytes?) any)))
 ;; Put - If the payload is a byte array then used content-length.
 ;;     - If the payload is a pipe, use chunking.
-(: http-invoke (Symbol Uri (Listof String) (Option (U Bytes Input-Port)) -> HTTPConnection))
+(: http-invoke (Action Uri (Listof String) (Option (U Bytes Input-Port)) -> HTTPConnection))
 (define (http-invoke action url headers payload)
 
   (: append-host-to-headers (String -> (Listof String)))
@@ -553,9 +558,23 @@
 			     (HTTPConnection headers op inpipe ip)))))
 		   (failed-connection "Invalid response from server")))))))))
 
+
+(: http-status-code (HTTPConnection -> Integer))
+(define (http-status-code conn)
+  (Result-code (ResponseHeader-result (HTTPConnection-header conn))))
+ 
 (: http-successful? (HTTPConnection -> Boolean))
 (define (http-successful? conn)
   (eq? (Result-code (ResponseHeader-result (HTTPConnection-header conn))) 200))
+
+(: http-has-content? (HTTPConnection -> Boolean))
+(define (http-has-content? connection)
+  (let ((content (content-length-or-chunked? 
+		  (ResponseHeader-headers (HTTPConnection-header connection)))))
+    (cond 
+     ((exact-integer? content) (> content 0))
+     ((symbol? content) #t)
+     (else #f))))
 
 (: http-close-connection (HTTPConnection -> Void))
 (define (http-close-connection conn)
