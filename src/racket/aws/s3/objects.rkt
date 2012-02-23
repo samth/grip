@@ -38,7 +38,7 @@
 	  content-type
 	  content-md5)
  (only-in (planet knozama/webkit:1/web/http/http11)
-	  ResponseHeader
+	  ResponseHeader Result
 	  HTTPConnection-in HTTPConnection-header
 	  http-invoke http-close-connection make-client-error-response)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
@@ -58,10 +58,9 @@
  (only-in "configuration.rkt"
 	  nss)
  (only-in "invoke.rkt"
-	  S3Response-sxml
-	  make-base-uri
-	  s3-invoke))
-
+	  make-base-uri make-empty-error-response s3-invoke
+	  S3Response S3Response-sxml
+	  S3Payload))
 
 (: aws-error (String -> Void))
 (define (aws-error s)
@@ -145,50 +144,40 @@
 		 ("marker" . ,marker)
 		 ("delimiter" . ,delimiter)
 		 ("max" . ,(number->string max)))))
-    (let ((resp (s3-invoke 'GET bucket "" query '())))
+    (let ((resp (s3-invoke 'GET bucket "" query '() #f)))
       (parse-response (sx-result (S3Response-sxml resp))))))
 
-;; (: put-file-object (String String String -> ResponseHeader))
-;; (define (put-file-object in-file-path bucket path)
-;;   (if (file-exists? in-file-path)
-;;       (let* ((size (file-size in-file-path))
-;; 	     (ip (open-input-file in-file-path))
-;; 	     (buff (read-bytes size ip))
-;; 	     (close-input-port ip))
-;; 	(if (not (eof-object? buff))
-;; 	    (put-object buff bucket path)
-;; 	    (make-client-error-response 404 
-;; 					(string-append "File " in-file-path " is 0 byte file."))))
-;;       (make-client-error-response 404 (string-append "File " in-file-path " does not exist to PUT"))))
+(: put-file-object (String String String -> S3Response))
+(define (put-file-object in-file-path bucket path)
+  (if (file-exists? in-file-path)
+      (let* ((size (file-size in-file-path))
+	     (ip (open-input-file in-file-path))
+	     (buff (read-bytes size ip))
+	     (close-input-port ip))
+	(if (not (eof-object? buff))
+	    (put-object buff bucket path)
+	    (make-empty-error-response 404 (string-append "File " in-file-path " is 0 byte file."))))
+      (make-empty-error-response 404 (string-append "File " in-file-path " does not exist to PUT"))))
 
-;; (: put-object (Bytes String String -> ResponseHeader))
-;; (define (put-object bytes bucket path)
-;;   (let* ((size (bytes-length bytes))
-;; 	 (hash64 (base64-encode (md5-bytes bytes)))
-;; 	 (mime "binary/octet-stream")
-;; 	 (datetime (current-date-string-rfc-2822))
-;; 	 (url (make-base-uri bucket path))
-;; 	 (headers (map header->string 
-;; 		       (list (date-header datetime)
-;; 			     (content-type mime)
-;; 			     (content-md5 hash64)
-;; 			     (authorization-header (current-aws-credential)
-;; 						   (aws-auth-str "PUT" hash64 mime datetime '()
-;; 								 (string-append "/" bucket path)))))))
+(: put-object (Bytes String String -> S3Response))
+(define (put-object bytes bucket path)
+  (let* ((md5 (base64-encode (md5-bytes bytes)))
+	 (mime "binary/octet-stream")
+	 (payload (S3Payload mime md5 (open-input-bytes bytes))))
+    (s3-invoke 'PUT bucket path #f '() payload)))
+
+      ;; (with-handlers [(exn:fail? (lambda (ex)
+      ;; 				   (http-close-connection connection)
+      ;; 				   (make-client-error-response 500 (exn-message ex))))]
+      ;; 	(HTTPConnection-header connection)))
     
-;;     (if url
-;; 	(let ((connection (http-invoke 'PUT url headers bytes)))
-;; 	  (with-handlers [(exn:fail? (lambda (ex)
-;; 				       (http-close-connection connection)
-;; 				       (make-client-error-response 500 (exn-message ex))))]
-;; 	    (HTTPConnection-header connection)))
-;; 	;; (if (has-content-length response)
-;; 	;; 	(begin
-;; 	;; 	  (parse-s3-error (xml->sxml (HTTPConnection-in connection) '()))
-;; 	;; 	  (http-close-connection connection)
-;; 	;; 	  (HTTPConnection-header connection))
-;; 	;; 	(make-client-error-response 400 "Bad URL given in client call - not invoking server"))))
-;; 	(error "Invalid URL in S3 call"))))
+    ;; (if (has-content-length response)
+    ;; 	(begin
+    ;; 	  (parse-s3-error (xml->sxml (HTTPConnection-in connection) '()))
+    ;; 	  (http-close-connection connection)
+    ;; 	  (HTTPConnection-header connection))
+    ;; 	(make-client-error-response 400 "Bad URL given in client call - not invoking server"))))
+    ;;(error "Invalid URL in S3 call")))
 
 ;; (: delete-object (String String -> ResponseHeader))
 ;; (define (delete-object bucket path)

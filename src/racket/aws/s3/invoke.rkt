@@ -1,7 +1,9 @@
 #lang typed/racket/base
 
 (provide 
+ S3Payload S3Payload?
  S3Response S3Response? S3Response-http S3Response-sxml
+ empty-response make-empty-error-response
  make-base-uri
  s3-invoke)
 
@@ -49,8 +51,16 @@
 (struct: S3Response ([http : Result]
 		     [sxml : Sxml]) #:transparent)
 
+(struct: S3Payload ([mime : String]
+		    [md5  : String]
+		    [inport  : Input-Port]) #:transparent)
+
 (: empty-response (List Symbol))
 (define empty-response '(*TOP*))
+
+(: make-empty-error-response (Integer String -> S3Response))
+(define (make-empty-error-response status-code message)
+  (S3Response (Result "HTTP1/1" status-code message) empty-response))
 
 (: make-base-uri ((Option String) String (Option Params) -> (Option Uri)))
 (define (make-base-uri bucket path params)
@@ -75,25 +85,35 @@
 			       (aws-auth-mac (BaseCredential-secret-key credential)
 					     auth-str))))
 
-(: s3-invoke (Action (Option String) String (Option Params) Headers -> S3Response))
-(define (s3-invoke action bucket path query-params headers)
+(: s3-invoke (Action (Option String) String (Option Params) Headers (Option S3Payload) -> S3Response))
+(define (s3-invoke action bucket path query-params headers payload)
   (let ((url (make-base-uri bucket path query-params)))
     (if url
 	(let* ((datetime (current-date-string-rfc-2822))
 	       (canonical-resource (if bucket
 				       (string-append "/" bucket (Uri-path url))
 				       (Uri-path url)))
+	       (mime (if payload
+			 (S3Payload-mime payload)
+			 ""))
+	       (md5  (if payload
+			 (S3Payload-md5 payload)
+			 ""))
+	       (headers (if payload 
+			    (list (content-type (S3Payload-mime payload))
+				  (content-md5 (S3Payload-md5 payload)))
+			    '()))
 	       (core-headers (map header->string 
 				  (list (make-header DATE datetime)
 					(authorization-header (current-aws-credential)
 							      (aws-auth-str (http-action->string action)
-									    "" "" 
+									    md5 mime
 									    datetime '()
 									    canonical-resource))))))
 	  (let ((connection (http-invoke action 
 					 url 
 					 (append core-headers (map header->string headers))
-					 #f)))
+					 (if payload (S3Payload-inport payload) #f))))
 	    (with-handlers [(exn:fail? (lambda (ex)
 					 ((error-display-handler) "ERROR in S3 invocation." ex)
 					 (displayln ex) 

@@ -19,6 +19,7 @@
 #lang typed/racket/base
 
 (provide
+ Operator operator->string
  Throughput Throughput? Throughput-read Throughput-write
  Action action->string
  Exists Exists? Exists-name Exists-exists
@@ -35,9 +36,15 @@
 
 (define-type DDBType (U 'String 'Number 'StringSet 'NumberSet))
 
+(define-type Operator (U 'EQ 'LE 'LT 'GE 'GT 'BEGINS_WITH 'BETWEEN 'NULL))
+
 (define-predicate DDBType? DDBType)
 
 (define-type ReturnValues (U 'None 'AllOld 'AllNew 'UpdatedOld 'UpdatedNew))
+
+(: operator->string (Operator -> String))
+(define (operator->string op)
+  (symbol->string op))
 
 (: ddbtype-code (DDBType -> String))
 (define (ddbtype-code type)
@@ -45,7 +52,7 @@
     ((String) "S")
     ((Number) "N")
     ((StringSet) "SS")
-    ((NumberSet) "NN")))
+    ((NumberSet) "NS")))
 
 (: ddbtype-symbol (DDBType -> Symbol))
 (define (ddbtype-symbol type)
@@ -53,7 +60,7 @@
     ((String)    'S)
     ((Number)    'N)
     ((StringSet) 'SS)
-    ((NumberSet) 'NN)))
+    ((NumberSet) 'NS)))
 
 (: string->DDBType (String -> (Option DDBType)))
 (define (string->DDBType str)
@@ -64,7 +71,7 @@
     'Number)
    ((string=? "SS" str)
     'StringSet)
-   ((string=? "NN" str)
+   ((string=? "NS" str)
     'NumberSet)
    (else #f)))
 
@@ -107,3 +114,4 @@
 		  [rangekey : (Option KeyVal)]) #:transparent)
 
 (struct: ItemUpdate  ([name : String] [value : (Option ItemVal)] [action : Action]) #:transparent)
+

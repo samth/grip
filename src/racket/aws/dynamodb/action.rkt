@@ -20,7 +20,7 @@
 
 (provide
  LIST-TABLES CREATE-TABLE DESCRIBE-TABLE DELETE-TABLE 
- PUT-ITEM GET-ITEM DELETE-ITEM UPDATE-ITEM)
+ PUT-ITEM GET-ITEM DELETE-ITEM UPDATE-ITEM SCAN)
 
 (require 
  (only-in "config.rkt"
@@ -29,6 +29,10 @@
 (: action (String -> String))
 (define (action cmd)
   (string-append ddb-version "." cmd))
+
+(: SCAN String)
+(define SCAN
+  (action "Scan"))
 
 (: CREATE-TABLE String)
 (define CREATE-TABLE
