@@ -41,9 +41,9 @@
  http-invoke
  make-client-error-response)
 
-(require/typed
- racket
- (read-bytes! (Bytes Input-Port Integer Integer -> Integer)))
+;; (require/typed
+;;  racket
+;;  (read-bytes! (Bytes Input-Port Integer Integer -> Integer)))
 
 (require/typed
  openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
@@ -99,7 +99,7 @@
 			 [real-in : (Option Input-Port)])
 	 #:transparent)  ;; the actual socket input port, e.g. 'in' could be a chuncking pipe 
 
-(: CHUNK-SIZE Integer)
+(: CHUNK-SIZE Exact-Nonnegative-Integer)
 (define CHUNK-SIZE (* 64 1024)) ;; 64 K chunks, based on reasonable in-memory needs.
 
 (: make-client-error-response (Integer String -> ResponseHeader))
