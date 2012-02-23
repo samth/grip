@@ -1,5 +1,8 @@
 #lang typed/racket/base
 
+(provide
+ scan ScanResp Filter)
+
 (require 
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
@@ -14,14 +17,24 @@
  (only-in "types.rkt"
 	  ddbtype-symbol
 	  Operator operator->string 
-	  ItemVal ItemVal-type ItemVal-value
-	  ItemKey KeyVal))
+	  Item ItemVal ItemVal-type ItemVal-value
+	  ItemKey KeyVal)
+ (only-in "response.rkt"
+	  parse-positive-integer
+	  parse-consumed-capacity
+	  parse-fail
+	  parse-keyval
+	  parse-items))
 
 (struct: Filter ([item : String]
 		 [values : (Listof ItemVal)]
 		 [operator : Operator]) #:transparent)
 
-(struct: ScanResponse () #:transparent)
+(struct: ScanResp ([lastKey : ItemKey]
+		   [consumed : Float]
+		   [count : Exact-Positive-Integer]
+		   [scanned : Exact-Positive-Integer]
+		   [items : (Listof (HashTable String Item))]) #:transparent)
 
 (: item-val-jsobject (ItemVal -> JsObject))
 (define (item-val-jsobject item-val)
@@ -55,16 +68,62 @@
     (pretty-print (json->string req))
     (json->string req))))
   
-(: scan (String (Listof String) Exact-Positive-Integer Boolean (Listof Filter) (Option ItemKey) -> ScanResponse))
-(define (scan table attrs limit count? filters exclusive-start-key)
-  (pretty-print (dynamodb SCAN (scan-request table attrs limit count? filters exclusive-start-key)))
-  (ScanResponse))
+(: parse-last-key (JsObject -> (Option ItemKey)))
+(define (parse-last-key resp)
 
-(: test (-> ScanResponse))
-(define (test)
-  (scan "product" '() 100 #f 
-	(list (Filter "recycled" '() 'NULL))
+  (: item-val (JsObject Symbol -> (Option KeyVal)))
+  (define (item-val resp key)
+    (if (hash-has-key? resp key)
+	(let ((key (hash-ref resp key)))
+	  (if (JsObject? key)
+	      (parse-keyval key)
+	      #f))
 	#f))
+  
+  (if (hash-has-key? resp 'LastEvaluatedKey)
+      (let ((attrs (hash-ref resp 'LastEvaluatedKey)))
+	(if (JsObject? attrs)
+	    (let ((hash-key (item-val attrs 'HashKeyElement))
+		  (range-key (item-val attrs 'RangeKeyElement)))
+	      (if (and hash-key range-key)
+		  (ItemKey hash-key range-key)
+		  #f))
+	    #f))
+      #f))
+	      	     	        
+(: scan (String (Listof String) Exact-Positive-Integer Boolean (Listof Filter) (Option ItemKey) -> ScanResp))
+(define (scan table attrs limit count? filters exclusive-start-key)
+  (let ((resp (dynamodb SCAN (scan-request table attrs limit count? filters exclusive-start-key))))
+    (pretty-print resp)
+    (if (JsObject? resp)
+	(let: ((items-js : Json (hash-ref resp 'Items))
+	       (last-key : (Option ItemKey) (parse-last-key resp)))
+	  (if (and (list? items-js)
+		   (andmap JsObject? items-js))
+	      (let ((items (map parse-items items-js)))
+		(let ((keyval (parse-last-key resp))
+		      (consumed (parse-consumed-capacity resp))
+		      (count (parse-positive-integer resp 'Count))
+		      (scanned (parse-positive-integer resp 'ScannedCount)))
+		  (if keyval
+		      (ScanResp keyval consumed count scanned items)
+		      (parse-fail resp))))
+	      (parse-fail resp)))
+	(error (string-append "Unparsable response from in scanning " table)))))
+
+(: test (-> ScanResp))
+(define (test)
+  (scan "product" '("sku" "purveyor") 100 #f 
+	(list (Filter "recycled" '() 'NULL)
+	      (Filter "purveyor" (list (ItemVal "sp" 'String)) 'EQ))
+	#f))
+
+	;;   (if (JsObject? items-js)
+	;;       (let: ((items : (Listof (HashTable String Item)) (map parse-items items-js)))
+	;; 	(pretty-print items))
+	;;       (parse-fail items-js)))
+	;; (pretty-print resp)))
+
 
 ;; {"TableName":"comp5",
 ;; 	"ScanFilter":

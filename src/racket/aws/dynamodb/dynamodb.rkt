@@ -25,6 +25,7 @@
  put-item PutItemResp
  update-item UpdateItemResp
  delete-item DeleteItemResult
+ scan ScanResp Filter
  ReturnValues
  list-tables ListTablesResp
  Exists
@@ -65,4 +66,6 @@
  (only-in "deleteitem.rkt"
 	  delete-item DeleteItemResult)
  (only-in "updateitem.rkt"
-	  update-item UpdateItemResp))
+	  update-item UpdateItemResp)
+ (only-in "scan.rkt"
+	  scan ScanResp Filter))

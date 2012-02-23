@@ -39,7 +39,11 @@
  (only-in "invoke.rkt"
 	  dynamodb)
  (only-in "request.rkt"
-	  itemkey-json))	  
+	  itemkey-json)
+ (only-in "response.rkt"
+	  parse-consumed-capacity
+	  parse-fail
+	  parse-items))
  
 (struct: GetItemResp ([items : (HashTable String Item)] [consumed : Float]) #:transparent)
 
@@ -63,49 +67,10 @@
 
 (: parse-get-item-resp (JsObject -> GetItemResp))
 (define (parse-get-item-resp resp)
-
-  (: parse-fail (Json -> Nothing))
-  (define (parse-fail json)
-    (error "Invalid response: " (json->string json)))
-
-  (: parse-item-value (Symbol Json -> String))
-  (define (parse-item-value type json)    
-    (if (JsObject? json)
-	(let ((value (hash-ref json type)))
-	  (if (string? value)
-	      value
-	      (parse-fail json)))
-	(parse-fail json)))	  
-
-  (: parse-item (String JsObject -> Item))
-  (define (parse-item name json)
-    (cond 
-     ((hash-has-key? json 'S) (Item name (parse-item-value 'S json) 'String))
-     ((hash-has-key? json 'N) (Item name (parse-item-value 'N json) 'Number))	
-     (else (parse-fail json))))
-
-  (: parse-items (JsObject -> (HashTable String Item)))
-  (define (parse-items jattrs)
-    (let: ((items : (HashTable String Item) (make-hash)))
-      (let: loop : (HashTable String Item) 
-	    ((attrs : (Listof (Pair Symbol Json)) ((inst hash->list Symbol Json) jattrs)))
-	    (if (null? attrs)
-		items
-		(let* ((jitem (car attrs))
-		       (name (symbol->string (car jitem)))
-		       (type-value (cdr jitem)))
-		  (if (JsObject? type-value)
-		      (begin
-			(hash-set! items name (parse-item name type-value))
-			(loop (cdr attrs)))
-		      (parse-fail jattrs)))))))
-
-  (pretty-print (json->string resp))
   (if (hash-has-key? resp 'ConsumedCapacityUnits)
-      (let ((jconsumed (hash-ref resp 'ConsumedCapacityUnits)))
+      (let ((jconsumed (parse-consumed-capacity resp)))
 	(let ((items (hash-ref resp 'Item (lambda: () JsObject-empty))))
-	  (if (and (JsObject? items)
-		   (flonum? jconsumed))
+	  (if (JsObject? items)
 	      (GetItemResp (parse-items items) jconsumed)
 	      (parse-fail resp))))
       (parse-fail resp)))
