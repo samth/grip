@@ -22,13 +22,16 @@
 
 (require
  racket/pretty
+ (only-in racket/port
+	  call-with-input-bytes)
  (only-in (planet knozama/common:1/std/control)
 	  aif)
  (only-in (planet knozama/webkit:1/web/uri)
 	  Uri Uri-query make-uri parse-uri
 	  url-encode-string uri->string)
  (only-in (planet knozama/webkit:1/web/http/http11)
-	  HTTPConnection-in http-successful? http-close-connection http-invoke)
+	  HTTPPayload HTTPConnection-in 
+	  http-successful? http-close-connection http-invoke)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
 	  param Param Params encode-param)
  (only-in (planet knozama/webkit:1/web/http/header)
@@ -59,11 +62,7 @@
   (list 
    ;; (make-header-string "User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.2 Safari/535.11")
    (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
-   ;; (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-   ;; (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
    (make-header-string "Accept-Encoding" "gzip")
-   ;; (make-header-string "Accept-Language" "en-US,en;q=0.8")
-   ;; (make-header-string "Cache-Control" "max-age=0")
    (make-header-string "Content-Type" "application/x-amz-json-1.0")
    (make-header-string "Connection" "Close")))
 
@@ -86,7 +85,8 @@
 		     (pretty-print ex)
 		     (raise ex #t))])
     (let ((conn (http-invoke 'POST url headers 
-			   (string->bytes/utf-8 payload))))
+			     (HTTPPayload "application/x-amz-json-1.0"
+					  #f #f (open-input-string payload)))))
       (let ((json (read-json (HTTPConnection-in conn))))
 	(http-close-connection conn)
 	(if (JsObject? json)
