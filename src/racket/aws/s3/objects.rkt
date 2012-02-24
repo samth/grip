@@ -19,7 +19,9 @@
 #lang typed/racket/base
 
 (provide 
- s3-list-bucket-objects)
+ list-bucket-objects
+ put-object delete-object
+ put-file-object)
 
 (require 
  racket/pretty
@@ -62,23 +64,10 @@
 	  S3Response S3Response-sxml
 	  S3Payload))
 
-(: aws-error (String -> Void))
-(define (aws-error s)
-  (display s) (newline))
-
-
-;; (define (make-bucket-url bucket)
-;;   (let ((url (make-base-url)))
-;;     (set-url-path! url (list bucket))
-;;     url))    
-
 ;; FIXME Use opt-map to create the parameter query string
 
-;;(: list-bucket-objects (String Keyword String Keyword String Keyword Integer -> (Listof Any)))
-;;(define (list-bucket-objects bucket #:prefix prefix #:marker marker #:max max)
-
-(: s3-list-bucket-objects (String String String String Integer -> Objects))
-(define (s3-list-bucket-objects bucket prefix delimiter marker max)
+(: list-bucket-objects (String String String String Integer -> Objects))
+(define (list-bucket-objects bucket prefix delimiter marker max)
 
   (: s->i (String -> (Option Integer)))
   (define (s->i s)
@@ -170,78 +159,6 @@
 	 (payload (HTTPPayload mime md5 length (open-input-bytes bytes))))
     (s3-invoke 'PUT bucket path #f '() payload)))
 
-      ;; (with-handlers [(exn:fail? (lambda (ex)
-      ;; 				   (http-close-connection connection)
-      ;; 				   (make-client-error-response 500 (exn-message ex))))]
-      ;; 	(HTTPConnection-header connection)))
-    
-    ;; (if (has-content-length response)
-    ;; 	(begin
-    ;; 	  (parse-s3-error (xml->sxml (HTTPConnection-in connection) '()))
-    ;; 	  (http-close-connection connection)
-    ;; 	  (HTTPConnection-header connection))
-    ;; 	(make-client-error-response 400 "Bad URL given in client call - not invoking server"))))
-    ;;(error "Invalid URL in S3 call")))
-
-;; (: delete-object (String String -> ResponseHeader))
-;; (define (delete-object bucket path)
-;;   (let* ((datetime (current-date-string-rfc-2822))
-;; 	 (url (make-base-uri bucket path))
-;; 	 (headers (map header->string
-;; 		       (list ;; (date-header datetime)
-;; 			(authorization-header (current-aws-credential)
-;; 					      (aws-auth-str "DELETE" "" "" datetime '() 
-;; 							    (string-append "/" bucket path)))))))
-;;     (if url
-;; 	(let ((connection (http-invoke 'DELETE url headers #f)))
-;; 	  (with-handlers [(exn:fail? (lambda (ex)
-;; 				       (http-close-connection connection)
-;; 				       (make-client-error-response 500 (exn-message ex))))]
-;; 	    (pretty-print (xml->sxml (HTTPConnection-in connection) '()))
-;; 	    (http-close-connection connection)
-;; 	    (HTTPConnection-header connection)))
-;; 	(make-client-error-response 400 "Bad URL given in client call - not invoking server"))))
-
-
-;; ;; FIX ME - Sometimes the response has expository xml payload e.g. for a failed delete.
-;; ;; consider struct S3Response ([http : ResponseHeader][payload : Sxml]) or S3Error
-
-;; (: test-put (-> ResponseHeader))
-;; (define (test-put)
-;;   (put-file-object "/home/ray/test.dat" "knozama" "/test/test.dat"))
-
-;; (: test-delete (-> ResponseHeader))
-;; (define (test-delete)
-;;   (delete-object "knozama" "/test/test.dat"))
-
-
-;; (: get-object (AwsCredential String String -> Void))
-;; (define (get-object credentials bucket path)
-;;   (let* ((datetime (current-date-string-rfc-2822))	 
-;; 	 (http-headers (list (date-header datetime)
-;; 			     (authorization-header credentials 
-;; 						   (aws-auth-str "GET" 
-;; 								 "" 
-;; 								 "" 
-;; 								 datetime 
-;; 								 '()
-;; 								 (string-append "/" bucket path))))))
-;;     (let ((uri (make-base-uri bucket path)))
-;;       (when uri
-;; 	(pretty-print (s3-get-invoke uri))))))
-
-;; ;; (define (head-object credentials s3-resource)
-;; ;;   (let* ((datetime (rfc2822-date))           
-;; ;;        (http-headers (list (date-header datetime)
-;; ;; 			   (authorization-header credentials 
-;; ;; 						 (aws-s3-auth-str "HEAD" "" "" datetime '() 
-;; ;; 								  (s3-resource->string s3-resource))))))
-;; ;;     (s3-response-from-port (s3-head (make-object-url s3-resource) http-headers))))
-
-;; ;; (define (delete-object credentials s3-resource)
-;; ;;   (let* ((datetime (rfc2822-date))
-;; ;;        (http-headers (list (date-header datetime) 
-;; ;; 			   (authorization-header credentials 
-;; ;; 						 (aws-s3-auth-str "DELETE" "" "" datetime '() 
-;; ;; 								  (s3-resource->string s3-resource))))))
-;; ;;     (s3-response-from-port (s3-delete (make-object-url s3-resource) http-headers))))
+(: delete-object (String String -> S3Response))
+(define (delete-object bucket path)
+  (s3-invoke 'DELETE bucket path #f '() #f))

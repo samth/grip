@@ -53,11 +53,11 @@ Common routines for parsing DynamoDB responses.
 	(parse-fail resp))))
 
 
-(: parse-positive-integer (JsObject Symbol -> Exact-Positive-Integer))
+(: parse-positive-integer (JsObject Symbol -> Exact-Nonnegative-Integer))
 (define (parse-positive-integer resp symbol)
   (let ((int (hash-ref resp symbol)))
     (if (and (exact-integer? int)
-	     (> int 0))
+	     (>= int 0))
 	int
 	(parse-fail resp))))
 

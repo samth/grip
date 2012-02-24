@@ -1,7 +1,10 @@
 #lang typed/racket/base
 
 (provide
- scan ScanResp Filter)
+ scan Filter
+ ScanResp ScanResp? ScanResp-lastkey 
+ ScanResp-consumed ScanResp-count
+ ScanResp-scanned ScanResp-items)
 
 (require 
  racket/pretty
@@ -30,10 +33,10 @@
 		 [values : (Listof ItemVal)]
 		 [operator : Operator]) #:transparent)
 
-(struct: ScanResp ([lastKey : ItemKey]
+(struct: ScanResp ([lastkey : ItemKey]
 		   [consumed : Float]
-		   [count : Exact-Positive-Integer]
-		   [scanned : Exact-Positive-Integer]
+		   [count : Exact-Nonnegative-Integer]
+		   [scanned : Exact-Nonnegative-Integer]
 		   [items : (Listof (HashTable String Item))]) #:transparent)
 
 (: item-val-jsobject (ItemVal -> JsObject))
@@ -94,7 +97,6 @@
 (: scan (String (Listof String) Exact-Positive-Integer Boolean (Listof Filter) (Option ItemKey) -> ScanResp))
 (define (scan table attrs limit count? filters exclusive-start-key)
   (let ((resp (dynamodb SCAN (scan-request table attrs limit count? filters exclusive-start-key))))
-    (pretty-print resp)
     (if (JsObject? resp)
 	(let: ((items-js : Json (hash-ref resp 'Items))
 	       (last-key : (Option ItemKey) (parse-last-key resp)))

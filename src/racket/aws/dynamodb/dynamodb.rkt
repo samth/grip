@@ -25,7 +25,10 @@
  put-item PutItemResp
  update-item UpdateItemResp
  delete-item DeleteItemResult
- scan ScanResp Filter
+ scan Filter
+ ScanResp ScanResp? ScanResp-lastkey 
+ ScanResp-consumed ScanResp-count
+ ScanResp-scanned ScanResp-items
  ReturnValues
  list-tables ListTablesResp
  Exists
@@ -68,4 +71,7 @@
  (only-in "updateitem.rkt"
 	  update-item UpdateItemResp)
  (only-in "scan.rkt"
-	  scan ScanResp Filter))
+	  scan Filter
+	  ScanResp ScanResp? ScanResp-lastkey 
+	  ScanResp-consumed ScanResp-count
+	  ScanResp-scanned ScanResp-items))
