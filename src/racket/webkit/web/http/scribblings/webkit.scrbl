@@ -12,7 +12,7 @@
 
 Standard HTTP 1.1 heading constants are defined.
 
-@title[#:tag "mimetype"]{Mimetype}
+;; @title[#:tag "mimetype"]{Mimetype}
 
 Many standard mimetype constants are define.
 

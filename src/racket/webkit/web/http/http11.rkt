@@ -39,7 +39,9 @@
  http-has-content?
  http-close-connection
  http-invoke
- make-client-error-response)
+ make-client-error-response
+ parse-request-line
+ parse-http-response-line)
 
 ;; (require/typed
 ;;  racket

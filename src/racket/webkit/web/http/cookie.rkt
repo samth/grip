@@ -23,22 +23,22 @@
 (provide make-cookie
 	 parse-cookie)
 
-;; (require/typed 
-;;  racket/base
-;;  (opaque Date date?)
-;;  (seconds->date (Integer -> Date)))
+(require/typed 
+ racket/base
+ (opaque Date date?)
+ (seconds->date (Integer -> Date)))
 
-;; (require/typed
-;;  racket/date
-;;  (current-date (-> Date))
-;;  (date-display-format (Parameterof Symbol))
-;;  (date->string (Date -> String)))
+(require/typed
+ racket/date
+ (current-date (-> Date))
+ (date-display-format (Parameterof Symbol))
+ (date->string (Date -> String)))
 
 (require
  (only-in "heading.rkt"
 	  COOKIE SET-COOKIE)
  (only-in "header.rkt"
-	  make-header
+	  make-header Headers Header
 	  get-header-value))
 
 
@@ -52,8 +52,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Make a cookie header ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
-(: cookie-header (String -> String))
-(define (set-cookie cookie)
+(: cookie-header (String -> Header))
+(define (cookie-header cookie)
   (make-header SET-COOKIE cookie))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -63,13 +63,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (: make-cookie (String String String String Integer -> String))
 (define (make-cookie domain path name value expire-secs)
-    (let ((duration (+ (current-seconds) expire-secs)))
-      (parameterize ((date-display-format 'rfc2822))
-	(let ((expire-date (date->string (seconds->date duration))))
-	  (string-append name "=" value "; "
-			 "Expires=" expire-date "; "
-			 "Path="    path "; "
-			 "Domain="  domain)))))
+  (let ((duration (+ (current-seconds) expire-secs)))
+    (parameterize ((date-display-format 'rfc2822))
+      (let ((expire-date (date->string (seconds->date duration))))
+	(string-append name "=" value "; "
+		       "Expires=" expire-date "; "
+		       "Path="    path "; "
+		       "Domain="  domain)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parse a cookie string into an alist of key value pairs		   ;;
@@ -79,33 +79,33 @@
 (: parse-cookie (String -> (Listof (Pairof String String))))
 (define (parse-cookie cookie)
   (let ((is (open-input-string cookie))
-      (os (open-output-string)))
+	(os (open-output-string)))
     (let: loop : (Listof (Pair String String)) 
-	((avs : (Listof (Pair String String)) '()) 
-	 (ws : Boolean #f) 
-	 (attr : (Option String) #f))
-      (let ((ch (read-char is)))
-	(cond 
-	 ((eof-object? ch)
-	  (if (and (string? attr)
-		(not (string=? attr "")))
-	     (cons (cons attr (get-output-string os)) avs)
-	     avs))
-	 ((and (not ws) (char=? ch #\space))
-	  (loop avs ws attr))
-	 (else
-	  (if attr
-	     (if (char=? ch #\;)
-		(let ((value (bytes->string/utf-8 (get-output-bytes os #T))))
-		  (loop (cons (cons attr value) avs) #f #f))
-		(let ((ws (if (char=? ch #\")
-			   (not ws)
-			   #t)))
-		  (write-char ch os)
-		  (loop avs ws attr)))
-	     (if (char=? ch #\=)
-		(let ((attr (bytes->string/utf-8 (get-output-bytes os #t))))
-		  (loop avs ws attr))
-		(begin
-		  (write-char ch os)
-		  (loop avs ws attr))))))))))
+	  ((avs : (Listof (Pair String String)) '()) 
+	   (ws : Boolean #f) 
+	   (attr : (Option String) #f))
+	  (let ((ch (read-char is)))
+	    (cond 
+	     ((eof-object? ch)
+	      (if (and (string? attr)
+		       (not (string=? attr "")))
+		  (cons (cons attr (get-output-string os)) avs)
+		  avs))
+	     ((and (not ws) (char=? ch #\space))
+	      (loop avs ws attr))
+	     (else
+	      (if attr
+		  (if (char=? ch #\;)
+		      (let ((value (bytes->string/utf-8 (get-output-bytes os #T))))
+			(loop (cons (cons attr value) avs) #f #f))
+		      (let ((ws (if (char=? ch #\")
+				    (not ws)
+				    #t)))
+			(write-char ch os)
+			(loop avs ws attr)))
+		  (if (char=? ch #\=)
+		      (let ((attr (bytes->string/utf-8 (get-output-bytes os #t))))
+			(loop avs ws attr))
+		      (begin
+			(write-char ch os)
+			(loop avs ws attr))))))))))
