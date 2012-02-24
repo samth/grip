@@ -22,6 +22,7 @@
 
 (provide
  Action
+ HTTPPayload HTTPPayload-mime HTTPPayload-md5
  http-action->string
  ResponseHeader
  ResponseHeader?
@@ -100,6 +101,12 @@
 			 [in  : Input-Port]
 			 [real-in : (Option Input-Port)])
 	 #:transparent)  ;; the actual socket input port, e.g. 'in' could be a chuncking pipe 
+
+
+(struct: HTTPPayload ([mime    : String]
+		      [md5     : (Option String)]
+		      [length  : (Option Index)]
+		      [inport  : Input-Port]) #:transparent)
 
 (: CHUNK-SIZE Exact-Nonnegative-Integer)
 (define CHUNK-SIZE (* 64 1024)) ;; 64 K chunks, based on reasonable in-memory needs.
@@ -487,30 +494,49 @@
 	   (write-bytes buffer op 0 (- sz 1))
 	   (loop (read-bytes! buffer ip 0 CHUNK-SIZE)))))))
 
-(: send-payload ((Option (U Bytes Input-Port)) Output-Port -> Void))
+(: send-contentlength-payload (HTTPPayload Output-Port -> Void))
+(define (send-contentlength-payload payload outp)
+  (let ((inp (HTTPPayload-inport payload))
+	(length (assert (HTTPPayload-length payload))))
+    (send-header "Content-Length" (number->string length 10) outp)
+    (send-header "Content-Type" (HTTPPayload-mime payload) outp)
+    (let ((md5 (HTTPPayload-md5 payload)))
+      (when md5
+	(send-header "Content-MD5" md5 outp)))
+    (terminate-http-header outp)
+    (let* ((buff-sz (if (< length CHUNK-SIZE)
+			length
+			CHUNK-SIZE))
+	   (buffer (make-bytes buff-sz)))
+      (do ([sz (read-bytes! buffer inp 0 buff-sz)
+	       (read-bytes! buffer inp 0 buff-sz)])
+	  ((eof-object? sz) (flush-output outp))
+	(write-bytes buffer outp)))))
+
+(: send-payload (HTTPPayload Output-Port -> Void))
 (define (send-payload payload op)
-  (if payload     
-     (if (bytes? payload)
-	(begin 
-	  (send-header "Content-Length" (number->string (bytes-length payload) 10) op)
-	  (terminate-http-header op)
-	  (write-bytes payload op)
-	  (flush-output op)
-	  (void))
+  (let ((len (HTTPPayload-length payload))
+	(inport (HTTPPayload-inport payload)))
+    (if len
+	(send-contentlength-payload payload op)
 	(begin
 	  (send-header "Transfer-Encoding" "Chunked" op)
 	  (terminate-http-header op)
-	  (send-chunked-payload payload op)))
+	  (send-chunked-payload inport op)))
      (terminate-http-header op)))
   
 ;; WARNING - All the output routines now in Racket (write-bytes etc) return the actual
 ;; number of bytes written.  All the above code "assumes" a full write always occurs to 
 ;; the socket output port. FIXME 
 
-;; ;; (provide/contract (http-invoke (-> symbol? uri? any/c (or/c boolean? bytes?) any)))
 ;; Put - If the payload is a byte array then used content-length.
 ;;     - If the payload is a pipe, use chunking.
-(: http-invoke (Action Uri (Listof String) (Option (U Bytes Input-Port)) -> HTTPConnection))
+;; ... except that approach won't work for S3 for example which does not support
+;;     chunking, yet we want to say stream a large file and its length is available
+;;     via an O/S system call.
+;; Use an explicit Payload structure with an optional length so a ports length 
+;; can be explicitly given, wherein content-length will be used.
+(: http-invoke (Action Uri (Listof String) (Option HTTPPayload) -> HTTPConnection))
 (define (http-invoke action url headers payload)
 
   (: append-host-to-headers (String -> (Listof String)))
@@ -535,7 +561,9 @@
 				   (tcp-connect conn-host conn-port))))
 	      (send-http-header op action url headers)
 	      
-	      (send-payload payload op)
+	      (if payload
+		  (send-payload payload op)
+		  (terminate-http-header op))
 	      
 	      (let ((headers (http-header-from-socket-input-port ip)))
 		(if headers
