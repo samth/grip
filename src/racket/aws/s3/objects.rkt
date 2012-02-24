@@ -38,7 +38,7 @@
 	  content-type
 	  content-md5)
  (only-in (planet knozama/webkit:1/web/http/http11)
-	  ResponseHeader Result
+	  ResponseHeader Result HTTPPayload
 	  HTTPConnection-in HTTPConnection-header
 	  http-invoke http-close-connection make-client-error-response)
  (only-in (planet knozama/webkit:1/web/uri/url/param)
@@ -150,20 +150,24 @@
 (: put-file-object (String String String -> S3Response))
 (define (put-file-object in-file-path bucket path)
   (if (file-exists? in-file-path)
-      (let* ((size (file-size in-file-path))
+      (let* ((length (assert (file-size in-file-path) index?))
 	     (ip (open-input-file in-file-path))
-	     (buff (read-bytes size ip))
-	     (close-input-port ip))
-	(if (not (eof-object? buff))
-	    (put-object buff bucket path)
-	    (make-empty-error-response 404 (string-append "File " in-file-path " is 0 byte file."))))
-      (make-empty-error-response 404 (string-append "File " in-file-path " does not exist to PUT"))))
+	     (mime "binary/octet-stream")
+	     (payload (HTTPPayload mime #f length ip)))
+	(with-handlers [(exn:fail? (lambda (ex)
+				     (close-input-port ip)
+				     (make-empty-error-response 500 (exn-message ex))))]
+	  (s3-invoke 'PUT bucket path #f '() payload)))
+      (make-empty-error-response 404 (string-append "File " 
+						    in-file-path 
+						    " does not exist to PUT"))))
 
 (: put-object (Bytes String String -> S3Response))
 (define (put-object bytes bucket path)
-  (let* ((md5 (base64-encode (md5-bytes bytes)))
+  (let* ((length (bytes-length bytes))
+	 (md5 (base64-encode (md5-bytes bytes)))
 	 (mime "binary/octet-stream")
-	 (payload (S3Payload mime md5 (open-input-bytes bytes))))
+	 (payload (HTTPPayload mime md5 length (open-input-bytes bytes))))
     (s3-invoke 'PUT bucket path #f '() payload)))
 
       ;; (with-handlers [(exn:fail? (lambda (ex)

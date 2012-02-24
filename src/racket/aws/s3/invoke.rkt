@@ -27,7 +27,7 @@
 	  Params
 	  params->query)
  (only-in (planet knozama/webkit:1/web/http/http11)
-	  Action 
+	  Action HTTPPayload HTTPPayload-md5 HTTPPayload-mime
 	  http-action->string http-status-code http-has-content?
 	  ResponseHeader-result Result
 	  HTTPConnection-in HTTPConnection-header
@@ -51,7 +51,8 @@
 (struct: S3Response ([http : Result]
 		     [sxml : Sxml]) #:transparent)
 
-(struct: S3Payload ([mime : String]
+(struct: S3Payload ([length : Index]
+		    [mime : String]
 		    [md5  : String]
 		    [inport  : Input-Port]) #:transparent)
 
@@ -85,7 +86,7 @@
 			       (aws-auth-mac (BaseCredential-secret-key credential)
 					     auth-str))))
 
-(: s3-invoke (Action (Option String) String (Option Params) Headers (Option S3Payload) -> S3Response))
+(: s3-invoke (Action (Option String) String (Option Params) Headers (Option HTTPPayload) -> S3Response))
 (define (s3-invoke action bucket path query-params headers payload)
   (let ((url (make-base-uri bucket path query-params)))
     (if url
@@ -93,27 +94,25 @@
 	       (canonical-resource (if bucket
 				       (string-append "/" bucket (Uri-path url))
 				       (Uri-path url)))
+
+	       (md5 (if payload 
+			(let ((md5 (HTTPPayload-md5 payload)))
+			  (if md5 md5 ""))
+			""))
 	       (mime (if payload
-			 (S3Payload-mime payload)
+			 (HTTPPayload-mime payload)
 			 ""))
-	       (md5  (if payload
-			 (S3Payload-md5 payload)
-			 ""))
-	       (headers (if payload 
-			    (list (content-type (S3Payload-mime payload))
-				  (content-md5 (S3Payload-md5 payload)))
-			    '()))
 	       (core-headers (map header->string 
 				  (list (make-header DATE datetime)
 					(authorization-header (current-aws-credential)
 							      (aws-auth-str (http-action->string action)
-									    md5 mime
+									    md5 mime						    
 									    datetime '()
 									    canonical-resource))))))
 	  (let ((connection (http-invoke action 
 					 url 
 					 (append core-headers (map header->string headers))
-					 (if payload (S3Payload-inport payload) #f))))
+					 payload)))
 	    (with-handlers [(exn:fail? (lambda (ex)
 					 ((error-display-handler) "ERROR in S3 invocation." ex)
 					 (displayln ex) 
