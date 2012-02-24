@@ -18,6 +18,15 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(require
+ (only-in "../mimetype-const.rkt"
+	  X-WWW-FORM-URLENCODED)
+ (only-in "../heading.rkt"
+	  CONTENT-TYPE)
+ (only-in "../header.rkt"
+          make-header-string get-header get-header-value
+          Header Headers))
+
 (: x-www-form-urlencoded? (Headers -> Boolean))
 (define (x-www-form-urlencoded? headers)
   (let ((header (get-header CONTENT-TYPE headers)))
