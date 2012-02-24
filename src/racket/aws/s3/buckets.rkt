@@ -1,5 +1,8 @@
 #lang typed/racket/base
 
+(provide 
+ list-buckets)
+
 (require
  racket/pretty
  (only-in (planet knozama/xml:1/sxml)
@@ -13,8 +16,8 @@
 	  make-base-uri s3-invoke
 	  S3Response S3Response-sxml))
 
-(: s3-list-buckets (-> Buckets))
-(define (s3-list-buckets)
+(: list-buckets (-> Buckets))
+(define (list-buckets)
 
   (: parse-owner (Sxml -> Owner))
   (define (parse-owner sxml)
@@ -53,14 +56,14 @@
 	      (Buckets owner buckets)))
 	  (error "S3 call failed"))))
 
-  (let ((resp (s3-invoke 'GET #f "/" #f '())))
+  (let ((resp (s3-invoke 'GET #f "/" #f '() #f)))
     (parse-response (S3Response-sxml resp))))
 
 (: create-bucket (String -> S3Response))
 (define (create-bucket bucket)
-  (s3-invoke 'PUT bucket "/" #f '()))
+  (s3-invoke 'PUT bucket "/" #f '() #f))
 
 (: delete-bucket (String -> S3Response))
 (define (delete-bucket bucket)
-  (s3-invoke 'DELETE bucket "/" #f '()))
+  (s3-invoke 'DELETE bucket "/" #f '() #f))
 

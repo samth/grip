@@ -8,19 +8,15 @@
  (only-in (planet knozama/webkit:1/web/uri)
 	  make-uri
 	  url-encode-string)
- (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  parms->query)
  (only-in (planet knozama/webkit:1/web/http/http11)
 	  http-invoke)
- (only-in (planet knozama/webkit:1/web/http/headers)
+ (only-in (planet knozama/webkit:1/web/http/header)
 	  Header
 	  Headers)
  (only-in "../credential.rkt"
-	  aws-credential-associate-tag
-	  aws-credential-secret-key
-	  aws-credential-access-key)
- (only-in (planet knozama/common:1/type/date)
-	  current-time-iso-8601)
+	  AwsCredential-associate-tag
+	  BaseCredential-secret-key
+	  BaseCredential-access-key)
  (only-in "../configuration.rkt"
 	  a2s-ns
 	  a2s-host)

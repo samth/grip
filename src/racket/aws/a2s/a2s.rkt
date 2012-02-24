@@ -2,7 +2,6 @@
 
 (provide 
  a2s-invoke
- credentials 
  ;;fetch-parse 
  browse-node service-parms
  empty-response
@@ -25,42 +24,34 @@
  (only-in (planet knozama/webkit:1/web/uri)
 	  make-uri uri->start-line-path-string
 	  url-encode-string)
+ (only-in (planet knozama/webkit:1/web/http/header)
+	  Header Headers host-header header->string)
  (only-in (planet knozama/webkit:1/web/http/http11)
-	  http-invoke)
+	  http-invoke HTTPConnection-in)
  (only-in (planet knozama/common:1/type/date)
-	  current-time-iso-8601
-	  current-time-rfc-2822)
- (only-in (planet knozama/webkit:1/crypto/hash/sha256)
-	  hmac-sha256 hexstr)
+	  current-date-string-iso-8601)
+ (only-in (planet knozama/webkit:1/crypto/hmac)
+	  hmac-sha256)
  (only-in (planet knozama/webkit:1/crypto/base64)
 	  base64-encode)
- (only-in (planet knozama/webkit:1/web/http/headers)
-	  Headers Header host-header date-header)
- (only-in (planet knozama/webkit:1/web/uri/url/param)
-	  parms->query)
- (only-in (planet knozama/webkit:1/web/http/headers)
-	  host-header)
- (only-in (planet knozama/webkit:1/web/http/resource)
-	  fetch-resource-xml)
+;; (only-in (planet knozama/webkit:1/web/http/headers)
+;;	  Headers Header host-header date-header)
+;; (only-in (planet knozama/webkit:1/web/uri/url/param)
+;;	  parms->query)
+;; (only-in (planet knozama/webkit:1/web/http/headers)
+;;	  host-header)
  (only-in "../configuration.rkt"
-	  credential-path
 	  a2s-ns a2s-host a2s-path)
  (only-in "../credential.rkt"
-	  load-credential
-	  aws-credential-associate-tag
-	  aws-credential-secret-key
-	  aws-credential-access-key)
- (only-in "../auth.rkt"
-	  aws-s3-auth-str
-	  aws-s3-auth-mac))
-
-(define credentials (make-parameter (load-credential credential-path)))
+	  current-aws-credential
+	  BaseCredential-secret-key
+	  BaseCredential-access-key))
 
 (: empty-response (List Symbol))
 (define empty-response '(*TOP*))
 
 (: a2s-host-header String)
-(define a2s-host-header (host-header a2s-host))
+(define a2s-host-header (header->string (host-header a2s-host)))
 
 (: itemlookup-parms Headers)
 (define itemlookup-parms
@@ -78,8 +69,8 @@
 
 (: core-parms (-> Headers))
 (define (core-parms)
-  (cons `("Timestamp" . ,(url-encode-string (current-time-iso-8601) #f))
-	(cons `("AWSAccessKeyId" . ,(aws-credential-access-key (credentials)))
+  (cons `("Timestamp" . ,(url-encode-string (current-date-string-iso-8601 #f) #f))
+	(cons `("AWSAccessKeyId" . ,(BaseCredential-access-key (current-aws-credential)))
 	      service-parms)))
 
 (: browse-node (Integer -> (Listof Any)))
@@ -127,7 +118,7 @@
 						    param-str)))
        (sig (url-encode-string (base64-encode 
 				(hmac-sha256 
-				 (aws-credential-secret-key (credentials))
+				 (BaseCredential-secret-key (current-aws-credential))
 				 auth-str)) #f)))
     (string-append "Signature=" sig "&" param-str)))
 
@@ -136,16 +127,17 @@
 (: a2s-invoke (Headers -> (Listof Any)))
 (define (a2s-invoke params)
   (let* ((parm-str (sign-request "GET" (append (core-parms) params)))
-       (uri (make-uri "http" #f a2s-host #f a2s-path parm-str "")))	
+       (uri (make-uri "http" #f a2s-host 80 a2s-path parm-str "")))
     (if uri
-       (let-values (((hdrs ip) (http-invoke 'GET uri '() #f)))
+       (let ((connection (http-invoke 'GET uri '() #f)))
 	 (with-handlers [(exn:fail? (lambda (ex) 
 				      ((error-display-handler) "ERROR in a2s invocation." ex)
 				      (displayln ex) 
-				      (close-input-port ip)
+				      (close-input-port (HTTPConnection-in connection))
 				      empty-response))]
-	   (let ((results (ssax:xml->sxml ip '())))
-	     (close-input-port ip)
-	     results)))
-       empty-response)))
+	   (let ((ip (HTTPConnection-in connection)))
+	     (let ((results (ssax:xml->sxml ip '())))
+	       (close-input-port ip)
+	       results))))
+	 empty-response)))
 
