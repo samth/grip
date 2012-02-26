@@ -102,16 +102,15 @@
 	       (mime (if payload
 			 (HTTPPayload-mime payload)
 			 ""))
-	       (core-headers (map header->string 
-				  (list (make-header DATE datetime)
-					(authorization-header (current-aws-credential)
-							      (aws-auth-str (http-action->string action)
-									    md5 mime						    
-									    datetime '()
-									    canonical-resource))))))
+	       (core-headers  (list (make-header DATE datetime)
+				    (authorization-header (current-aws-credential)
+							  (aws-auth-str (http-action->string action)
+									md5 mime
+									datetime '()
+									canonical-resource)))))
 	  (let ((connection (http-invoke action 
 					 url 
-					 (append core-headers (map header->string headers))
+					 (append core-headers headers)
 					 payload)))
 	    (with-handlers [(exn:fail? (lambda (ex)
 					 ((error-display-handler) "ERROR in S3 invocation." ex)

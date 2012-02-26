@@ -35,7 +35,7 @@
  (only-in (planet knozama/webkit:1/web/uri/url/param)
 	  param Param Params encode-param)
  (only-in (planet knozama/webkit:1/web/http/header)
-          Header make-header-string header->string)
+          Header Headers make-header)
  (only-in (planet knozama/common:1/type/date)
 	  current-date-string-rfc-2822
 	  current-date-string-iso-8601)
@@ -57,14 +57,14 @@
 
 (struct: DynamoDBFailure () #:transparent)
 
-(: request-headers (Listof String))
+(: request-headers Headers)
 (define request-headers  
   (list 
    ;; (make-header-string "User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.2 Safari/535.11")
-   (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
-   (make-header-string "Accept-Encoding" "gzip")
-   (make-header-string "Content-Type" "application/x-amz-json-1.0")
-   (make-header-string "Connection" "Close")))
+   (make-header "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
+   (make-header "Accept-Encoding" "gzip")
+   (make-header "Content-Type" "application/x-amz-json-1.0")
+   (make-header "Connection" "Close")))
 
 (: date-header (-> Header))
 (define (date-header)
@@ -78,7 +78,7 @@
    (date-header)
    (cons "x-amz-target" cmd)))
 
-(: dynamodb-invoke (Uri (Listof String) String -> (U DDBFailure JsObject)))
+(: dynamodb-invoke (Uri Headers String -> (U DDBFailure JsObject)))
 (define (dynamodb-invoke url headers payload)
   (with-handlers ([exn:fail?
 		   (lambda (ex) 
@@ -118,6 +118,6 @@
 	      (auth-hdrs (auth-headers cmd stok)))
 	  (let* ((auth (authorization-header auth-hdrs cmd-body scred))
 		 (hdrs (cons auth auth-hdrs))
-		 (shdrs (append (map header->string hdrs) request-headers)))
+		 (shdrs (append hdrs request-headers)))
 	    (dynamodb-invoke url shdrs cmd-body))))
       (error "DynamoDB failed to obtain a valid session token")))

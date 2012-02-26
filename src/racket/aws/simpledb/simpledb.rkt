@@ -17,7 +17,7 @@
  (only-in (planet knozama/webkit:1/web/http/http11)
 	  HTTPConnection-in http-successful? http-close-connection http-invoke)
  (only-in (planet knozama/webkit:1/web/http/header)
-          make-header-string)
+          Headers make-header)
  (only-in (planet knozama/xml:1/sxml)
 	  Sxml SXPath sxpath html->sxml xml->sxml extract-text extract-integer)
  (only-in "../auth/authv2.rkt"
@@ -64,17 +64,17 @@
 (: PUT-ACTION String)
 (define PUT-ACTION "PutAttributes")
 
-(: request-headers (Listof String))
+(: request-headers Headers)
 (define request-headers  
   (list 
    ;; (make-header-string "User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.2 Safari/535.11")
-   (make-header-string "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
-   (make-header-string "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-   (make-header-string "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
-   (make-header-string "Accept-Encoding" "gzip")
-   (make-header-string "Accept-Language" "en-US,en;q=0.8")
-   (make-header-string "Cache-Control" "max-age=0")
-   (make-header-string "Connection" "Close")))
+   (make-header "User-Agent" "Googlebot/2.1 (+http://www.google.com/bot.html)")
+   (make-header "Accept" "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+   (make-header "Accept-Charset" "ISO-8859-1,utf-8;q=0.7,*;q=0.3")
+   (make-header "Accept-Encoding" "gzip")
+   (make-header "Accept-Language" "en-US,en;q=0.8")
+   (make-header "Cache-Control" "max-age=0")
+   (make-header "Connection" "Close")))
 
 (: domain-param (String -> Param))
 (define (domain-param domain)
@@ -88,7 +88,7 @@
 (define (signed-query http-action cmd path qparams)
   (authv2-signature sdb-api-version http-action sdb-host cmd path qparams))
 
-(: invoke-sdb-get (All (a) (Uri (Listof String) (Sxml -> (U SDBError a)) -> (U SDBError a))))
+(: invoke-sdb-get (All (a) (Uri Headers (Sxml -> (U SDBError a)) -> (U SDBError a))))
 (define (invoke-sdb-get url headers resp-parser)
   (with-handlers ([exn:fail? 
 		   (lambda (ex) (SDBError))])

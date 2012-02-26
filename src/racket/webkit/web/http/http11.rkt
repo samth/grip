@@ -84,7 +84,8 @@
           HOST
           USER-AGENT)
  (only-in "header.rkt"
-          make-header-string get-header get-header-value
+	  make-header make-header-string 
+	  get-header get-header-value header->string
           Header Headers))
 
 (define-type Action (U 'GET 'PUT 'POST 'DELETE 'HEAD))
@@ -550,12 +551,12 @@
 ;;     via an O/S system call.
 ;; Use an explicit Payload structure with an optional length so a ports length 
 ;; can be explicitly given, wherein content-length will be used.
-(: http-invoke (Action Uri (Listof String) (Option HTTPPayload) -> HTTPConnection))
+(: http-invoke (Action Uri Headers (Option HTTPPayload) -> HTTPConnection))
 (define (http-invoke action url headers payload)
 
-  (: append-host-to-headers (String -> (Listof String)))
+  (: append-host-to-headers (String -> Headers))
   (define (append-host-to-headers host)
-    (cons (make-header-string HOST host) headers))
+    (cons (make-header HOST host) headers))
   
   (let ((authority (Uri-authority url)))
     (if (not  authority)
@@ -573,7 +574,7 @@
             (let-values (((ip op) (if (string=? (Uri-scheme url) "https")
 				      (ssl-connect conn-host conn-port)
 				      (tcp-connect conn-host conn-port))))
-	      (send-http-header op action url headers)
+	      (send-http-header op action url (map header->string headers))
 	      
 	      (if payload
 		  (send-payload payload op)
