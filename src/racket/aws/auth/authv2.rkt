@@ -71,7 +71,7 @@
 (: authv2-signature (String String String String String Params -> Params))
 (define (authv2-signature api-version action host cmd path params)
   (let ((access-key (BaseCredential-access-key (current-aws-credential)))
-      (secret-key (BaseCredential-secret-key (current-aws-credential))))    
+	(secret-key (BaseCredential-secret-key (current-aws-credential))))
     (let ((params (append params (authv2-params access-key cmd api-version))))
       (cons (param "Signature" (signature secret-key (auth-str action host path params)))
 	    params))))
