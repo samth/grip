@@ -36,7 +36,7 @@
 
 (define-type DDBType (U 'String 'Number 'StringSet 'NumberSet))
 
-(define-type Operator (U 'EQ 'LE 'LT 'GE 'GT 'BEGINS_WITH 'BETWEEN 'NULL))
+(define-type Operator (U 'EQ 'LE 'LT 'GE 'GT 'BEGINS_WITH 'BETWEEN 'NULL 'NOT_NULL))
 
 (define-predicate DDBType? DDBType)
 
