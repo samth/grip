@@ -68,7 +68,6 @@
     (let: ((req : JsObject (jsobject req-attrs)))
       (when (null? attrs)
 	(hash-remove! req 'AttributesToGet))
-    (pretty-print (json->string req))
     (json->string req))))
   
 (: parse-last-key (JsObject -> (Option ItemKey)))
@@ -113,30 +112,3 @@
 	      (parse-fail resp)))
 	(error (string-append "Unparsable response from in scanning " table)))))
 
-(: test (-> ScanResp))
-(define (test)
-  (scan "product" '("sku" "purveyor") 100 #f 
-	(list (Filter "recycled" '() 'NULL)
-	      (Filter "purveyor" (list (ItemVal "sp" 'String)) 'EQ))
-	#f))
-
-	;;   (if (JsObject? items-js)
-	;;       (let: ((items : (Listof (HashTable String Item)) (map parse-items items-js)))
-	;; 	(pretty-print items))
-	;;       (parse-fail items-js)))
-	;; (pretty-print resp)))
-
-
-;; {"TableName":"comp5",
-;; 	"ScanFilter":
-;; 		{"time":
-;; 			{"AttributeValueList":[{"N":"400"}],
-;; 			"ComparisonOperator":"GT"}
-;; 	}
-;; }
-
-(: test2 (-> String))
-(define (test2)
-  (scan-request "product" '("sku" "purveyor") 100 #f 
-		(list (Filter "recycled" (list (ItemVal "Yes" 'String)) 'EQ))
-		#f))

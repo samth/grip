@@ -48,7 +48,6 @@
 (: update-item (String ItemKey (Option (U Exists Item)) (Listof ItemUpdate) ReturnValues -> UpdateItemResp))
 (define (update-item table item-key expected attrs return-values)
   (let ((req (update-item-request table item-key expected attrs return-values)))
-    (pretty-print req)
     (let ((resp (dynamodb UPDATE-ITEM req)))
       (pretty-print resp)))
   (UpdateItemResp))
