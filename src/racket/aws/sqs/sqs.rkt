@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide
+ send-message
  list-queues)
 
 (require
