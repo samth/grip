@@ -6,7 +6,8 @@
 
 (require  
  (only-in (planet knozama/webkit:1/formats/tjson)
-	  Json JsObject JsObject? json->string jsobject attribute)
+	  Json JsObject JsObject? json->string 
+	  jsobject)
  (only-in "types.rkt"
 	  string->DDBType
 	  Key KeySchema Throughput))

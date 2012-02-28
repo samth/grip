@@ -11,7 +11,8 @@
 
 (require
  (only-in (planet knozama/webkit:1/formats/tjson)
- 	  Json JsObject JsObject? json->string string->json jsobject attribute)
+ 	  Json JsObject JsObject? json->string string->json 
+	  jsobject jsobject-add-attribute)
  (only-in "types.rkt"
 	  Exists Exists? Exists-name Exists-exists
 	  Item Item? Item-name Item-type Item-value
@@ -29,7 +30,7 @@
   (let ((jsobj (jsobject `((HashKeyElement . ,(keyvalue-json (ItemKey-hashkey item-key)))))))
     (let ((rnge-key (ItemKey-rangekey item-key)))
       (when rnge-key 
-	(attribute jsobj 'RangeKeyElement (keyvalue-json rnge-key))))
+	(jsobject-add-attribute jsobj 'RangeKeyElement (keyvalue-json rnge-key))))
     jsobj))
 
 (: return-values-json (ReturnValues -> String))

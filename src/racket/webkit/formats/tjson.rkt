@@ -2,7 +2,9 @@
 
 (provide
  JsObject-empty
- jsobject attribute
+ jsobject
+ jsobject-add-attribute
+ jsobject-remove-attribute
  Json JsNull JsObject JsList JsObject? JsList?
  json->string string->json write-json read-json)
 
@@ -295,6 +297,14 @@
 (: jsobject ((Listof (Pair Symbol Json)) -> JsObject))
 (define (jsobject attrs)
   (make-hasheq attrs))
+
+(: jsobject-add-attribute (JsObject Symbol JsObject -> Void))
+(define (jsobject-add-attribute obj key value)
+  (hash-set! obj key value))
+
+(: jsobject-remove-attribute (JsObject Symbol -> Void))
+(define (jsobject-remove-attribute obj key)
+  (hash-remove! obj key))
   
 (: attribute (JsObject Symbol JsObject -> Void))
 (define (attribute obj key value)

@@ -16,7 +16,8 @@ Common routines for parsing DynamoDB responses.
 	  Item ItemVal KeyVal)
  (only-in (planet knozama/webkit:1/formats/tjson)
 	  JsObject-empty
- 	  Json JsObject JsObject? json->string string->json jsobject attribute))
+ 	  Json JsObject JsObject? json->string string->json 
+	  jsobject jsobject-add-attribute))
 
 (: parse-fail (Json -> Nothing))
 (define (parse-fail json)

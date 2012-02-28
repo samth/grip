@@ -25,7 +25,8 @@
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
 	  JsObject-empty
- 	  Json JsObject JsObject? json->string string->json jsobject attribute)
+ 	  Json JsObject JsObject? json->string string->json jsobject
+	  jsobject-add-attribute jsobject-remove-attribute)
  (only-in (planet knozama/common:1/std/opt)
 	  opt-orelse)
  (only-in "types.rkt"
@@ -53,6 +54,8 @@
 			 (Key . ,(itemkey-json key))
 			 (AttributesToGet . ,attrs)
 			 (ConsistentRead . ,(if consistent? "true" "false"))))))
+    (when (null? attrs)
+      (jsobject-remove-attribute req 'AttributesToGet))
     (json->string req)))
 
 (: get-item  (String ItemKey (Listof String) Boolean -> GetItemResp))

@@ -10,7 +10,7 @@
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
 	  Json JsObject JsObject? JsObject-empty
-	  json->string jsobject attribute)
+	  json->string jsobject jsobject-add-attribute)
  (only-in "action.rkt"
 	  SCAN)
  (only-in "invoke.rkt"

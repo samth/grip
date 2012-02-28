@@ -25,7 +25,8 @@
 (require 
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
-	  Json JsObject JsObject? json->string jsobject attribute)
+	  Json JsObject JsObject? json->string 
+	  jsobject jsobject-add-attribute)
  (only-in "action.rkt"
 	  PUT-ITEM)
  (only-in "types.rkt"
@@ -59,7 +60,7 @@
 				     (Item . ,(items-json items))
 				     (ReturnValues . ,(return-values-json return-values))))))
     (when expected
-      (attribute req 'Expected (expected/exists-json expected)))
+      (jsobject-add-attribute req 'Expected (expected/exists-json expected)))
     (pretty-print (json->string req))
     (json->string req)))
 

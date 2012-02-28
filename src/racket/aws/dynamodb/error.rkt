@@ -31,7 +31,7 @@
 (require 
  racket/pretty
  (only-in (planet knozama/webkit:1/formats/tjson)
- 	  Json JsObject JsObject? json->string string->json jsobject attribute))
+ 	  Json JsObject JsObject? json->string string->json jsobject))
  	
 (struct: DDBFailure exn:fail () #:transparent)
 
