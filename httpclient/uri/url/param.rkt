@@ -26,30 +26,13 @@
 	  Char-Set
 	  string->char-set
 	  char-set-complement)
- (only-in (planet knozama/common:1/text/util)
+ (only-in (planet rpr/prelude:1/text/util)
 	  weave-string-separator)
  "../uricharset.rkt")
 
 (require/typed 
  srfi/13
  (string-tokenize (String Char-Set -> (Listof String))))
-
-;; (require (rnrs base)
-;; 	 (only (rnrs io simple)
-;; 	       eof-object?)
-;; 	 (only (rnrs io ports)
-;; 	       open-string-input-port
-;; 	       get-char put-char put-string)
-;; 	 (only (rl3 web uri char-sets)
-;; 	       encode-char unsafe-char?)
-;; 	 (only (rl3 types chars)
-;; 	       string->char-set
-;; 	       char-set-complement)
-;; 	 (only (rl3 types strings)
-;; 	       string-tokenize)
-;; 	 (only (rl3 text text)
-;; 	       weave-string-separator)
-;; 	 (primitives get-output-string open-output-string))
 
 (define-type Param (Pair String String))
 

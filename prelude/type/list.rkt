@@ -67,11 +67,10 @@
 ;; weave an element between a list of elements
 (: weave (All (a) a (Listof a) -> (Listof a)))
 (define (weave e lst)
-  (if (null? lst)
-     lst
-     (if (null?  (cdr lst))
-	lst
-	(cons (car lst) (cons e (weave e (cdr lst)))))))
+  (if (or (null? lst)
+	  (null? (cdr lst)))
+      lst
+      (cons (car lst) (cons e (weave e (cdr lst))))))
   
 (: make-list (All (a) Integer a -> (Listof a)))
 (define (make-list len val)
