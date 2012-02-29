@@ -27,18 +27,16 @@
 
 (require
  racket/pretty
- (only-in (planet knozama/xml:1/sxml)
-	  sxpath)
- (only-in (planet knozama/webkit:1/web/http/header)
+ (only-in (planet rpr/httpclient:1/http/header)
           make-header Headers)
- (only-in (planet knozama/webkit:1/web/uri)
+ (only-in (planet rpr/httpclient:1/uri)
 	  Uri make-uri parse-uri uri->string)
- (only-in (planet knozama/webkit:1/web/uri/url/param)
+ (only-in (planet rpr/httpclient:1/uri/url/param)
 	  params->query encode-param-string Param Params)
- (only-in (planet knozama/webkit:1/web/http/http11)
+ (only-in (planet rpr/httpclient:1/http/http11)
 	  HTTPConnection-in http-successful? http-close-connection http-invoke)
- (only-in (planet knozama/xml:1/sxml)
-	  Sxml SXPath html->sxml xml->sxml extract-text extract-integer)
+ (only-in (planet rpr/format:1/xml/sxml)
+	  Sxml SXPath sxpath html->sxml xml->sxml extract-text extract-integer)
  (only-in "access.rkt"
 	  load-key)
  (only-in "config.rkt"

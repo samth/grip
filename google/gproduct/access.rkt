@@ -25,7 +25,7 @@
 	       ((read read-creds) (Input-Port -> (Listof (Pair Symbol String)))))
 
 (require
- (only-in (planet knozama/common:1/std/opt)
+ (only-in (planet rpr/prelude:1/std/opt)
 	  opt-apply-orelse))
 
 (: default-access-config Path)
