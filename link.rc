@@ -1,0 +1,15 @@
+#!/bin/sh
+/usr/local/racket/bin/raco planet show
+
+echo "Linking"
+
+/usr/local/racket/bin/raco planet link rpr prelude.plt 1 0 /code/knozamalib/src/racket/prelude
+/usr/local/racket/bin/raco planet link rpr r6rs.plt 1 0 /code/knozamalib/src/racket/r6rs
+/usr/local/racket/bin/raco planet link rpr aws.plt 1 0 /code/knozamalib/src/racket/aws
+/usr/local/racket/bin/raco planet link rpr crypto.plt 1 0 /code/knozamalib/src/racket/crypto
+/usr/local/racket/bin/raco planet link rpr format.plt 1 0 /code/knozamalib/src/racket/format
+/usr/local/racket/bin/raco planet link rpr google.plt 1 0 /code/knozamalib/src/racket/google
+/usr/local/racket/bin/raco planet link rpr httpclient.plt 1 0 /code/knozamalib/src/racket/httpclient
+/usr/local/racket/bin/raco planet link rpr mining.plt 1 0 /code/knozamalib/src/racket/mining
+ 
+/usr/local/racket/bin/raco planet show

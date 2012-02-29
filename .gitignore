@@ -2,3 +2,5 @@
 *.dep
 *.zo
 *.ss
+*.scm
+*.sls
