@@ -17,7 +17,7 @@
 	  http-invoke http-close-connection
 	  HTTPConnection-in)
  (only-in (planet knozama/webkit:1/web/http/header)
-	  header->string
+	  make-header
 	  agent-header
 	  host-header)
  (only-in (planet knozama/xml:1/sxml)
@@ -95,7 +95,7 @@
  ;; on parse error returns a '()
 (: fetch-rss (Uri -> (Listof Any)))
 (define (fetch-rss uri)
-  (let ((headers (map header->string `(,(agent-header "curl/7.16.4 (x86_64-redhat-linux-gnu) libcurl/7.16.4 OpenSSL/0.9.8b zlib/1.2.3 libidn/0.6.8")))))
+  (let ((headers  `(,(agent-header "curl/7.16.4 (x86_64-redhat-linux-gnu) libcurl/7.16.4 OpenSSL/0.9.8b zlib/1.2.3 libidn/0.6.8"))))
     (let ((connection (http-invoke 'GET uri headers #f)))
       (with-handlers [(exn:fail? (lambda (ex)
 				   ((error-display-handler) "ERROR in S3 invocation." ex)
