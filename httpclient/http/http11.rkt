@@ -67,7 +67,7 @@
 
 (require
  racket/date
- (only-in (planet knozama/common:1/std/control)
+ (only-in (planet rpr/prelude:1/std/control)
           aif)
  (only-in "proxy.rkt"
           http-proxy-port

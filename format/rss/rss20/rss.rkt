@@ -10,17 +10,17 @@
 
  (require
   racket/pretty
- (only-in (planet knozama/webkit:1/web/uri)
+ (only-in (planet rpr/httpclient:1/uri)
 	  Uri-authority Authority-host
 	  Uri make-uri uri->string) 
- (only-in (planet knozama/webkit:1/web/http/http11)
+ (only-in (planet rpr/httpclient:1/http/http11)
 	  http-invoke http-close-connection
 	  HTTPConnection-in)
- (only-in (planet knozama/webkit:1/web/http/header)
+ (only-in (planet rpr/httpclient:1/http/header)
 	  make-header
 	  agent-header
 	  host-header)
- (only-in (planet knozama/xml:1/sxml)
+ (only-in "../../xml/sxml.rkt"
 	  Sxml SXPath 
 	  sxpath xml->sxml select-single-node-text))
 

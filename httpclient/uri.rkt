@@ -27,7 +27,7 @@
 	 Uri Uri? Uri-scheme Uri-authority Uri-path Uri-query Uri-fragment)
 
 (require 
- (only-in (planet knozama/prelude:1/std/opt)
+ (only-in (planet rpr/prelude:1/std/opt)
 	  opt-apply-orelse)
  (only-in "uri/uricharset.rkt"
 	  sub-delim-char?
