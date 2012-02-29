@@ -4,7 +4,7 @@
 
 (require 
  racket/pretty
- (only-in (planet knozama/r6rs:1/bytevectors)
+ (only-in (planet rpr/r6rs:1/bytevectors)
 	  bytevector?
 	  string->utf8
 	  make-bytevector
@@ -17,7 +17,7 @@
 	  bytevector-u8-ref
 	  bytevector-u8-set!))
 
-(require (only-in (planet knozama/r6rs:1/arithmetic/bitwise)
+(require (only-in (planet rpr/r6rs:1/arithmetic/bitwise)
  		  bitwise-arithmetic-shift-right
  		  bitwise-arithmetic-shift-left))
 

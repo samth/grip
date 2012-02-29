@@ -24,9 +24,6 @@
 (require
  racket/fixnum)
 
-(require/typed racket/base
- (read-bytes! (Bytes Input-Port Integer Integer -> (U EOF Integer))))
-
 (define-syntax fx1+
   (syntax-rules ()
     ((fx1+ x)

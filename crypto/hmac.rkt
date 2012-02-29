@@ -2,7 +2,7 @@
 
 (provide hmac-sha256 hmac-sha1)
 
-(require (only-in (planet knozama/r6rs:1/bytevectors)
+(require (only-in (planet rpr/r6rs:1/bytevectors)
 		  bytevector?
 		  string->utf8
 		  make-bytevector

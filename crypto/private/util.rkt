@@ -9,7 +9,7 @@
 
 (require racket/fixnum)
 
-(require (only-in (planet knozama/r6rs:1/bytevectors)
+(require (only-in (planet rpr/r6rs:1/bytevectors)
 		  bytevector-u8-ref
 		  bytevector-length
 		  string->utf8))
