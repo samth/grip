@@ -18,7 +18,7 @@
 
 ;;http-request
 
-#lang typed/racket
+#lang typed/racket/base
 
 (provide
  Method
@@ -35,6 +35,7 @@
  http-has-content?
  http-close-connection
  http-invoke
+ http-send-response
  make-client-error-response
  read-request-header)
 
@@ -57,8 +58,12 @@
 
 (require
  racket/date
+ (only-in racket/tcp
+	  tcp-connect)
  (only-in (planet rpr/prelude:1/std/control)
           aif)
+ (only-in (planet rpr/prelude:1/type/date)
+	  current-date-string-rfc-2822)
  (only-in "proxy.rkt"
           http-proxy-port
           http-proxy-host
@@ -78,7 +83,7 @@
 	  get-header get-header-value header->string
           Header Headers))
 
-(define-type Method (U 'GET 'PUT 'POST 'DELETE 'HEAD))
+(define-type Method (U 'GET 'PUT 'POST 'DELETE 'HEAD 'CONNECT 'OPTIONS 'TRACE))
 
 (define-type Version (U 'HTTP/1.1))
 
@@ -241,7 +246,7 @@
 	     (else 0)))))
   
   (with-handlers ([exn:fail?		    
-		   (lambda (ex) 0)])
+		   (λ (ex) 0)])
     (read-chunk-length ip)))
 
 (: chunked-encoding? (Headers -> Boolean))
@@ -390,10 +395,10 @@
 	(base-msg "Bad Request - "))
     (close-input-port in)
     (close-output-port out)
-    (lambda (msg)
-      (HTTPConnection (ResponseHeader (StatusLine 'HTTP/1.1 400 (string-append base-msg msg)) 
-				      '())
-		      out in #f))))
+    (λ (msg)
+       (HTTPConnection (ResponseHeader (StatusLine 'HTTP/1.1 400 (string-append base-msg msg)) 
+				       '())
+		       out in #f))))
 
 ;; Used by the chunk reader thread to pipe the chunks.
 ;; Intermediate pipe for inbound chunked data stream
@@ -440,17 +445,23 @@
     ((PUT)    "PUT")
     ((POST)   "POST")
     ((DELETE) "DELETE")
-    ((HEAD)   "HEAD")))
+    ((HEAD)   "HEAD")
+    ((CONNECT) "CONNECT")
+    ((OPTIONS) "OPTIONS")
+    ((TRACE) "TRACE")))
 
 (: string->http-method (String -> (Option Method)))
 (define (string->http-method str)
   (let ((str (string-upcase str)))
     (cond 
      ((string=? "GET" str) 'GET)
-     ((string=? "POST" str ) 'POST)
-     ((string=? "PUT" str ) 'PUT)
-     ((string=? "DELETE" str ) 'DELETE)
-     ((string=? "HEAD" str ) 'HEAD)
+     ((string=? "POST" str) 'POST)
+     ((string=? "PUT" str) 'PUT)
+     ((string=? "DELETE" str) 'DELETE)
+     ((string=? "HEAD" str) 'HEAD)
+     ((string=? "CONNECT" str) 'CONNECT)
+     ((string=? "OPTIONS" str) 'OPTIONS)
+     ((string=? "TRACE" str) 'TRACE)
      (else #f))))
 
 (: send-header (String String Output-Port -> Void))
@@ -472,9 +483,9 @@
   (write-string space op)
   (write-string version op)
   (write-string terminate op)
-  (for-each (lambda: ((h : String))
-	      (write-string h op)
-	      (write-string terminate op))
+  (for-each (λ: ((h : String))
+		(write-string h op)
+		(write-string terminate op))
 	    headers))
 
 (: terminate-http-header (Output-Port -> Void))
@@ -577,7 +588,7 @@
 		  (begin
 		    (terminate-http-header op) 
 		    (flush-output op)))
-	     
+	      
 	      (let ((resp (read-response-header ip)))
 		(if resp
 		    (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers resp)))
@@ -585,22 +596,72 @@
 		      (if (number? chunked/length)
 			  ;; content/length
 			  (let-values (((inpipe outpipe) (make-pipe)))
-			    (thread (lambda () (http-pipe-content-length-block chunked/length ip outpipe)))
+			    (thread (λ () (http-pipe-content-length-block chunked/length ip outpipe)))
 			    (if (and encoding (string=? "gzip" encoding))
 				(let-values (((gz-inp gz-outp) (make-pipe)))
-				  (thread (lambda () (http-pipe-gunzip inpipe gz-outp)))
+				  (thread (λ () (http-pipe-gunzip inpipe gz-outp)))
 				  (HTTPConnection resp op gz-inp ip))
 				(HTTPConnection resp op inpipe ip)))
 			  ;; chunked
 			  (let-values (((inpipe outpipe) (make-pipe)))
-			    (thread (lambda () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
+			    (thread (λ () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
 			    (if (and encoding (string=? "gzip" encoding))
 				(let-values (((gz-inp gz-outp) (make-pipe)))
-				  (thread (lambda () (http-pipe-gunzip inpipe gz-outp)))
+				  (thread (λ () (http-pipe-gunzip inpipe gz-outp)))
 				  (HTTPConnection resp op gz-inp ip))
 				(HTTPConnection resp op inpipe ip)))))
 		    (failed-connection "Invalid response from server")))))))))
 
+
+
+;; Lightweight sending of an HTTP response
+(: http-send-response (String Headers Output-Port Input-Port Integer -> Void))
+(define (http-send-response code headers socket-output-port content-input-port length)
+
+  (: preamble String)
+  (define preamble "HTTP/1.1 ")
+
+  (: colon-sp String)
+  (define colon-sp ": ")
+  
+  (: send (String -> Void))
+  (define (send str)
+    (write-string str socket-output-port)
+    (void))
+  
+  (: send-header (Header -> Void))
+  (define (send-header hdr)
+    (send (car hdr))
+    (send colon-sp)
+    (send (cdr hdr))
+    (send terminate)
+    (void))
+
+  (send preamble)
+  (send code)
+  (send terminate)
+  (send-header (cons "Date" (current-date-string-rfc-2822)))
+  (for-each send-header headers)
+  (if (and (input-port? content-input-port) (zero? length))
+      (send-header (cons "Transfer-Encoding" "Chunked"))	   
+      (send-header (cons "Content-Length" (number->string length 16))))
+  (send terminate)
+  (if (input-port? content-input-port)
+      (let ((buffsz 1024))
+	(let ((buffer (make-bytes buffsz)))
+	  (let: loop : Void ((cnt : (U EOF Integer) 
+				  (read-bytes! buffer content-input-port 0 buffsz)))
+		(if (eof-object? cnt)
+		    (begin
+		      (send "0")
+		      (send terminate)(send terminate))
+		    (begin
+		      (send (number->string cnt 16))
+		      (send terminate)
+		      (write-bytes buffer socket-output-port 0 cnt)
+		      (send terminate)
+		      (loop  (read-bytes! buffer content-input-port 0 buffsz)))))))
+      (send terminate)))
 
 (: http-status-code (HTTPConnection -> Integer))
 (define (http-status-code conn)
