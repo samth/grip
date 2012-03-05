@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide web-server)
+(provide webserver)
 
 (require
  racket/tcp
@@ -24,20 +24,20 @@
       (let-values (((inp outp) (tcp-accept s)))
 	(www-log "Accept: ~s ~%" s)
 	(flush-output (current-output-port))
-	(thread (lambda ()
-		  (call-with-exception-handler
-		   (lambda (e)
-		     (displayln e)
-		     ((error-display-handler) "Error in handling request." e)
-		     (close-input-port inp)
-		     (close-output-port outp))
-		   (lambda ()
-		     (http-service-task dispatch-tree inp outp)))))
+	(thread (λ ()
+		   (call-with-exception-handler
+		    (λ (e)
+		       (displayln e)
+		       ((error-display-handler) "Error in handling request." e)
+		       (close-input-port inp)
+		       (close-output-port outp))
+		    (λ ()
+		       (http-service-task dispatch-tree inp outp)))))
 	(accept-loop)))))
 
 (: http-service-task (DispatchTree Input-Port Output-Port -> Void))
 (define (http-service-task dispatch-tree inp outp)
-  ;; (www-log  "Got in port ~s~%" in-port)
+  (www-log  "Got in port ~s~%" in-port)
   (let ((request (read-request-header inp)))
     (www-log "Request ~s~%" request)
     (when request
@@ -48,11 +48,11 @@
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main routine to launch the server. ;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(: web-server ((-> DispatchTree) Integer -> Void))
-(define (web-server configure port)
+(: webserver ((-> DispatchTree) Integer -> Void))
+(define (webserver configure port)
   (let ((dispatch-tree (configure)))
     (www-log "Starting server on port ~s.~%" port)	
     (www-log "Dispatch Tree ~%")
     (displayln dispatch-tree)
-    (call-in-nested-thread (lambda () (http-server-task dispatch-tree port)))))
+    (call-in-nested-thread (λ () (http-server-task dispatch-tree port)))))
 
