@@ -20,9 +20,8 @@
 
 (provide 
  Sxml
- SXPath
- sxpath
- html->sxml
+ SXPath sxpath
+ html->sxml sxml->html
  xml->sxml
  node-text
  select-single-node-text
@@ -41,6 +40,7 @@
 
 (require/typed
  (planet lizorkin/sxml:2:1/sxml)
+ ((srl:sxml->html sxml->html) ((Listof Any) Output-Port -> Void))
  (sxpath (String (Listof (Pair Symbol String)) -> (Sxml -> Sxml)))
  ((sxml:text node-text) ((Listof Any) -> String)))
 
