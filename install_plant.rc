@@ -2,11 +2,11 @@
 /usr/local/racket/bin/raco planet show
 
 echo "Creating"
-/usr/local/racket/bin/raco planet create /code/knozamalib/src/racket/common/
-/usr/local/racket/bin/raco planet create /code/knozamalib/src/racket/r6rs
-/usr/local/racket/bin/raco planet create /code/knozamalib/src/racket/webkit/
-/usr/local/racket/bin/raco planet create /code/knozamalib/src/racket/xml
-/usr/local/racket/bin/raco planet create /code/knozamalib/src/racket/aws/
+/usr/local/racket/bin/raco planet create /code/racketlib/prelude/
+/usr/local/racket/bin/raco planet create /code/racketlib/r6rslib
+/usr/local/racket/bin/raco planet create /code/racketlib/webkit/
+/usr/local/racket/bin/raco planet create /code/racketlib/xml
+/usr/local/racket/bin/raco planet create /code/racketlib/aws/
 
 #echo "Injecting"
 #/usr/local/racket/bin/raco planet fileinject knozama "./common.plt" 1 5
