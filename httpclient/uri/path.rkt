@@ -16,42 +16,59 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang racket/base
+#lang typed/racket/base
 
 (provide path-split)
 
-(require
- racket/fixnum)
+(define-syntax ++
+  (syntax-rules ()
+    ((++ x)
+     (+ x 1))))
 
-(define path-split
-  (lambda (s)
-    (let ((limit (string-length s))
-	(at-slash (lambda (at)
-		    (char=? #\/ (string-ref s at)))))
-      (let ((prefix-root
-	   (lambda (segs)
-	     (if (and (not (zero? limit))
-		   (char=? (string-ref s 0) #\/))
-		(cons "" segs)
-		segs))))
-	(if (not (zero? limit))
-	   (let loop ((i 0) (start (if (at-slash 0) 1 0)) (segments '()))
-	     (cond ((fx>= i limit)
-		    (cond 
-		     ((fx< start i)
-		      (prefix-root (reverse (cons (substring s start i) segments))))
-		     ((at-slash (sub1 limit))
-		      (prefix-root (reverse (cons "" segments))))
-		     (else
-		      (prefix-root (reverse segments)))))
-		   ((at-slash i)
-		    (cond 
-		     ((fx> start i)
-		      (loop (add1 i) (add1 i) segments))
-		     ((fx= start i)
-		      (loop (add1 i) (add1 i) (cons "" segments)))
-		     (else
-		      (loop (add1 i) (add1 i) (cons (substring s start i) segments)))))
-		   (else
-		    (loop (add1 i) start segments))))
-	   s)))))
+(define-syntax --
+  (syntax-rules ()
+    ((-- x)
+     (- x 1))))
+
+(: path-split (String -> (Listof String)))
+(define (path-split s)
+
+  (: limit Index)
+  (define limit (string-length s))
+  
+  (: at-slash (Integer -> Boolean))
+  (define (at-slash at)
+    (char=? #\/ (string-ref s at)))
+  
+  (: prefix-root ((Listof String) -> (Listof String)))
+  (define (prefix-root segs)
+    (if (and (not (zero? limit))
+	     (char=? (string-ref s 0) #\/))
+	(cons "" segs)
+	segs))
+  
+  (if (> limit 0)
+      (begin
+	(let: loop : (Listof String) 
+	      ((idx : Integer 0)
+	       (start : Integer (if (at-slash 0) 1 0)) 
+	       (segments : (Listof String) '()))
+	      (cond ((>= idx limit)
+		     (cond 
+		      ((< start idx)
+		       (prefix-root (reverse (cons (substring s start idx) segments))))
+		      ((at-slash (-- limit))
+		       (prefix-root (reverse (cons "" segments))))
+		      (else
+		       (prefix-root (reverse segments)))))
+		    ((at-slash idx)
+		     (cond 
+		      ((> start idx)
+		       (loop (++ idx) (++ idx) segments))
+		      ((= start idx)
+		       (loop (++ idx) (++ idx) (cons "" segments)))
+		      (else
+		       (loop (++ idx) (++ idx) (cons (substring s start idx) segments)))))
+		    (else
+		     (loop (++ idx) start segments)))))
+      (list s)))
