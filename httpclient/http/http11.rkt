@@ -21,18 +21,13 @@
 #lang typed/racket
 
 (provide
- Action
+ Method
  HTTPPayload HTTPPayload-mime HTTPPayload-md5
- http-action->string
- ResponseHeader
- ResponseHeader?
- ResponseHeader-result
- ResponseHeader-headers
- Result
- Result?
- Result-proto
- Result-code
- Result-msg
+ http-method->string
+ RequestLine RequestLine? RequestLine-method RequestLine-path RequestLine-version
+ RequestHeader RequestHeader? RequestHeader-request RequestHeader-headers
+ ResponseHeader ResponseHeader? ResponseHeader-status ResponseHeader-headers
+ StatusLine StatusLine? StatusLine-version StatusLine-code StatusLine-msg
  HTTPConnection-in
  HTTPConnection-header
  http-successful?
@@ -41,12 +36,7 @@
  http-close-connection
  http-invoke
  make-client-error-response
- parse-request-line
- parse-http-response-line)
-
-;; (require/typed
-;;  racket
-;;  (read-bytes! (Bytes Input-Port Integer Integer -> Integer)))
+ read-request-header)
 
 (require/typed
  openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
@@ -88,20 +78,29 @@
 	  get-header get-header-value header->string
           Header Headers))
 
-(define-type Action (U 'GET 'PUT 'POST 'DELETE 'HEAD))
+(define-type Method (U 'GET 'PUT 'POST 'DELETE 'HEAD))
 
-(struct: Result [(proto : String)
-		 (code  : Integer)
-		 (msg   : String)] #:transparent)
+(define-type Version (U 'HTTP/1.1))
 
-(struct: ResponseHeader [(result : Result)
-			 (headers : (Listof Header))] #:transparent)
+(struct: RequestLine ([method  : Method]
+		      [path    : String]
+		      [version : Version]) #:transparent)
+
+(struct: RequestHeader ([request : RequestLine]
+			[headers : (Listof Header)]) #:transparent)
+
+(struct: StatusLine ([version : Version]
+		     [code    : Integer]
+		     [msg     : String]) #:transparent)
+
+(struct: ResponseHeader ([status : StatusLine]
+			 [headers : (Listof Header)]) #:transparent)
 
 (struct: HTTPConnection ([header : ResponseHeader]
 			 [out : Output-Port]
 			 [in  : Input-Port]
 			 [real-in : (Option Input-Port)])
-	 #:transparent)  ;; the actual socket input port, e.g. 'in' could be a chuncking pipe 
+	 #:transparent)  ;; the actual socket input port, e.g. 'in' could be a chunking pipe 
 
 
 (struct: HTTPPayload ([mime    : String]
@@ -109,12 +108,20 @@
 		      [length  : (Option Index)]
 		      [inport  : Input-Port]) #:transparent)
 
+
+(: string->Version (String -> (Option Version)))
+(define (string->Version  str)
+  (let ((vsym (string->symbol str)))
+    (if (eq? vsym 'HTTP/1.1)
+	vsym
+	#f)))
+
 (: CHUNK-SIZE Exact-Nonnegative-Integer)
 (define CHUNK-SIZE (* 64 1024)) ;; 64 K chunks, based on reasonable in-memory needs.
 
 (: make-client-error-response (Integer String -> ResponseHeader))
 (define (make-client-error-response code msg)
-  (ResponseHeader (Result "HTTP/1.1" code msg) '()))
+  (ResponseHeader (StatusLine 'HTTP/1.1 code msg) '()))
 
 ;; Do a substring, trimming spaces
 (: substring-trim (String Integer Integer -> String))
@@ -148,35 +155,31 @@
 ;; "GET /a/b/c/d.txt HTTP/V1.1" -> ("GET" "a/b/c/d.txt" "HTTP/V1.1") ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(: parse-request-line (String -> (Listof String)))
+(: parse-request-line (String -> (Option RequestLine)))
 (define (parse-request-line sline)
-  (string-tokenize sline (char-set-complement char-set:blank)))
-
-(: request-line-method ((Listof String) -> String))
-(define (request-line-method parsed-start-line)
-  (car parsed-start-line))
-
-(: request-line-path ((Listof String) -> String))
-(define (request-line-path parsed-start-line)
-  (cadr parsed-start-line))
-
-(: request-line-version ((Listof String) -> String))
-(define (request-line-version parsed-start-line)
-  (caddr parsed-start-line))
+  (let ((method-path-version (string-tokenize sline (char-set-complement char-set:blank))))
+    (if (eq? (length method-path-version) 3)
+	(let ((method (string->http-method (car method-path-version)))
+	      (path   (cadr method-path-version))
+	      (version (string->Version (caddr method-path-version))))
+	  (if (and version method path)
+	      (RequestLine method path version)
+	      #f))
+	#f)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parse http response line
 ;; "HTTP/1.1 500 Internal Server Error"
 ;; -> ("HTTP/1.1" "500" "Internal Server Error")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(: parse-http-response-line (String -> (Option Result)))
-(define (parse-http-response-line resp-line)
+(: parse-http-status-line (String -> (Option StatusLine)))
+(define (parse-http-status-line resp-line)
   (let ((len (string-length resp-line)))
     (if (<= len 12)
 	#f
-	(let ((proto (if (char=? (string-ref resp-line 8) #\space)
-			 (substring resp-line 0 8)
-			 #f))
+	(let ((version (if (char=? (string-ref resp-line 8) #\space)
+			   (string->Version (substring resp-line 0 8))
+			   #f))
 	      (code (if (char=? (string-ref resp-line 12) #\space)
 			(let ((cd (string->number (substring resp-line 9 12))))
 			  (if (exact-integer? cd)
@@ -186,8 +189,8 @@
 	      (msg (if (< 12 len)
 		       (substring resp-line 13 len)
 		       #f)))
-	  (if (and proto code msg)
-	      (Result proto code msg)
+	  (if (and version code msg)
+	      (StatusLine version code msg)
 	      #f)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -282,47 +285,55 @@
 
 ;; (define-type Header (Pair String String))
 
-(define-type Rev-HTTP-Resp-Header (Rec Rev-HTTP-Resp-Header 
-				       (U (Pair Header Rev-HTTP-Resp-Header) 
-					  (List String) 
-					  Null)))
+(define-type RevHTTPHeader (Rec RevHTTPHeader 
+				(U (Pair Header RevHTTPHeader) 
+				   (List String) 
+				   Null)))
 
-(define-type HTTP-Resp-Header (Pair String (Listof Header)))
+(define-type HTTPHeader (Pair String (Listof Header)))
 
 (require/typed racket
-               ((cons resp-header-cons) (Header Rev-HTTP-Resp-Header -> Rev-HTTP-Resp-Header))
-               ((cons resp-msg-cons)    (String Rev-HTTP-Resp-Header -> Rev-HTTP-Resp-Header))
-               ((reverse reverse-response) (Rev-HTTP-Resp-Header -> HTTP-Resp-Header)))
+               ((cons resp-header-cons) (Header RevHTTPHeader -> RevHTTPHeader))
+               ((cons resp-msg-cons)    (String RevHTTPHeader -> RevHTTPHeader))
+               ((reverse reverse-response) (RevHTTPHeader -> HTTPHeader)))
 
 ;; Max size allowed for an HTTP response
 (define MAX-REQUEST (* 3 1024))
 
-(: make-response-header-from-parsed (Rev-HTTP-Resp-Header -> (Option ResponseHeader)))
-(define (make-response-header-from-parsed rev-header)
-  (let ((results (reverse-response rev-header)))
-    (let ((result-str (car results)))
-      (if (string? result-str)		  
-	  (let ((result (parse-http-response-line result-str)))
-	    (if result
-		(ResponseHeader result (cdr results))
-		#f))
-	  #f))))
+(: read-request-header (Input-Port -> (Option RequestHeader)))
+(define (read-request-header inp)
+  (let ((req (http-header-from-socket-input-port inp)))
+    (if req
+	(let ((reqline (parse-request-line (car req))))
+	  (if reqline
+	      (RequestHeader reqline (cdr req))
+	      #f))
+	#f)))
 
+(: read-response-header (Input-Port -> (Option ResponseHeader)))
+(define (read-response-header inp)
+  (let ((resp (http-header-from-socket-input-port inp)))
+    (if resp
+	(let ((status (parse-http-status-line (car resp))))
+	  (if status
+	      (ResponseHeader status (cdr resp))
+	      #f))
+	#f)))
 
-(: http-header-from-socket-input-port (Input-Port -> (Option ResponseHeader)))
+(: http-header-from-socket-input-port (Input-Port -> (Option HTTPHeader)))
 (define (http-header-from-socket-input-port inp)
   (let ((req (make-string MAX-REQUEST)))
-    (let: loop : (Option ResponseHeader)
+    (let: loop : (Option HTTPHeader)
 	  ((state : Integer 0) 
 	   (cnt : Integer 0) 
 	   (byte : (U EOF Byte) (read-byte inp)) 
 	   (caret : Integer 0) 
 	   (colon : Integer 0) 
-	   (headers : Rev-HTTP-Resp-Header '()))      
+	   (headers : RevHTTPHeader '()))      
 	  (if (eqv? cnt MAX-REQUEST)
 	      #f                                                           ;; FIXME return 4XX
 	      (if (eof-object? byte)
-		  (make-response-header-from-parsed headers)
+		  (reverse-response headers)
 		  (let ((state (case state
 				 ((0) (case byte
 					((#x0D) 1)
@@ -350,7 +361,7 @@
 				       (resp-header-cons (cons (substring req caret colon) 
 							       (substring-trim req (add1 colon) (sub1 cnt))) ;; header line (attr . value)
 							 headers)))))
-		      ((4) (make-response-header-from-parsed headers))
+		      ((4) (reverse-response headers))
 		      (else
 		       (let ((ch (integer->char byte)))
 			 (string-set! req cnt ch)
@@ -380,7 +391,7 @@
     (close-input-port in)
     (close-output-port out)
     (lambda (msg)
-      (HTTPConnection (ResponseHeader (Result "HTTP/1.1" 400 (string-append base-msg msg)) 
+      (HTTPConnection (ResponseHeader (StatusLine 'HTTP/1.1 400 (string-append base-msg msg)) 
 				      '())
 		      out in #f))))
 
@@ -422,28 +433,25 @@
 (define (http-pipe-gunzip inp outp)
   (gunzip-through-ports inp outp))
 
-;; (define buffsz (* 16 1024))
-;; (define (complete)
-;;   (flush-output outp)
-;;   (close-output-port outp))
-
-
-
-;; (let: loop : Void ((bs : (U EOF Bytes) (read-bytes buffsz inp)))
-;;     (if (eof-object? bs)
-;; 	 (complete)
-;; 	 (begin
-;; 	   (write-bytes bs outp)
-;; 	   (loop (read-bytes buffsz inp))))))
-
-(: http-action->string (Action -> String))
-(define (http-action->string action)
-  (case action
+(: http-method->string (Method -> String))
+(define (http-method->string method)
+  (case method
     ((GET)    "GET")
     ((PUT)    "PUT")
     ((POST)   "POST")
     ((DELETE) "DELETE")
     ((HEAD)   "HEAD")))
+
+(: string->http-method (String -> (Option Method)))
+(define (string->http-method str)
+  (let ((str (string-upcase str)))
+    (cond 
+     ((string=? "GET" str) 'GET)
+     ((string=? "POST" str ) 'POST)
+     ((string=? "PUT" str ) 'PUT)
+     ((string=? "DELETE" str ) 'DELETE)
+     ((string=? "HEAD" str ) 'HEAD)
+     (else #f))))
 
 (: send-header (String String Output-Port -> Void))
 (define (send-header header value op)
@@ -456,9 +464,9 @@
 ;; Write out the HTTP header line and accompaning headers converted to strings.
 ;; NOTE the headers are NOT terminated which is done by send-payload as
 ;; a content-length may be required if not chunked.
-(: send-http-header (Output-Port Action Uri (Listof String) -> Void))
-(define (send-http-header op action url headers)
-  (write-string (http-action->string action) op)
+(: send-http-header (Output-Port Method Uri (Listof String) -> Void))
+(define (send-http-header op method url headers)
+  (write-string (http-method->string method) op)
   (write-string space op)
   (write-string (uri->start-line-path-string url) op)
   (write-string space op)
@@ -495,19 +503,6 @@
       (write-chunk-header sz)
       (write-bytes buffer op 0 sz)
       (write-string terminate op))))
-
-;; let loop ((sz (read-bytes! buffer ip 0 CHUNK-SIZE)))      
-;;       (if (eof-object? sz)
-;; 	  (begin
-;; 	    (write-chunk-header 0)
-;; 	    (write-string terminate op)
-;; 	    (flush-output op)
-;; 	    (void))
-;; 	  (begin
-;; 	    (write-chunk-header sz)
-;; 	    (write-bytes buffer op 0 sz)
-;; 	    (write-string terminate op)
-;; 	    (loop (read-bytes! buffer ip 0 CHUNK-SIZE)))))))
 
 (: send-contentlength-payload (HTTPPayload Output-Port -> Void))
 (define (send-contentlength-payload payload outp)
@@ -551,8 +546,8 @@
 ;;     via an O/S system call.
 ;; Use an explicit Payload structure with an optional length so a ports length 
 ;; can be explicitly given, wherein content-length will be used.
-(: http-invoke (Action Uri Headers (Option HTTPPayload) -> HTTPConnection))
-(define (http-invoke action url headers payload)
+(: http-invoke (Method Uri Headers (Option HTTPPayload) -> HTTPConnection))
+(define (http-invoke method url headers payload)
 
   (: append-host-to-headers (String -> Headers))
   (define (append-host-to-headers host)
@@ -574,18 +569,19 @@
             (let-values (((ip op) (if (string=? (Uri-scheme url) "https")
 				      (ssl-connect conn-host conn-port)
 				      (tcp-connect conn-host conn-port))))
-	      (send-http-header op action url (map header->string headers))
-	      
+	      (send-http-header op method url (map header->string headers))
+
+	      ;; processing a payload will add additional headers
 	      (if payload
 		  (send-payload payload op)
 		  (begin
-		    (terminate-http-header op)
+		    (terminate-http-header op) 
 		    (flush-output op)))
 	     
-	      (let ((headers (http-header-from-socket-input-port ip)))
-		(if headers
-		    (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers headers)))
-			   (encoding (get-header-value "Content-Encoding" (ResponseHeader-headers headers))))
+	      (let ((resp (read-response-header ip)))
+		(if resp
+		    (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers resp)))
+			   (encoding (get-header-value "Content-Encoding" (ResponseHeader-headers resp))))
 		      (if (number? chunked/length)
 			  ;; content/length
 			  (let-values (((inpipe outpipe) (make-pipe)))
@@ -593,26 +589,26 @@
 			    (if (and encoding (string=? "gzip" encoding))
 				(let-values (((gz-inp gz-outp) (make-pipe)))
 				  (thread (lambda () (http-pipe-gunzip inpipe gz-outp)))
-				  (HTTPConnection headers op gz-inp ip))
-				(HTTPConnection headers op inpipe ip)))
+				  (HTTPConnection resp op gz-inp ip))
+				(HTTPConnection resp op inpipe ip)))
 			  ;; chunked
 			  (let-values (((inpipe outpipe) (make-pipe)))
 			    (thread (lambda () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
 			    (if (and encoding (string=? "gzip" encoding))
 				(let-values (((gz-inp gz-outp) (make-pipe)))
 				  (thread (lambda () (http-pipe-gunzip inpipe gz-outp)))
-				  (HTTPConnection headers op gz-inp ip))
-				(HTTPConnection headers op inpipe ip)))))
+				  (HTTPConnection resp op gz-inp ip))
+				(HTTPConnection resp op inpipe ip)))))
 		    (failed-connection "Invalid response from server")))))))))
 
 
 (: http-status-code (HTTPConnection -> Integer))
 (define (http-status-code conn)
-  (Result-code (ResponseHeader-result (HTTPConnection-header conn))))
+  (StatusLine-code (ResponseHeader-status (HTTPConnection-header conn))))
 
 (: http-successful? (HTTPConnection -> Boolean))
 (define (http-successful? conn)
-  (eq? (Result-code (ResponseHeader-result (HTTPConnection-header conn))) 200))
+  (eq? (StatusLine-code (ResponseHeader-status (HTTPConnection-header conn))) 200))
 
 (: http-has-content? (HTTPConnection -> Boolean))
 (define (http-has-content? connection)
