@@ -25,8 +25,8 @@
  (only-in srfi/14
 	  char-set-complement
 	  list->char-set)
- (only-in "../uri.rkt"
-	  url-decode-string))
+ (only-in "../uri/url/encode.rkt"
+	  url-decode-from-input-port))
 
 (: key-delim Char)
 (define key-delim #\=)
@@ -36,19 +36,19 @@
 
 (: read-token (Input-Port Char -> String))
 (define (read-token ip delim)
-    (url-decode-string ip delim #t)) ;; decode + as space
+  (url-decode-from-input-port ip delim #t)) ;; decode + as space
 
 ;; parse port contents into an alist of (k . v) pairs
 (: parse-x-www-form-urlencoded (Input-Port -> (Listof (Pair String String))))
 (define (parse-x-www-form-urlencoded in-port)
   (let: loop : (Listof (Pair String String)) 
-      ((key : (Option String) #f) 
-       (kvs : (Listof (Pair String String))  '()))
-    (if key
-       (loop #f (cons (cons key (read-token in-port value-delim)) kvs))
-       (let ((key (read-token in-port key-delim)))
-	 (if (and (string? key)
-	       (string=? key ""))
-	    kvs
-	    (loop key kvs))))))
+	((key : (Option String) #f) 
+	 (kvs : (Listof (Pair String String))  '()))
+	(if key
+	    (loop #f (cons (cons key (read-token in-port value-delim)) kvs))
+	    (let ((key (read-token in-port key-delim)))
+	      (if (and (string? key)
+		       (string=? key ""))
+		  kvs
+		  (loop key kvs))))))
 

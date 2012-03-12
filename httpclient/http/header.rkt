@@ -28,6 +28,8 @@
 (define-type Header (Pairof String String))
 (define-type Headers (Listof Header))
 
+(define-predicate Header? Header)
+
 (: empty-headers Headers)
 (define empty-headers '())
 

@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Knozama's Amazon API Library
-;; Copyright (C) 2007-2011  Raymond Paul Racine
+;; Copyright (C) 2007-2012  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 #lang typed/racket/base
 
 (provide make-uri
-	 url-decode-string url-encode-string
 	 parse-uri parse-authority uri->string
 	 parse-http-path uri->start-line-path-string
 	 http-path-path http-path-query http-path-fragment
@@ -40,98 +39,35 @@
 	  encode-char
 	  unreserved-char?))
 
-;; Encode the given string
-;; space-as-plus boolean denotes if spaces should be encoded with '+' or %20.
-(: url-encode-string (String Boolean -> String))
-(define url-encode-string
-  (lambda (s space-as-plus)
-    (let ((is (open-input-string s))
-	(os (open-output-string)))
-      (let: loop : String ((ch : (U Char EOF) (read-char is)))
-	  (cond
-	   ((eof-object? ch) (get-output-string os))
-	   ((unreserved-char? ch) (begin (write-char ch os)
-				     (loop (read-char is))))
-	   (else (if (and space-as-plus
-		       (char=? ch #\space))
-		    (begin (write-char #\+ os)
-		       (loop (read-char is)))
-		    (begin (write-string (encode-char ch) os)
-		       (loop (read-char is))))))))))
-
-;; Read from the input port until eof or delim char
-;; URL decode as well.
-;; if delim = #f then process till eof
-(: url-decode-string (Input-Port Char Boolean -> String))
-(define url-decode-string
-  (lambda (ip delim decode-plus?)
-    (let ((op (open-output-string)))
-      (let: loop : String ((ch : (U Char EOF) (read-char ip)))
-	  (if (or (eof-object? ch)
-		(and delim (char=? ch delim)))
-	     (get-output-string op)
-	     (if (char=? #\% ch)
-		(let ((ch1 (read-char ip)))
-		  (if (and (not (eof-object? ch1))
-			(hex-char? ch1))
-		     (let ((ch2 (read-char ip)))
-		       (if (and (not (eof-object? ch2))
-			     (hex-char? ch2))
-			  (begin ;; use (let ((buff (make-string 2))) ???
-			    (write-char (integer->char (assert (string->number (list->string (list ch1 ch2)) 16) 
-							       exact-integer?))
-					op)
-			    (loop (read-char ip)))
-			  (begin              ;; got %d? so write '%' and digit and carryon
-			    (write-char #\% op)
-			    (write-char ch1 op)
-			    (unless (eof-object? ch2)
-			      (write-char ch2 op))
-			    (loop (read-char ip)))))
-		     (begin                   ;; got %? so write them and carryon
-		       (write-char #\% op)
-		       (unless (eof-object? ch1)
-			 (write-char ch1 op))
-		       (loop (read-char ip)))))
-		(begin
-		  (unless (eof-object? ch)
-		    (if (and decode-plus?
-			  (char=? ch #\+))
-		       (write-char #\space op)
-		       (write-char ch op)))
-		  (loop (read-char ip)))))))))
-
-;; all strings or #f
-(struct: Authority ((user : (Option String))
-		    (host : String)
-		    (port : Integer))
+(struct: Authority ([user : (Option String)]
+		    [host : String]
+		    [port : Integer])
 	 #:transparent)
 
-;;all strings or #f, each string is a major piece of the uri.
-(struct: Uri ((scheme : String)
-	      (authority : (U False Authority))
-	      (path : String)
-	      (query : (Option String))
-	      (fragment : (Option String)))
+(struct: Uri ([scheme : String]
+	      [authority : (U False Authority)]
+	      [path : String]
+	      [query : (Option String)]
+	      [fragment : (Option String)])
 	 #:transparent)
 
 (: null-string? (String -> Boolean))
 (define null-string?
   (lambda (s)
     (if (string? s)
-       (zero? (string-length s))
-       #f)))
+	(zero? (string-length s))
+	#f)))
 
 (define-syntax opt-string
   (syntax-rules ()
     ((_ str)
      (if (and (string? str) (not (zero? (string-length str))))
-	str
-	#f))
+	 str
+	 #f))
     ((_ str alt)
      (if (and (string? str) (not (zero? (string-length str))))
-	str
-	alt))))
+	 str
+	 alt))))
 
 (: make-uri (String (Option String) String Natural String (Option String) (Option String) ->  Uri))
 (define (make-uri scheme user host port path query fragment)
@@ -162,8 +98,8 @@
    ":"
    (let ((auth (authority->string (Uri-authority uri))))
      (if auth
-	(string-append "//" auth)
-	""))
+	 (string-append "//" auth)
+	 ""))
    (Uri-path uri)
    (maybe (Uri-query uri) "?")
    (maybe (Uri-fragment uri) "#")))
@@ -176,26 +112,26 @@
     (string-append
      (let ((user (Authority-user authority)))
        (if (cond
-	   ((boolean? user) user)
-	   ((string? user) (> (string-length user) 0)))
-	  (string-append user "@")
-	  ""))
+	    ((boolean? user) user)
+	    ((string? user) (> (string-length user) 0)))
+	   (string-append user "@")
+	   ""))
      (Authority-host authority)
      (let ((port (Authority-port authority)))
        (if port
-	  (string-append ":" (number->string port))
-	  ""))))
+	   (string-append ":" (number->string port))
+	   ""))))
    (else #f)))
 
 ;; Two authororities are equal if they're record values are equal.
 (: authority-equal? (Authority Authority -> Boolean))
 (define (authority-equal? auth1 auth2)
   (and (equal? (Authority-user auth1)
-	     (Authority-user auth2))
-     (equal? (Authority-host auth1)
-	     (Authority-host auth2))
-     (eqv? (Authority-port auth1)
-	   (Authority-port auth2))))
+	       (Authority-user auth2))
+       (equal? (Authority-host auth1)
+	       (Authority-host auth2))
+       (eqv? (Authority-port auth1)
+	     (Authority-port auth2))))
 
 ;; Read chars while valid or eof-object?
 ;; Place valid chars in output string port
@@ -206,11 +142,11 @@
 (define (read-valid ip valid? op)
   (let loop ((ch (peek-char ip)) (cnt 0))
     (if (or (eof-object? ch)
-	  (not (valid? ch)))
-       cnt
-       (begin
-	 (write-char (assert (read-char ip) char?) op)
-	 (loop (peek-char ip) (add1 cnt))))))
+	    (not (valid? ch)))
+	cnt
+	(begin
+	  (write-char (assert (read-char ip) char?) op)
+	  (loop (peek-char ip) (add1 cnt))))))
 
 ;; (input-port?  output-port?) -> boolean?)
 ;; parse the "tail" of a scheme
@@ -226,14 +162,14 @@
   (let ((op (open-output-string)))
     (let ((ch (peek-char ip)))
       (if (eof-object? ch)
-	 #f
-	 (let ((ch (assert ch char?)))
-	   (if (not (scheme-start-ch? ch))
-	      #f
-	      (begin (read-char ip)
-		 (write-char ch op)
-		 (parse-scheme-tail ip op)
-		 (get-output-string op))))))))
+	  #f
+	  (let ((ch (assert ch char?)))
+	    (if (not (scheme-start-ch? ch))
+		#f
+		(begin (read-char ip)
+		       (write-char ch op)
+		       (parse-scheme-tail ip op)
+		       (get-output-string op))))))))
 
 ;; lex a character of value chtok
 ;; returns: #f if the next character is not a chtok
@@ -241,12 +177,12 @@
 (define (parse-char ip chtok)
   (let ((ch (peek-char ip)))
     (if (eof-object? ch)
-       #f
-       (if (eq? ch chtok)
-	  (begin
-	    (read-char ip)
-	    #t)
-	  #f))))
+	#f
+	(if (eq? ch chtok)
+	    (begin
+	      (read-char ip)
+	      #t)
+	    #f))))
 
 (: parse-authority-opaque (Input-Port -> String))
 (define (parse-authority-opaque ip)
@@ -260,45 +196,45 @@
 
 (: parse-path-abempty (Input-Port -> String))
 (define (parse-path-abempty ip)
-    (let ((op (open-output-string)))
-      (let ((ch (peek-char ip)))
-	(if (or (eof-object? ch)
+  (let ((op (open-output-string)))
+    (let ((ch (peek-char ip)))
+      (if (or (eof-object? ch)
 	      (eq? ch #\?)
 	      (eq? ch #\#))
-	   ""
-	   (if (not (eq? ch #\/))
+	  ""
+	  (if (not (eq? ch #\/))
 	      (error "A URI with an authority can only have an absolute path.")
 	      (begin (read-char ip)
-		 (write-char ch op)
-		 (let ((ch (peek-char ip)))
-		   (if (eq? ch #\/)
-		      (error "Absolute path must have a none empty segment.  i.e., // is illegal")
-		      (read-valid ip
-				  (lambda (ch)
-				    (or
-				     (pchar? ch)
-				     (eq? ch #\/)))
-				  op))))))
-	(get-output-string op))))
+		     (write-char ch op)
+		     (let ((ch (peek-char ip)))
+		       (if (eq? ch #\/)
+			   (error "Absolute path must have a none empty segment.  i.e., // is illegal")
+			   (read-valid ip
+				       (lambda (ch)
+					 (or
+					  (pchar? ch)
+					  (eq? ch #\/)))
+				       op))))))
+      (get-output-string op))))
 
 (: parse-path-absolute (Input-Port -> String))
 (define (parse-path-absolute ip)
-    (let ((op  (open-output-string)))
-      (write-char #\/ op)
-      ;; first segment must not have a ':'
-      (read-valid ip
-		  (lambda (ch)
-		    (and
-		     (not (eq? ch #\:))
-		     (pchar? ch)))
-		  op)
-      (read-valid ip
-		  (lambda (ch)
-		    (or
-		     (pchar? ch)
-		     (eq? ch #\/)))
-		  op)
-      (get-output-string op)))
+  (let ((op  (open-output-string)))
+    (write-char #\/ op)
+    ;; first segment must not have a ':'
+    (read-valid ip
+		(lambda (ch)
+		  (and
+		   (not (eq? ch #\:))
+		   (pchar? ch)))
+		op)
+    (read-valid ip
+		(lambda (ch)
+		  (or
+		   (pchar? ch)
+		   (eq? ch #\/)))
+		op)
+    (get-output-string op)))
 
 (: parse-path-rootless (Input-Port -> String))
 (define parse-path-rootless
@@ -320,54 +256,52 @@
   (lambda (ip)
     (let ((ch (peek-char ip)))
       (if (eof-object? ch)
-	 (values #f "")
-	 (if (eq? ch #\/)
-	    (begin
-	      (read-char ip)
-	      (if (eq? (peek-char ip) #\/)
-		 (begin
-		   (read-char ip)
-		   (let ((authority (parse-authority-opaque ip)))
-		     (let ((path-abempty (parse-path-abempty ip)))
-		       (values authority path-abempty))))
-		 (values #f (parse-path-absolute ip))))
-	    (values #f (parse-path-rootless ip)))))))
+	  (values #f "")
+	  (if (eq? ch #\/)
+	      (begin
+		(read-char ip)
+		(if (eq? (peek-char ip) #\/)
+		    (begin
+		      (read-char ip)
+		      (let ((authority (parse-authority-opaque ip)))
+			(let ((path-abempty (parse-path-abempty ip)))
+			  (values authority path-abempty))))
+		    (values #f (parse-path-absolute ip))))
+	      (values #f (parse-path-rootless ip)))))))
 
 (: parse-query-or-fragment (Input-Port Char -> (Option String)))
 (define (parse-query-or-fragment ip signal-char)
   (let ((ch (peek-char ip)))
     (if (eof-object? ch)
-       #f
-       (if (eq? ch signal-char)
-	  (let ((op (open-output-string)))
-	    (read-char ip) ;; consume signal char
-	    (read-valid ip
-			(lambda (ch)
-			  (or
-			   (pchar? ch)
-			   (eq? ch #\?)
-			   (eq? ch #\/)))
-			op)
-	    (get-output-string op))
-	  #f))))
+	#f
+	(if (eq? ch signal-char)
+	    (let ((op (open-output-string)))
+	      (read-char ip) ;; consume signal char
+	      (read-valid ip
+			  (lambda (ch)
+			    (or
+			     (pchar? ch)
+			     (eq? ch #\?)
+			     (eq? ch #\/)))
+			  op)
+	      (get-output-string op))
+	    #f))))
 
 (: parse-uri (String -> (Option Uri)))
 (define (parse-uri uri-str)
   (let ((ip (open-input-string uri-str)))
     (let ((scheme (parse-scheme ip)))
       (if (not scheme)
-	 #f
-	 (if (not (parse-char ip #\:))
-	    #f
-	    (let-values (((authority path) (parse-hier ip)))
-	      (let ((auth (if (string? authority)
-			   (parse-authority authority scheme)
-			   (begin
-			     (displayln "Invalid authority")
-			     #f))))
-		(let ((query (parse-query-or-fragment ip #\?)))
-		  (let ((fragment (parse-query-or-fragment ip #\#)))
-		    (Uri scheme auth path query fragment))))))))))
+	  #f
+	  (if (not (parse-char ip #\:))
+	      #f
+	      (let-values (((authority path) (parse-hier ip)))
+		(let ((auth (if (string? authority)
+				(parse-authority authority scheme)
+				#f)))
+		  (let ((query (parse-query-or-fragment ip #\?)))
+		    (let ((fragment (parse-query-or-fragment ip #\#)))
+		      (Uri scheme auth path query fragment))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Routines to parse a HTTP request start line path.				 ;;
@@ -406,24 +340,24 @@
 (define (parse-port ip)
   (let ((ch (read-char ip)))
     (if (eof-object? ch)  ;; no port
-       #f
-       (if (not (eq? ch #\:))
-	  (error "Host must be optionally followed by a port.  Something else found.")
-	  (let ((op  (open-output-string))
-	      (ch  (peek-char ip)))
-	    (if (or (eof-object? ch)
-		  (not (digit-char? (assert ch char?))))
-	       (error "Missing port number or extraneous characters where port number was expected.")
-	       (let ((port (begin (read-valid ip
-					(lambda (ch)
-					  (digit-char? ch))
-					op)
-			    (get-output-string op))))
-		 (let ((port (string->number port)))
-		   (if (and (exact-integer? port)
-			 (>= port 0))
-		      port
-		      (error "Invalid port (not a number?)"))))))))))
+	#f
+	(if (not (eq? ch #\:))
+	    (error "Host must be optionally followed by a port.  Something else found.")
+	    (let ((op  (open-output-string))
+		  (ch  (peek-char ip)))
+	      (if (or (eof-object? ch)
+		      (not (digit-char? (assert ch char?))))
+		  (error "Missing port number or extraneous characters where port number was expected.")
+		  (let ((port (begin (read-valid ip
+						 (lambda (ch)
+						   (digit-char? ch))
+						 op)
+				     (get-output-string op))))
+		    (let ((port (string->number port)))
+		      (if (and (exact-integer? port)
+			       (>= port 0))
+			  port
+			  (error "Invalid port (not a number?)"))))))))))
 
 ;;; Parse the host and optional port from a given string
 ;;; returns: (values host port)
@@ -431,19 +365,19 @@
 (define (parse-host ip)
   (let ((op  (open-output-string)))
     (if (eof-object? (peek-char ip))
-       (error "URI missing required host.")
-       (let ((host (begin
-		   (read-valid ip
-			       (lambda (ch)
-				 (or
-				  (unreserved-char? ch)
-				  (pct-encoded-char? ch)
-				  (sub-delim-char? ch)))
-			       op)
-		   (get-output-string op))))
-	 (if (> (string-length host) 0)
-	    host
-	    #f)))))
+	(error "URI missing required host.")
+	(let ((host (begin
+		      (read-valid ip
+				  (lambda (ch)
+				    (or
+				     (unreserved-char? ch)
+				     (pct-encoded-char? ch)
+				     (sub-delim-char? ch)))
+				  op)
+		      (get-output-string op))))
+	  (if (> (string-length host) 0)
+	      host
+	      #f)))))
 
 (: parse-user (Input-Port -> (Option String)))
 (define (parse-user ip)
@@ -457,8 +391,8 @@
 		   (eq? ch #\:)))
 		op)
     (if (not (eq? (read-char ip) #\@))
-       #f
-       (get-output-string op))))
+	#f
+	(get-output-string op))))
 
 (: scheme-default-port (String -> (Option Integer)))
 (define (scheme-default-port scheme)
@@ -470,18 +404,18 @@
 (: parse-authority (String String -> (Option Authority)))
 (define (parse-authority auth-str scheme)
   (if (not (string? auth-str))
-     #f
-     (let ((ip (open-input-string auth-str)))
-       (let ((user (parse-user ip)))
-	 (let ((ip (if user
-		    ip
-		    (open-input-string auth-str)))) ;; restart parse
-	   (let ((host (parse-host ip))
-	       (port (let ((p (parse-port ip)))
-		       (if p p (scheme-default-port scheme)))))
-	     (if (and host port)
-		(Authority user host port)
-		#f)))))))
+      #f
+      (let ((ip (open-input-string auth-str)))
+	(let ((user (parse-user ip)))
+	  (let ((ip (if user
+			ip
+			(open-input-string auth-str)))) ;; restart parse
+	    (let ((host (parse-host ip))
+		  (port (let ((p (parse-port ip)))
+			  (if p p (scheme-default-port scheme)))))
+	      (if (and host port)
+		  (Authority user host port)
+		  #f)))))))
 
 ;; (rtd-printer-set! uri (lambda (uri outp)
 ;; 			(display "#<uri \"" outp)
@@ -505,15 +439,15 @@
 ;;      "ray@www.amazon.com"
 ;;      "www.amazon.com:80"
 ;;      "ray@www.amazon.com:80"))
-  
+
 ;;   (define test-auth-bad
 ;;     (list
 ;;      "ray@"
 ;;      "ray@80"
 ;;      ":90"
 ;;      "ray@:80"))
-  
- 
+
+
 ;;   (for-each (lambda: ((auth-str : String))
 ;; 	      (let ((auth (parse-authority auth-str)))
 ;; 		(if auth

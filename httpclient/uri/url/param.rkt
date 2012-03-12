@@ -38,13 +38,6 @@
 
 (define-type Params (Listof Param))
 
-(: isParam? (Any -> Boolean))
-(define (isParam? x)
-  (if (pair? x)
-     (and (string? (car x))
-	(string? (cdr x)))
-     #f))
-
 (define-predicate Param? Param)
 
 (: param (String String -> Param))
@@ -71,7 +64,7 @@
        ((or (unsafe-char? ch)
 	   (param-reserved-char? ch))
 	(write-string (encode-char ch) op)
-	(write-char ch op)
+	;;(write-char ch op)
 	(loop (read-char ip)))
        (else
 	(write-char ch op)
@@ -87,24 +80,26 @@
 ;; 	      (write-char ch op))
 ;; 	   (loop (read-char ip)))))))
 
-(: encode-param ((Pair String String) Boolean -> (Pair String String)))
+(: encode-param (Param Boolean -> Param))
 (define (encode-param param space-as-plus)
   (let ((key   (car param))
       (value (cdr param)))
     (cons (encode-param-string key space-as-plus)
 	  (encode-param-string value space-as-plus))))
 
-(: params->query ((Listof (Pair String String)) -> String))
+(: params->query (Params -> String))
 (define (params->query parms)
   (weave-string-separator "&" (map (lambda:  ((kv : (Pair String String)))
-				     (string-append (car kv) "=" (cdr kv)))
+				     (string-append (encode-param-string (car kv) #f)
+						    "=" 
+						    (encode-param-string (cdr kv) #f)))
 				   parms)))
 
 (: param-delim-char-set Char-Set)
 (define param-delim-char-set
   (char-set-complement (string->char-set "=&")))
 
-(: parse-params (String -> (Listof (Pairof String String))))
+(: parse-params (String -> (Listof Param)))
 (define (parse-params param-str)
   (let ((kvs (string-tokenize param-str param-delim-char-set)))
     (let: loop : (Listof (Pair String String)) ((kvs : (Listof String) kvs) (params : (Listof (Pair String String)) '()))

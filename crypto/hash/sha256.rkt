@@ -195,9 +195,7 @@
 (define (sha256 data)
   (cond 
    ((bytevector? data) (sha256-bytes data))
-   ((string? data) (sha256-bytes (str->bv data)))
-   (else (error 'sha256 "String or Bytevector arg required."))))
-
+   ((string? data) (sha256-bytes (str->bv data)))))
 
 ;;  (string->bytevector s (make-transcoder (utf-8-codec))))
 
