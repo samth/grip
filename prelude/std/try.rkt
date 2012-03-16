@@ -22,7 +22,7 @@
  (struct-out Failure)
  (struct-out Success)
  failed? succeded? get invert
- try-map try-flatmap try-foreach try-filter try-exists
+ map/try flatmap/try foreach/try filter/try exists
  rescue recover
  try continue with-try)
 
@@ -49,15 +49,15 @@
 ;; Is a generic "lens" library on structures possible?? 
 ;; Higher kinded types, L is a type constructor binding for M (Success) and N (Failure)
 ;;  (: S-map (All (L T U) (L T) (T -> U) -> (L U)))
-(: try-map (All (T U) (Try T) (T -> U) -> (Try U)))
-(define (try-map try fn)
+(: map/try (All (T U) (Try T) (T -> U) -> (Try U)))
+(define (map/try try fn)
   (cond 
    ((Success? try)
     (Success (fn (Success-result try))))
    ((Failure? try) try)))
 
-(: try-flatmap (All (T U) (Try T) (T -> (Try U)) -> (Try U)))
-(define (try-flatmap try fn)
+(: flatmap/try (All (T U) (Try T) (T -> (Try U)) -> (Try U)))
+(define (flatmap/try try fn)
   (cond 
    ((Success? try)
     (with-handlers ([exn:fail? (λ: ((ex : exn))
@@ -65,8 +65,8 @@
       (fn (Success-result try))))
    ((Failure? try) try)))
 
-(: try-foreach (All (T U) (Try T) (T -> U) -> Void))
-(define (try-foreach try fn)
+(: foreach/try (All (T U) (Try T) (T -> U) -> Void))
+(define (foreach/try try fn)
   (cond 
    ((Success? try)
     (fn (Success-result try))
@@ -74,8 +74,8 @@
    ((Failure? try)
     (void))))
 
-(: try-filter (All (T) (Try T) (T -> Boolean) -> (Try T)))
-(define (try-filter try select?)
+(: filter/try (All (T) (Try T) (T -> Boolean) -> (Try T)))
+(define (filter/try try select?)
   (cond
    ((Success? try) ;; need to see of Racket has structural pattern matching kindof cond!!!
     (if (select? (Success-result try))
@@ -85,8 +85,8 @@
    ((Failure? try)
     try)))
 	
-(: try-exists (All (T) (Try T) (T -> Boolean) -> Boolean))
-(define (try-exists try exists?)
+(: exists (All (T) (Try T) (T -> Boolean) -> Boolean))
+(define (exists try exists?)
   (cond 
    ((Success? try)
     (exists? (Success-result try)))
@@ -115,13 +115,13 @@
 (: rescue (All (T) (Try T) ((Failure T) -> (Option (Try T))) -> (Try T)))
 (define (rescue try my-hero)
   (with-handlers ([exn:fail? (λ (ex)
-				(Failure ex))])
+  				(Failure ex))])
     (cond
      ((Failure? try)
       (let ((result (my-hero try)))
-	(if result
-	    result
-	    try)))
+  	(if result
+  	    result
+  	    try)))
      ((Success? try) try))))
 
 (: recover (All (T) (Try T) ((Failure T) -> (Option T)) -> (Try T)))
@@ -138,11 +138,11 @@
 
 (: try (All (T) (-> T) -> (Try T)))
 (define (try thunk)
-  (with-handlers ([exn:fail? (lambda (ex)
+  (with-handlers ([exn:fail? (λ (ex)
 				(Failure ex))])
     (Success (thunk))))
 
 (define-syntax with-try
   (syntax-rules ()
     ((_ body ...)
-     (try (lambda () body ...)))))
+     (try (λ () body ...)))))
