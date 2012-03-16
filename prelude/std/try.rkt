@@ -1,101 +1,30 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Knozama's Amazon API Library
+;; Copyright (C) 2007-2012  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket/base
 
-
-;; package scala.util
-
-
-
-;; import collection.Seq
-
-
-
-;; /**
-;;  * The `Try` type represents a computation that may either result in an exception,
-;;  * or return a success value. It's analagous to the `Either` type.
-;;  */
-;; sealed abstract class Try[+T] {
-;;   /**
-;;    * Returns true if the `Try` is a `Failure`, false otherwise.
-;;    */
-;;   def isFailure: Boolean
-
-;;   /**
-;;    * Returns true if the `Try` is a `Success`, false otherwise.
-;;    */
-;;   def isSuccess: Boolean
-
-;;   /**
-;;    * Returns the value from this `Success` or the given argument if this is a `Failure`.
-;;    */
-;;   def getOrElse[U >: T](default: => U) = if (isSuccess) get else default
-
-;;   /**
-;;    * Returns the value from this `Success` or throws the exception if this is a `Failure`.
-;;    */
-;;   def get: T
-
-;;   /**
-;;    * Applies the given function f if this is a Result.
-;;    */
-;;   def foreach[U](f: T => U): Unit
-
-;;   /**
-;;    * Returns the given function applied to the value from this `Success` or returns this if this is a `Failure`.
-;;    */
-;;   def flatMap[U](f: T => Try[U]): Try[U]
-
-;;   /**
-;;    * Maps the given function to the value from this `Success` or returns this if this is a `Failure`.
-;;    */
-;;   def map[U](f: T => U): Try[U]
-
-;;   def collect[U](pf: PartialFunction[T, U]): Try[U]
-
-;;   def exists(p: T => Boolean): Boolean
-
-;;   /**
-;;    * Converts this to a `Failure` if the predicate is not satisfied.
-;;    */
-;;   def filter(p: T => Boolean): Try[T]
-
-;;   /**
-;;    * Converts this to a `Failure` if the predicate is not satisfied.
-;;    */
-;;   def filterNot(p: T => Boolean): Try[T] = filter(x => !p(x))
-
-;;   /**
-;;    * Calls the exceptionHandler with the exception if this is a `Failure`. This is like `flatMap` for the exception.
-;;    */
-;;   def rescue[U >: T](rescueException: PartialFunction[Throwable, Try[U]]): Try[U]
-
-;;   /**
-;;    * Calls the exceptionHandler with the exception if this is a `Failure`. This is like map for the exception.
-;;    */
-;;   def recover[U >: T](rescueException: PartialFunction[Throwable, U]): Try[U]
-
-;;   /**
-;;    * Returns `None` if this is a `Failure` or a `Some` containing the value if this is a `Success`.
-;;    */
-;;   def toOption = if (isSuccess) Some(get) else None
-
-;;   def toSeq = if (isSuccess) Seq(get) else Seq()
-
-;;   /**
-;;    * Returns the given function applied to the value from this Success or returns this if this is a `Failure`.
-;;    * Alias for `flatMap`.
-;;    */
-;;   def andThen[U](f: T => Try[U]): Try[U] = flatMap(f)
-
-;;   /**
-;;    * Transforms a nested `Try`, i.e., a `Try` of type `Try[Try[T]]`,
-;;    * into an un-nested `Try`, i.e., a `Try` of type `Try[T]`.
-;;    */
-;;   def flatten[U](implicit ev: T <:< Try[U]): Try[U]
-
-;;   def failed: Try[Throwable]
-;; }
-
-
+(provide
+ (struct-out Failure)
+ (struct-out Success)
+ failed? succeded? get invert
+ try-map try-flatmap try-foreach try-filter try-exists
+ rescue recover
+ try continue with-try)
 
 (struct: (T) Failure ([exception : exn]))
 
@@ -103,97 +32,117 @@
 
 (define-type (Try T) (U (Failure T) (Success T)))
 
-(: failed (All (T) (Try T) -> Boolean))
-(define (failed try)
+(: failed? (All (T) (Try T) -> Boolean))
+(define (failed? try)
   (Failure? try))
 
-(: succeded (All (T) (Try T) -> Boolean))
-(define (succeded try)
+(: succeded? (All (T) (Try T) -> Boolean))
+(define (succeded? try)
   (Success? try))
 
 (: get (All (T) (Try T) -> T))
 (define (get try)
   (cond
    ((Failure? try) (raise (Failure-exception try)))
-   ((Success? try) (Success-result try))
-   (else (error "Can I not be 'sealed'"))))
+   ((Success? try) (Success-result try))))
  
-;; should be 'map', really need typed unit/sigs
-(: S-map (All (T U) (Try T) (T -> U) -> (Try U)))
-(define (S-map try fn)
+;; Is a generic "lens" library on structures possible?? 
+;; Higher kinded types, L is a type constructor binding for M (Success) and N (Failure)
+;;  (: S-map (All (L T U) (L T) (T -> U) -> (L U)))
+(: try-map (All (T U) (Try T) (T -> U) -> (Try U)))
+(define (try-map try fn)
   (cond 
    ((Success? try)
     (Success (fn (Success-result try))))
-   ((Failure? try) try)
-   (else (error "hmmmm"))))
- 
-(: attempt (Try String))
-(define attempt (Success "Good to go"))
-   
-(: test  (-> String))
-(define (test)
-  (if (succeded attempt)
-      (get attempt)
-      "aborted"))
-  
+   ((Failure? try) try)))
 
+(: try-flatmap (All (T U) (Try T) (T -> (Try U)) -> (Try U)))
+(define (try-flatmap try fn)
+  (cond 
+   ((Success? try)
+    (with-handlers ([exn:fail? (λ: ((ex : exn))
+				   (Failure ex))])
+      (fn (Success-result try))))
+   ((Failure? try) try)))
 
-;;   def rescue[U >: T](rescueException: PartialFunction[Throwable, Try[U]]): Try[U] = {
-;;     try {
-;;       if (rescueException.isDefinedAt(exception)) rescueException(exception) else this
-;;     } catch {
-;;       case e2 => Failure(e2)
-;;     }
-;;   }
-;;   def get: T = throw exception
-;;   def flatMap[U](f: T => Try[U]): Try[U] = Failure[U](exception)
-;;   def flatten[U](implicit ev: T <:< Try[U]): Try[U] = Failure[U](exception)
-;;   def foreach[U](f: T => U): Unit = {}
-;;   def map[U](f: T => U): Try[U] = Failure[U](exception)
-;;   def collect[U](pf: PartialFunction[T, U]): Try[U] = Failure[U](exception)
-;;   def filter(p: T => Boolean): Try[T] = this
-;;   def recover[U >: T](rescueException: PartialFunction[Throwable, U]): Try[U] =
-;;     if (rescueException.isDefinedAt(exception)) {
-;;       Try(rescueException(exception))
-;;     } else {
-;;       this
-;;     }
-;;   def exists(p: T => Boolean): Boolean = false
-;;   def failed: Try[Throwable] = Success(exception)
-;; }
+(: try-foreach (All (T U) (Try T) (T -> U) -> Void))
+(define (try-foreach try fn)
+  (cond 
+   ((Success? try)
+    (fn (Success-result try))
+    (void))
+   ((Failure? try)
+    (void))))
 
+(: try-filter (All (T) (Try T) (T -> Boolean) -> (Try T)))
+(define (try-filter try select?)
+  (cond
+   ((Success? try) ;; need to see of Racket has structural pattern matching kindof cond!!!
+    (if (select? (Success-result try))
+	try
+	(Failure (exn:fail (format "Unsatisfied try filter predicate for ~s" (Success-result try))
+			   (current-continuation-marks)))))
+   ((Failure? try)
+    try)))
+	
+(: try-exists (All (T) (Try T) (T -> Boolean) -> Boolean))
+(define (try-exists try exists?)
+  (cond 
+   ((Success? try)
+    (exists? (Success-result try)))
+   ((Failure? try) #f)))
+    
+(: invert ((Try exn) -> (Try exn)))
+(define (invert try)
+  (cond
+   ((Success? try)
+    (Failure (exn:fail (format "Inverted try. Success for ~s is Failure" (Success-result try))
+		       (current-continuation-marks))))
+   ((Failure? try)
+    (Success (Failure-exception try)))))
 
-;; final case class Success[+T](r: T) extends Try[T] {
-;;   def isFailure = false
-;;   def isSuccess = true
-;;   def rescue[U >: T](rescueException: PartialFunction[Throwable, Try[U]]): Try[U] = Success(r)
-;;   def get = r
-;;   def flatMap[U](f: T => Try[U]): Try[U] =
-;;     try f(r)
-;;     catch {
-;;       case e => Failure(e)
-;;     }
-;;   def flatten[U](implicit ev: T <:< Try[U]): Try[U] = r
-;;   def foreach[U](f: T => U): Unit = f(r)
-;;   def map[U](f: T => U): Try[U] = Try[U](f(r))
-;;   def collect[U](pf: PartialFunction[T, U]): Try[U] =
-;;     if (pf isDefinedAt r) Success(pf(r))
-;;     else Failure[U](new NoSuchElementException("Partial function not defined at " + r))
-;;   def filter(p: T => Boolean): Try[T] =
-;;     if (p(r)) this
-;;     else Failure(new NoSuchElementException("Predicate does not hold for " + r))
-;;   def recover[U >: T](rescueException: PartialFunction[Throwable, U]): Try[U] = this
-;;   def exists(p: T => Boolean): Boolean = p(r)
-;;   def failed: Try[Throwable] = Failure(new UnsupportedOperationException("Success.failed"))
-;; }
+(: continue (All (T V W) (Try T) (T -> (Try V)) (exn -> (Try W)) -> (Try (U V W))))
+(define (continue try on-success on-failure)
+  (cond
+   ((Success? try)
+    (on-success (Success-result try)))
+   ((Failure? try)
+    (on-failure (Failure-exception try)))))
 
+;; Rescue a failed computation if the rescue function is capable of doing so.
+;; Careful of side effects by the rescue function.
+;; Should my-hero be a PartialFunction as opposed to one which returns Option.
+(: rescue (All (T) (Try T) ((Failure T) -> (Option (Try T))) -> (Try T)))
+(define (rescue try my-hero)
+  (with-handlers ([exn:fail? (λ (ex)
+				(Failure ex))])
+    (cond
+     ((Failure? try)
+      (let ((result (my-hero try)))
+	(if result
+	    result
+	    try)))
+     ((Success? try) try))))
 
-;; object Try {
+(: recover (All (T) (Try T) ((Failure T) -> (Option T)) -> (Try T)))
+(define (recover try my-heroine)
+  (with-handlers ([exn:fail? (λ (ex)
+				(Failure ex))])
+    (cond
+     ((Failure? try)
+      (let ((result (my-heroine try)))
+	(if result
+	    (Success result)
+	    try)))
+     ((Success? try) try))))
 
-;;   def apply[T](r: => T): Try[T] = {
-;;     try { Success(r) } catch {
-;;       case e => Failure(e)
-;;     }
-;;   }
+(: try (All (T) (-> T) -> (Try T)))
+(define (try thunk)
+  (with-handlers ([exn:fail? (lambda (ex)
+				(Failure ex))])
+    (Success (thunk))))
 
-;; }
+(define-syntax with-try
+  (syntax-rules ()
+    ((_ body ...)
+     (try (lambda () body ...)))))
