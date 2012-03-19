@@ -22,9 +22,10 @@
  (struct-out Failure)
  (struct-out Success)
  failed? succeded? get invert
- map/try flatmap/try foreach/try filter/try exists
+ map/try map/try-or-else flatmap/try foreach/try filter/try exists
+ success-or-else success-or-else-try
  rescue recover
- try continue with-try)
+ try continue with-try with-try-or-else)
 
 (struct: (T) Failure ([exception : exn]))
 
@@ -46,6 +47,22 @@
    ((Failure? try) (raise (Failure-exception try)))
    ((Success? try) (Success-result try))))
  
+(: success-or-else-try (All (T) (Try T) (-> T) -> (Try T)))
+(define (success-or-else-try try or-else)
+  (cond 
+   ((Success? try)
+    try)
+   ((Failure? try)
+    (Success (or-else)))))
+
+(: success-or-else (All (T) (Try T) (-> T) -> T))
+(define (success-or-else try or-else)
+  (cond 
+   ((Success? try)
+    (Success-result try))
+   ((Failure? try)
+    (or-else))))
+
 ;; Is a generic "lens" library on structures possible?? 
 ;; Higher kinded types, L is a type constructor binding for M (Success) and N (Failure)
 ;;  (: S-map (All (L T U) (L T) (T -> U) -> (L U)))
@@ -64,6 +81,16 @@
 				   (Failure ex))])
       (fn (Success-result try))))
    ((Failure? try) try)))
+
+(: map/try-or-else (All (T U) (Try T) (T -> U) (-> U) -> (Try U)))
+(define (map/try-or-else try fn fail)
+  (cond
+   ((Success? try)
+    (with-handlers ([exn:fail? (λ: ((ex : exn))
+				   (Failure ex))])
+      (Success (fn (Success-result try)))))
+   ((Failure? try)
+    (Success (fail)))))
 
 (: foreach/try (All (T U) (Try T) (T -> U) -> Void))
 (define (foreach/try try fn)
@@ -146,3 +173,10 @@
   (syntax-rules ()
     ((_ body ...)
      (try (λ () body ...)))))
+
+(define-syntax with-try-or-else
+  (syntax-rules ()
+    ((_ attempt or-else)
+     (success-or-else (try (λ () attempt))
+		      (λ () or-else)))))
+
