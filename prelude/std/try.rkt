@@ -24,7 +24,7 @@
  failed? succeded? get invert
  map/try map/try-or-else flatmap/try foreach/try filter/try exists
  success-or-else success-or-else-try
- rescue recover
+ rescue recover log-on-failure
  try continue with-try with-try-or-else)
 
 (struct: (T) Failure ([exception : exn]))
@@ -55,13 +55,13 @@
    ((Failure? try)
     (Success (or-else)))))
 
-(: success-or-else (All (T) (Try T) (-> T) -> T))
+(: success-or-else (All (T) (Try T) ((Try T) -> T) -> T))
 (define (success-or-else try or-else)
   (cond 
    ((Success? try)
     (Success-result try))
    ((Failure? try)
-    (or-else))))
+    (or-else try))))
 
 ;; Is a generic "lens" library on structures possible?? 
 ;; Higher kinded types, L is a type constructor binding for M (Success) and N (Failure)
@@ -136,6 +136,15 @@
    ((Failure? try)
     (on-failure (Failure-exception try)))))
 
+(: log-on-failure (All (T) (Try T) (exn -> Void) -> (Try T)))
+(define (log-on-failure try logger)
+  (continue
+   try
+   (λ x try)
+   (λ: ((exn : exn)) 
+       (logger exn)
+       try)))
+
 ;; Rescue a failed computation if the rescue function is capable of doing so.
 ;; Careful of side effects by the rescue function.
 ;; Should my-hero be a PartialFunction as opposed to one which returns Option.
@@ -178,5 +187,5 @@
   (syntax-rules ()
     ((_ attempt or-else)
      (success-or-else (try (λ () attempt))
-		      (λ () or-else)))))
+		      (λ (try) or-else)))))
 
