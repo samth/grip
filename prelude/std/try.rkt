@@ -23,9 +23,12 @@
  (struct-out Success)
  failed? succeded? get invert
  map/try map/try-or-else flatmap/try foreach/try filter/try exists
- success-or-else success-or-else-try
+ success-or-else-try
  rescue recover log-on-failure
  try continue with-try with-try-or-else)
+
+(require
+ racket/match)
 
 (struct: (T) Failure ([exception : exn]))
 
@@ -43,98 +46,88 @@
 
 (: get (All (T) (Try T) -> T))
 (define (get try)
-  (cond
-   ((Failure? try) (raise (Failure-exception try)))
-   ((Success? try) (Success-result try))))
+  (match try
+   ((Failure exn) (raise exn))
+   ((Success result) result)))
  
 (: success-or-else-try (All (T) (Try T) (-> T) -> (Try T)))
 (define (success-or-else-try try or-else)
-  (cond 
-   ((Success? try)
-    try)
-   ((Failure? try)
-    (Success (or-else)))))
-
-(: success-or-else (All (T) (Try T) ((Try T) -> T) -> T))
-(define (success-or-else try or-else)
-  (cond 
-   ((Success? try)
-    (Success-result try))
-   ((Failure? try)
-    (or-else try))))
+  (match try
+   ((Success _) try)
+   ((Failure exn)
+    (with-try (or-else)))))
 
 ;; Is a generic "lens" library on structures possible?? 
 ;; Higher kinded types, L is a type constructor binding for M (Success) and N (Failure)
 ;;  (: S-map (All (L T U) (L T) (T -> U) -> (L U)))
 (: map/try (All (T U) (Try T) (T -> U) -> (Try U)))
 (define (map/try try fn)
-  (cond 
-   ((Success? try)
-    (Success (fn (Success-result try))))
-   ((Failure? try) try)))
+  (match try
+    ((Success result)
+     (with-try (fn result)))
+    ((Failure exn) 
+     (Failure exn)))) ;; should be able to return the 'try'
 
 (: flatmap/try (All (T U) (Try T) (T -> (Try U)) -> (Try U)))
 (define (flatmap/try try fn)
-  (cond 
-   ((Success? try)
-    (with-handlers ([exn:fail? (λ: ((ex : exn))
-				   (Failure ex))])
-      (fn (Success-result try))))
-   ((Failure? try) try)))
+  (match try
+    ((Success result)
+     (with-handlers ([exn:fail? (λ: ((ex : exn))
+				    (Failure ex))])
+       (fn result)))
+    ((Failure exn) (Failure exn))))
 
 (: map/try-or-else (All (T U) (Try T) (T -> U) (-> U) -> (Try U)))
 (define (map/try-or-else try fn fail)
-  (cond
-   ((Success? try)
-    (with-handlers ([exn:fail? (λ: ((ex : exn))
-				   (Failure ex))])
-      (Success (fn (Success-result try)))))
-   ((Failure? try)
-    (Success (fail)))))
+  (match try
+   ((Success result)
+    (with-try
+     (fn result)))
+   ((Failure exn)
+    (with-try (fail)))))
 
 (: foreach/try (All (T U) (Try T) (T -> U) -> Void))
 (define (foreach/try try fn)
-  (cond 
-   ((Success? try)
-    (fn (Success-result try))
-    (void))
-   ((Failure? try)
-    (void))))
+  (match try
+    ((Success result)
+     (fn result)
+     (void))
+    ((Failure _)
+     (void))))
 
 (: filter/try (All (T) (Try T) (T -> Boolean) -> (Try T)))
 (define (filter/try try select?)
-  (cond
-   ((Success? try) ;; need to see of Racket has structural pattern matching kindof cond!!!
-    (if (select? (Success-result try))
+  (match try
+   ((Success result) 
+    (if (select? result)
 	try
-	(Failure (exn:fail (format "Unsatisfied try filter predicate for ~s" (Success-result try))
+	(Failure (exn:fail (format "Unsatisfied try filter predicate for ~s" try)
 			   (current-continuation-marks)))))
-   ((Failure? try)
-    try)))
+   ((Failure exn) (Failure exn))))
 	
 (: exists (All (T) (Try T) (T -> Boolean) -> Boolean))
 (define (exists try exists?)
-  (cond 
-   ((Success? try)
-    (exists? (Success-result try)))
-   ((Failure? try) #f)))
-    
+  (match try
+    ((Success result)
+     (exists? result))
+    ((Failure _) #f)))
+
 (: invert ((Try exn) -> (Try exn)))
 (define (invert try)
-  (cond
-   ((Success? try)
-    (Failure (exn:fail (format "Inverted try. Success for ~s is Failure" (Success-result try))
+  (match try
+   ((Success result)
+    (Failure (exn:fail (format "Inverted try. Success for ~s is Failure" result)
 		       (current-continuation-marks))))
-   ((Failure? try)
-    (Success (Failure-exception try)))))
+   ((Failure exn)
+    (Success exn))))
 
 (: continue (All (T V W) (Try T) (T -> (Try V)) (exn -> (Try W)) -> (Try (U V W))))
 (define (continue try on-success on-failure)
-  (cond
-   ((Success? try)
-    (on-success (Success-result try)))
-   ((Failure? try)
-    (on-failure (Failure-exception try)))))
+  (match try
+   ((Success result)
+    (on-success result))
+   ((Failure exn)
+    (on-failure exn))))
 
 (: log-on-failure (All (T) (Try T) (exn -> Void) -> (Try T)))
 (define (log-on-failure try logger)
@@ -153,11 +146,11 @@
   (with-handlers ([exn:fail? (λ (ex)
   				(Failure ex))])
     (cond
-     ((Failure? try)
-      (let ((result (my-hero try)))
-  	(if result
-  	    result
-  	    try)))
+      ((Failure? try)
+       (let ((result (my-hero try)))
+	 (if result
+	     result
+	     try)))
      ((Success? try) try))))
 
 (: recover (All (T) (Try T) ((Failure T) -> (Option T)) -> (Try T)))
