@@ -22,10 +22,9 @@
  (struct-out Failure)
  (struct-out Success)
  failed? succeded? get invert
- map/try map/try-or-else flatmap/try foreach/try filter/try exists
- success-or-else-try
+ map/try map/try-or-else flatmap/try filter/try exists
  rescue recover log-on-failure
- try continue with-try with-try-or-else)
+ try continue with-try)
 
 (require
  racket/match)
@@ -50,13 +49,6 @@
    ((Failure exn) (raise exn))
    ((Success result) result)))
  
-(: success-or-else-try (All (T) (Try T) (-> T) -> (Try T)))
-(define (success-or-else-try try or-else)
-  (match try
-   ((Success _) try)
-   ((Failure exn)
-    (with-try (or-else)))))
-
 ;; Is a generic "lens" library on structures possible?? 
 ;; Higher kinded types, L is a type constructor binding for M (Success) and N (Failure)
 ;;  (: S-map (All (L T U) (L T) (T -> U) -> (L U)))
@@ -72,28 +64,17 @@
 (define (flatmap/try try fn)
   (match try
     ((Success result)
-     (with-handlers ([exn:fail? (λ: ((ex : exn))
-				    (Failure ex))])
-       (fn result)))
+     (fn result))
     ((Failure exn) (Failure exn))))
 
-(: map/try-or-else (All (T U) (Try T) (T -> U) (-> U) -> (Try U)))
+(: map/try-or-else (All (T U) (Try T) (T -> U) (exn -> U) -> (Try U)))
 (define (map/try-or-else try fn fail)
   (match try
    ((Success result)
     (with-try
      (fn result)))
    ((Failure exn)
-    (with-try (fail)))))
-
-(: foreach/try (All (T U) (Try T) (T -> U) -> Void))
-(define (foreach/try try fn)
-  (match try
-    ((Success result)
-     (fn result)
-     (void))
-    ((Failure _)
-     (void))))
+    (with-try (fail exn)))))
 
 (: filter/try (All (T) (Try T) (T -> Boolean) -> (Try T)))
 (define (filter/try try select?)
@@ -112,7 +93,7 @@
      (exists? result))
     ((Failure _) #f)))
 
-(: invert ((Try exn) -> (Try exn)))
+(: invert (All (T) (Try T) -> (Try exn)))
 (define (invert try)
   (match try
    ((Success result)
@@ -175,10 +156,4 @@
   (syntax-rules ()
     ((_ body ...)
      (try (λ () body ...)))))
-
-(define-syntax with-try-or-else
-  (syntax-rules ()
-    ((_ attempt or-else)
-     (success-or-else (try (λ () attempt))
-		      (λ (try) or-else)))))
 
