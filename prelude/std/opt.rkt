@@ -47,6 +47,7 @@
 (define (opt-map opt proc)
   (if opt (proc opt) #f))
 
+;; interesting opt-map <-> opt-flatmap
 (: opt-flatmap (All (a b) (Option a) (a -> (Option b)) -> (Option b)))
 (define (opt-flatmap opt proc)
   (opt-map opt proc))

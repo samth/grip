@@ -24,7 +24,7 @@
  failed? succeded? get invert
  map/try map/try-or-else flatmap/try filter/try exists
  rescue recover log-on-failure
- try continue with-try)
+ try continue with-try try->option)
 
 (require
  racket/match)
@@ -157,3 +157,8 @@
     ((_ body ...)
      (try (λ () body ...)))))
 
+(: try->option (All (T) (Try T) -> (Option T)))
+(define (try->option try)
+  (match try
+    ((Success result) result)
+    ((Failure exn) #f)))
