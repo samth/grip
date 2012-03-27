@@ -137,7 +137,7 @@
 	(if (http-successful? conn)       
 	    (let ((page (xml->sxml (HTTPConnection-in conn) '())))
 	      (http-close-connection conn)
-	       (pretty-print page)
+	      ;;(pretty-print page)
 	      (let ((prods (sx-prods page)))
 		;;(pretty-print prods)
 		(if (andmap list? prods)
