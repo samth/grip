@@ -19,9 +19,12 @@
 #lang typed/racket/base
 
 (provide
+ Try
  (struct-out Failure)
  (struct-out Success)
- failed? succeded? get invert
+ try-void
+ failed? succeded? 
+ get invert
  map/try map/try-or-else flatmap/try filter/try exists
  rescue recover log-on-failure
  try continue with-try try->option)
@@ -34,6 +37,9 @@
 (struct: (T) Success ([result : T]))
 
 (define-type (Try T) (U (Failure T) (Success T)))
+
+(: try-void (Try Void))
+(define try-void (Success (void)))
 
 (: failed? (All (T) (Try T) -> Boolean))
 (define (failed? try)
