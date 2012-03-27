@@ -58,14 +58,14 @@
     ((Success result)
      (with-try (fn result)))
     ((Failure exn) 
-     (Failure exn)))) ;; should be able to return the 'try'
+     (assert try Failure?))))
 
 (: flatmap/try (All (T U) (Try T) (T -> (Try U)) -> (Try U)))
 (define (flatmap/try try fn)
   (match try
     ((Success result)
      (fn result))
-    ((Failure exn) (Failure exn))))
+    ((Failure exn) (assert try Failure?))))
 
 (: map/try-or-else (All (T U) (Try T) (T -> U) (exn -> U) -> (Try U)))
 (define (map/try-or-else try fn fail)
@@ -84,7 +84,7 @@
 	try
 	(Failure (exn:fail (format "Unsatisfied try filter predicate for ~s" try)
 			   (current-continuation-marks)))))
-   ((Failure exn) (Failure exn))))
+   ((Failure exn) (assert try Failure?))))
 	
 (: exists (All (T) (Try T) (T -> Boolean) -> Boolean))
 (define (exists try exists?)
