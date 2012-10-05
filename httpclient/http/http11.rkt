@@ -477,6 +477,7 @@
 ;; a content-length may be required if not chunked.
 (: send-http-header (Output-Port Method Uri (Listof String) -> Void))
 (define (send-http-header op method url headers)
+  ;; (pretty-print (uri->start-line-path-string url))
   (write-string (http-method->string method) op)
   (write-string space op)
   (write-string (uri->start-line-path-string url) op)

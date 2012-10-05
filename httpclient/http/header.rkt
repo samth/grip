@@ -19,16 +19,32 @@
 #lang typed/racket/base
 
 (provide
- Header Headers
- make-header make-header-string header->string  empty-headers 
+ Header Headers Header-value Header-key
+ make-headers make-header make-header-string header->string  
+ empty-headers empty-header?
  add-header get-header get-header-value opt-header-value
  agent-header host-header
  date-header content-type content-length content-md5)
+
+(require/typed racket
+  [string-trim (String -> String)])
 
 (define-type Header (Pairof String String))
 (define-type Headers (Listof Header))
 
 (define-predicate Header? Header)
+
+(: Header-key (Header -> String))
+(define (Header-key header)
+  (car header))
+
+(: Header-value (Header -> String))
+(define (Header-value header)
+  (cdr header))
+
+(: empty-header? (Header -> Boolean))
+(define (empty-header? header)
+  (string=? "" (Header-value header)))
 
 (: empty-headers Headers)
 (define empty-headers '())
@@ -66,6 +82,16 @@
 (define (make-header hdr val)
   (cons hdr val))
 
+(: make-headers ((Listof (Pairof String String)) -> Headers))
+(define (make-headers kvs)
+  (filter 
+   (λ: ((kv : (Pairof String String)))
+     (not (empty-header? kv)))
+   (map (λ: ((kv : (Pairof String String)))
+          (cons (car kv)
+                (string-trim (cdr kv))))
+        kvs)))
+                  
 (: host-header (String -> Header))
 (define (host-header host)
   (make-header "Host" host))
