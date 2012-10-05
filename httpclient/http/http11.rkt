@@ -40,30 +40,31 @@
  read-request-header)
 
 (require/typed
- openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
+    openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
 
 (require/typed
- srfi/14
- (opaque char-set char-set?)
- (char-set:blank char-set)
- (char-set-complement (char-set -> char-set)))
+    srfi/14
+  (opaque char-set char-set?)
+  (char-set:blank char-set)
+  (char-set-complement (char-set -> char-set)))
 
 (require/typed
- srfi/13
- (string-tokenize (String char-set -> (Listof String))))
+    srfi/13
+  (string-tokenize (String char-set -> (Listof String))))
 
 (require/typed
- file/gunzip
- (gunzip-through-ports (Input-Port Output-Port -> Void)))
+    file/gunzip
+  (gunzip-through-ports (Input-Port Output-Port -> Void)))
 
 (require
+ ;;racket/pretty
  racket/date
  (only-in racket/tcp
-	  tcp-connect)
+          tcp-connect)
  (only-in (planet rpr/prelude:1/std/control)
           aif)
  (only-in (planet rpr/prelude:1/type/date)
-	  current-date-string-rfc-2822)
+          current-date-string-rfc-2822)
  (only-in "proxy.rkt"
           http-proxy-port
           http-proxy-host
@@ -71,7 +72,7 @@
  (only-in "../uri.rkt"
           Uri
           uri->start-line-path-string
-	  Uri-scheme
+          Uri-scheme
           Authority-port
           Authority-host
           Uri-authority)
@@ -79,8 +80,8 @@
           HOST
           USER-AGENT)
  (only-in "header.rkt"
-	  make-header make-header-string 
-	  get-header get-header-value header->string
+          make-header make-header-string 
+          get-header get-header-value header->string
           Header Headers))
 
 (define-type Method (U 'GET 'PUT 'POST 'DELETE 'HEAD 'CONNECT 'OPTIONS 'TRACE))
@@ -88,38 +89,38 @@
 (define-type Version (U 'HTTP/1.1))
 
 (struct: RequestLine ([method  : Method]
-		      [path    : String]
-		      [version : Version]) #:transparent)
+                      [path    : String]
+                      [version : Version]) #:transparent)
 
 (struct: RequestHeader ([request : RequestLine]
-			[headers : (Listof Header)]) #:transparent)
+                        [headers : (Listof Header)]) #:transparent)
 
 (struct: StatusLine ([version : Version]
-		     [code    : Integer]
-		     [msg     : String]) #:transparent)
+                     [code    : Integer]
+                     [msg     : String]) #:transparent)
 
 (struct: ResponseHeader ([status : StatusLine]
-			 [headers : (Listof Header)]) #:transparent)
+                         [headers : (Listof Header)]) #:transparent)
 
 (struct: HTTPConnection ([header : ResponseHeader]
-			 [out : Output-Port]
-			 [in  : Input-Port]
-			 [real-in : (Option Input-Port)])
-	 #:transparent)  ;; the actual socket input port, e.g. 'in' could be a chunking pipe 
+                         [out : Output-Port]
+                         [in  : Input-Port]
+                         [real-in : (Option Input-Port)])
+  #:transparent)  ;; the actual socket input port, e.g. 'in' could be a chunking pipe 
 
 
 (struct: HTTPPayload ([mime    : String]
-		      [md5     : (Option String)]
-		      [length  : (Option Index)]
-		      [inport  : Input-Port]) #:transparent)
+                      [md5     : (Option String)]
+                      [length  : (Option Index)]
+                      [inport  : Input-Port]) #:transparent)
 
 
 (: string->Version (String -> (Option Version)))
 (define (string->Version  str)
   (let ((vsym (string->symbol str)))
     (if (eq? vsym 'HTTP/1.1)
-	vsym
-	#f)))
+        vsym
+        #f)))
 
 (: CHUNK-SIZE Exact-Nonnegative-Integer)
 (define CHUNK-SIZE (* 64 1024)) ;; 64 K chunks, based on reasonable in-memory needs.
@@ -132,15 +133,15 @@
 (: substring-trim (String Integer Integer -> String))
 (define (substring-trim src-str start end)
   (let ((s-pos (do: : Integer ((s-pos start (add1 s-pos)))
-		    ((or (eqv? s-pos end)
-			 (not (eqv? (string-ref src-str s-pos) #\space)))
-		     s-pos)))
+                 ((or (eqv? s-pos end)
+                      (not (eqv? (string-ref src-str s-pos) #\space)))
+                  s-pos)))
         (e-pos (do: : Integer  ((e-pos end (sub1 e-pos)))
-		    ((or (eqv? e-pos start)
-			 (not (eqv? (string-ref src-str e-pos) #\space)))
-		     (if (< e-pos end)
-			 (add1 e-pos)
-			 e-pos)))))
+                 ((or (eqv? e-pos start)
+                      (not (eqv? (string-ref src-str e-pos) #\space)))
+                  (if (< e-pos end)
+                      (add1 e-pos)
+                      e-pos)))))
     (substring src-str s-pos e-pos)))
 
 ;;-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -164,13 +165,13 @@
 (define (parse-request-line sline)
   (let ((method-path-version (string-tokenize sline (char-set-complement char-set:blank))))
     (if (eq? (length method-path-version) 3)
-	(let ((method (string->http-method (car method-path-version)))
-	      (path   (cadr method-path-version))
-	      (version (string->Version (caddr method-path-version))))
-	  (if (and version method path)
-	      (RequestLine method path version)
-	      #f))
-	#f)))
+        (let ((method (string->http-method (car method-path-version)))
+              (path   (cadr method-path-version))
+              (version (string->Version (caddr method-path-version))))
+          (if (and version method path)
+              (RequestLine method path version)
+              #f))
+        #f)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parse http response line
@@ -181,22 +182,22 @@
 (define (parse-http-status-line resp-line)
   (let ((len (string-length resp-line)))
     (if (<= len 12)
-	#f
-	(let ((version (if (char=? (string-ref resp-line 8) #\space)
-			   (string->Version (substring resp-line 0 8))
-			   #f))
-	      (code (if (char=? (string-ref resp-line 12) #\space)
-			(let ((cd (string->number (substring resp-line 9 12))))
-			  (if (exact-integer? cd)
-			      cd
-			      #f))
-			#f))
-	      (msg (if (< 12 len)
-		       (substring resp-line 13 len)
-		       #f)))
-	  (if (and version code msg)
-	      (StatusLine version code msg)
-	      #f)))))
+        #f
+        (let ((version (if (char=? (string-ref resp-line 8) #\space)
+                           (string->Version (substring resp-line 0 8))
+                           #f))
+              (code (if (char=? (string-ref resp-line 12) #\space)
+                        (let ((cd (string->number (substring resp-line 9 12))))
+                          (if (exact-integer? cd)
+                              cd
+                              #f))
+                        #f))
+              (msg (if (< 12 len)
+                       (substring resp-line 13 len)
+                       #f)))
+          (if (and version code msg)
+              (StatusLine version code msg)
+              #f)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Chunked Encoding routines ;;
@@ -218,35 +219,35 @@
     (let ((osp (open-output-string)))
       (let ((ch (peek-char ip)))
         (if (eof-object? ch)
-	    0
-	    (when (eqv? ch #\return)
-	      (read-char ip)     ;; return
-	      (read-char ip))))  ;; linefeed
+            0
+            (when (eqv? ch #\return)
+              (read-char ip)     ;; return
+              (read-char ip))))  ;; linefeed
       (let: loop : Integer ((ch : (U Char EOF) (read-char ip)))
-	    (cond 
-	     ((eof-object? ch)         
-	      0)
-	     ((char=? ch #\space) ;; yahoo for one right pads chunk value with spaces.
-	      (loop (read-char ip)))   ;; skip them.
-	     ((char-hex? ch)
-	      (begin
-		(write-char ch osp )
-		(loop (read-char ip))))
-	     ((eqv? #\return ch)
-	      (let ((ch (peek-char ip)))
-		(if (eof-object? ch)
-		    0
-		    (if (eqv? ch #\linefeed)
-			(begin (read-char ip)
-			       (let ((sz (string->number (get-output-string osp) 16)))
-				 (if (exact-integer? sz)
-				     sz
-				     0)))
-			0))))
-	     (else 0)))))
+        (cond 
+          ((eof-object? ch)         
+           0)
+          ((char=? ch #\space) ;; yahoo for one right pads chunk value with spaces.
+           (loop (read-char ip)))   ;; skip them.
+          ((char-hex? ch)
+           (begin
+             (write-char ch osp )
+             (loop (read-char ip))))
+          ((eqv? #\return ch)
+           (let ((ch (peek-char ip)))
+             (if (eof-object? ch)
+                 0
+                 (if (eqv? ch #\linefeed)
+                     (begin (read-char ip)
+                            (let ((sz (string->number (get-output-string osp) 16)))
+                              (if (exact-integer? sz)
+                                  sz
+                                  0)))
+                     0))))
+          (else 0)))))
   
   (with-handlers ([exn:fail?		    
-		   (λ (ex) 0)])
+                   (λ (ex) 0)])
     (read-chunk-length ip)))
 
 (: chunked-encoding? (Headers -> Boolean))
@@ -262,8 +263,8 @@
 (define (content-length headers)
   (let ((len (get-header-value "Content-Length" headers)))
     (if len
-	(assert (string->number len) exact-integer?)
-	#f)))
+        (assert (string->number len) exact-integer?)
+        #f)))
 
 ;; returns:
 ;;   'chunked
@@ -291,16 +292,16 @@
 ;; (define-type Header (Pair String String))
 
 (define-type RevHTTPHeader (Rec RevHTTPHeader 
-				(U (Pair Header RevHTTPHeader) 
-				   (List String) 
-				   Null)))
+                                (U (Pair Header RevHTTPHeader) 
+                                   (List String) 
+                                   Null)))
 
 (define-type HTTPHeader (Pair String (Listof Header)))
 
 (require/typed racket
-               ((cons resp-header-cons) (Header RevHTTPHeader -> RevHTTPHeader))
-               ((cons resp-msg-cons)    (String RevHTTPHeader -> RevHTTPHeader))
-               ((reverse reverse-response) (RevHTTPHeader -> HTTPHeader)))
+  ((cons resp-header-cons) (Header RevHTTPHeader -> RevHTTPHeader))
+  ((cons resp-msg-cons)    (String RevHTTPHeader -> RevHTTPHeader))
+  ((reverse reverse-response) (RevHTTPHeader -> HTTPHeader)))
 
 ;; Max size allowed for an HTTP response
 (define MAX-REQUEST (* 3 1024))
@@ -309,76 +310,76 @@
 (define (read-request-header inp)
   (let ((req (http-header-from-socket-input-port inp)))
     (if req
-	(let ((reqline (parse-request-line (car req))))
-	  (if reqline
-	      (RequestHeader reqline (cdr req))
-	      #f))
-	#f)))
+        (let ((reqline (parse-request-line (car req))))
+          (if reqline
+              (RequestHeader reqline (cdr req))
+              #f))
+        #f)))
 
 (: read-response-header (Input-Port -> (Option ResponseHeader)))
 (define (read-response-header inp)
   (let ((resp (http-header-from-socket-input-port inp)))
     (if resp
-	(let ((status (parse-http-status-line (car resp))))
-	  (if status
-	      (ResponseHeader status (cdr resp))
-	      #f))
-	#f)))
+        (let ((status (parse-http-status-line (car resp))))
+          (if status
+              (ResponseHeader status (cdr resp))
+              #f))
+        #f)))
 
 (: http-header-from-socket-input-port (Input-Port -> (Option HTTPHeader)))
 (define (http-header-from-socket-input-port inp)
   (let ((req (make-string MAX-REQUEST)))
     (let: loop : (Option HTTPHeader)
-	  ((state : Integer 0) 
-	   (cnt : Integer 0) 
-	   (byte : (U EOF Byte) (read-byte inp)) 
-	   (caret : Integer 0) 
-	   (colon : Integer 0) 
-	   (headers : RevHTTPHeader '()))      
-	  (if (eqv? cnt MAX-REQUEST)
-	      #f                                                           ;; FIXME return 4XX
-	      (if (eof-object? byte)
-		  (reverse-response headers)
-		  (let ((state (case state
-				 ((0) (case byte
-					((#x0D) 1)
-					(else  0)))
-				 ((1) (case byte
-					((#x0A) 2)
-					(else  0)))
-				 ((2) (case byte
-					((#x0D) 3)
-					(else 0)))
-				 ((3) (case byte
-					((#x0A) 4)
-					(else 0)))
-				 (else 0))))
-		    (case state
-		      ((2) (let ((ch (integer->char byte)))
-			     (string-set! req cnt ch)
-			     (loop state
-				   (add1 cnt)
-				   (read-byte inp)
-				   (add1 cnt)
-				   -1                      ;; colon <> -1 mean we found the first one already.  ':' is a legitimate header value, only first ':" is a delim.
-				   (if (zero? colon)       ;; HTTP line as no colon was found
-				       (resp-msg-cons (substring req caret (sub1 cnt)) headers)
-				       (resp-header-cons (cons (substring req caret colon) 
-							       (substring-trim req (add1 colon) (sub1 cnt))) ;; header line (attr . value)
-							 headers)))))
-		      ((4) (reverse-response headers))
-		      (else
-		       (let ((ch (integer->char byte)))
-			 (string-set! req cnt ch)
-			 (loop state
-			       (add1 cnt)
-			       (read-byte inp)
-			       caret
-			       (if (and (eqv? colon -1)
-					(eqv? ch #\:))
-				   cnt                ;; found a colon at position cnt
-				   colon)
-			       headers))))))))))
+      ((state : Integer 0) 
+       (cnt : Integer 0) 
+       (byte : (U EOF Byte) (read-byte inp)) 
+       (caret : Integer 0) 
+       (colon : Integer 0) 
+       (headers : RevHTTPHeader '()))      
+      (if (eqv? cnt MAX-REQUEST)
+          #f                                                           ;; FIXME return 4XX
+          (if (eof-object? byte)
+              (reverse-response headers)
+              (let ((state (case state
+                             ((0) (case byte
+                                    ((#x0D) 1)
+                                    (else  0)))
+                             ((1) (case byte
+                                    ((#x0A) 2)
+                                    (else  0)))
+                             ((2) (case byte
+                                    ((#x0D) 3)
+                                    (else 0)))
+                             ((3) (case byte
+                                    ((#x0A) 4)
+                                    (else 0)))
+                             (else 0))))
+                (case state
+                  ((2) (let ((ch (integer->char byte)))
+                         (string-set! req cnt ch)
+                         (loop state
+                               (add1 cnt)
+                               (read-byte inp)
+                               (add1 cnt)
+                               -1                      ;; colon <> -1 mean we found the first one already.  ':' is a legitimate header value, only first ':" is a delim.
+                               (if (zero? colon)       ;; HTTP line as no colon was found
+                                   (resp-msg-cons (substring req caret (sub1 cnt)) headers)
+                                   (resp-header-cons (cons (substring req caret colon) 
+                                                           (substring-trim req (add1 colon) (sub1 cnt))) ;; header line (attr . value)
+                                                     headers)))))
+                  ((4) (reverse-response headers))
+                  (else
+                   (let ((ch (integer->char byte)))
+                     (string-set! req cnt ch)
+                     (loop state
+                           (add1 cnt)
+                           (read-byte inp)
+                           caret
+                           (if (and (eqv? colon -1)
+                                    (eqv? ch #\:))
+                               cnt                ;; found a colon at position cnt
+                               colon)
+                           headers))))))))))
 
 
 (: space String)
@@ -391,14 +392,14 @@
 (: failed-connection (String -> HTTPConnection))
 (define failed-connection
   (let ((in   (open-input-string ""))
-	(out  (open-output-string ""))
-	(base-msg "Bad Request - "))
+        (out  (open-output-string ""))
+        (base-msg "Bad Request - "))
     (close-input-port in)
     (close-output-port out)
     (λ (msg)
-       (HTTPConnection (ResponseHeader (StatusLine 'HTTP/1.1 400 (string-append base-msg msg)) 
-				       '())
-		       out in #f))))
+      (HTTPConnection (ResponseHeader (StatusLine 'HTTP/1.1 400 (string-append base-msg msg)) 
+                                      '())
+                      out in #f))))
 
 ;; Used by the chunk reader thread to pipe the chunks.
 ;; Intermediate pipe for inbound chunked data stream
@@ -408,17 +409,17 @@
 (: http-pipe-chunks (Integer Input-Port Output-Port -> Void))
 (define (http-pipe-chunks chunk-size socket-ip out-pipe)
   (let: loop : Void ((chunk-size : Integer chunk-size))
-	(if (zero? chunk-size)
-	    (begin
-	      (flush-output out-pipe)
-	      (close-output-port out-pipe))
-	    (let ((bs (read-bytes chunk-size socket-ip)))
-	      (if (eof-object? bs)
-		  (begin
-		    (flush-output out-pipe)
-		    (close-output-port out-pipe))
-		  (begin (write-bytes bs out-pipe)
-			 (loop (get-chunk-length socket-ip))))))))
+    (if (zero? chunk-size)
+        (begin
+          (flush-output out-pipe)
+          (close-output-port out-pipe))
+        (let ((bs (read-bytes chunk-size socket-ip)))
+          (if (eof-object? bs)
+              (begin
+                (flush-output out-pipe)
+                (close-output-port out-pipe))
+              (begin (write-bytes bs out-pipe)
+                     (loop (get-chunk-length socket-ip))))))))
 
 (: http-pipe-content-length-block (Integer Input-Port Output-Port -> Void))
 (define (http-pipe-content-length-block content-length socket-ip out-pipe)
@@ -426,13 +427,13 @@
   (define (complete)
     (flush-output out-pipe)
     (close-output-port out-pipe))
-
+  
   (let ((bs (read-bytes content-length socket-ip)))
     (if (eof-object? bs)
-	(complete)
-	(begin
-	  (write-bytes bs out-pipe)
-	  (complete)))))
+        (complete)
+        (begin
+          (write-bytes bs out-pipe)
+          (complete)))))
 
 (: http-pipe-gunzip (Input-Port Output-Port -> Void))
 (define (http-pipe-gunzip inp outp)
@@ -454,15 +455,15 @@
 (define (string->http-method str)
   (let ((str (string-upcase str)))
     (cond 
-     ((string=? "GET" str) 'GET)
-     ((string=? "POST" str) 'POST)
-     ((string=? "PUT" str) 'PUT)
-     ((string=? "DELETE" str) 'DELETE)
-     ((string=? "HEAD" str) 'HEAD)
-     ((string=? "CONNECT" str) 'CONNECT)
-     ((string=? "OPTIONS" str) 'OPTIONS)
-     ((string=? "TRACE" str) 'TRACE)
-     (else #f))))
+      ((string=? "GET" str) 'GET)
+      ((string=? "POST" str) 'POST)
+      ((string=? "PUT" str) 'PUT)
+      ((string=? "DELETE" str) 'DELETE)
+      ((string=? "HEAD" str) 'HEAD)
+      ((string=? "CONNECT" str) 'CONNECT)
+      ((string=? "OPTIONS" str) 'OPTIONS)
+      ((string=? "TRACE" str) 'TRACE)
+      (else #f))))
 
 (: send-header (String String Output-Port -> Void))
 (define (send-header header value op)
@@ -485,9 +486,9 @@
   (write-string version op)
   (write-string terminate op)
   (for-each (λ: ((h : String))
-		(write-string h op)
-		(write-string terminate op))
-	    headers))
+              (write-string h op)
+              (write-string terminate op))
+            headers))
 
 (: terminate-http-header (Output-Port -> Void))
 (define (terminate-http-header op)
@@ -496,22 +497,22 @@
 
 (: send-chunked-payload (Input-Port Output-Port -> Void))
 (define (send-chunked-payload ip op)
-
+  
   (: write-chunk-header (Integer -> Void))
   (define (write-chunk-header sz)
     (write-string (number->string sz 16) op)
     (write-string terminate op)
     (void))
-
+  
   (let ((buffer (make-bytes CHUNK-SIZE)))
     (do ([sz (read-bytes! buffer ip 0 CHUNK-SIZE)
-	     (read-bytes! buffer ip 0 CHUNK-SIZE)])
-	((eof-object? sz)
-	 (begin
-	   (write-chunk-header 0)
-	   (write-string terminate op)
-	   (flush-output op)
-	   (void)))
+             (read-bytes! buffer ip 0 CHUNK-SIZE)])
+      ((eof-object? sz)
+       (begin
+         (write-chunk-header 0)
+         (write-string terminate op)
+         (flush-output op)
+         (void)))
       (write-chunk-header sz)
       (write-bytes buffer op 0 sz)
       (write-string terminate op))))
@@ -519,33 +520,33 @@
 (: send-contentlength-payload (HTTPPayload Output-Port -> Void))
 (define (send-contentlength-payload payload outp)
   (let ((inp (HTTPPayload-inport payload))
-	(length (assert (HTTPPayload-length payload))))
+        (length (assert (HTTPPayload-length payload))))
     (send-header "Content-Length" (number->string length 10) outp)
     (send-header "Content-Type" (HTTPPayload-mime payload) outp)
     (let ((md5 (HTTPPayload-md5 payload)))
       (when md5
-	(send-header "Content-MD5" md5 outp)))
+        (send-header "Content-MD5" md5 outp)))
     (terminate-http-header outp)
     (let* ((buff-sz (if (< length CHUNK-SIZE)
-			length
-			CHUNK-SIZE))
-	   (buffer (make-bytes buff-sz)))
+                        length
+                        CHUNK-SIZE))
+           (buffer (make-bytes buff-sz)))
       (do ([sz (read-bytes! buffer inp 0 buff-sz)
-	       (read-bytes! buffer inp 0 buff-sz)])
-	  ((eof-object? sz) (flush-output outp))
-	(write-bytes buffer outp)))))
+               (read-bytes! buffer inp 0 buff-sz)])
+        ((eof-object? sz) (flush-output outp))
+        (write-bytes buffer outp)))))
 
 (: send-payload (HTTPPayload Output-Port -> Void))
 (define (send-payload payload op)
   (let ((len (HTTPPayload-length payload))
-	(inport (HTTPPayload-inport payload)))
+        (inport (HTTPPayload-inport payload)))
     (if len
-	(send-contentlength-payload payload op)
-	(begin
-	  (send-header "Transfer-Encoding" "Chunked" op)
-	  (terminate-http-header op)
-	  (flush-output op)
-	  (send-chunked-payload inport op)))))
+        (send-contentlength-payload payload op)
+        (begin
+          (send-header "Transfer-Encoding" "Chunked" op)
+          (terminate-http-header op)
+          (flush-output op)
+          (send-chunked-payload inport op)))))
 
 ;; WARNING - All the output routines now in Racket (write-bytes etc) return the actual
 ;; number of bytes written.  All the above code "assumes" a full write always occurs to 
@@ -560,68 +561,70 @@
 ;; can be explicitly given, wherein content-length will be used.
 (: http-invoke (Method Uri Headers (Option HTTPPayload) -> HTTPConnection))
 (define (http-invoke method url headers payload)
-
+  
   (: append-host-to-headers (String -> Headers))
   (define (append-host-to-headers host)
     (cons (make-header HOST host) headers))
   
   (let ((authority (Uri-authority url)))
     (if (not  authority)
-	(failed-connection "Missing authority in URL")
+        (failed-connection "Missing authority in URL")
         (let* ((host (Authority-host authority))
-	       (headers (append-host-to-headers host))
-	       (port    (aif (Authority-port authority) it 80))
-	       (proxy? (http-proxy? authority url)))
+               (headers (append-host-to-headers host))
+               (port    (aif (Authority-port authority) it 80))
+               (proxy? (http-proxy? authority url)))
           (let ((conn-host (if proxy?
-			       (aif (http-proxy-host) it host)
-			       host))
-		(conn-port (if proxy?
-			       (aif (http-proxy-port) it port)
-			       port)))
+                               (aif (http-proxy-host) it host)
+                               host))
+                (conn-port (if proxy?
+                               (aif (http-proxy-port) it port)
+                               port)))
             (let-values (((ip op) (if (string=? (Uri-scheme url) "https")
-				      (ssl-connect conn-host conn-port)
-				      (tcp-connect conn-host conn-port))))
-	      (send-http-header op method url (map header->string headers))
-
-	      ;; processing a payload will add additional headers
-	      (if payload
-		  (send-payload payload op)
-		  (begin
-		    (terminate-http-header op) 
-		    (flush-output op)))
-	      
-	      (let ((resp (read-response-header ip)))
-		(if resp
-		    (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers resp)))
-			   (encoding (get-header-value "Content-Encoding" (ResponseHeader-headers resp))))
-		      (if (number? chunked/length)
-			  ;; content/length
-			  (let-values (((inpipe outpipe) (make-pipe)))
-			    (thread (λ () (http-pipe-content-length-block chunked/length ip outpipe)))
-			    (if (and encoding (string=? "gzip" encoding))
-				(let-values (((gz-inp gz-outp) (make-pipe)))
-				  (thread (λ () (http-pipe-gunzip inpipe gz-outp)))
-				  (HTTPConnection resp op gz-inp ip))
-				(HTTPConnection resp op inpipe ip)))
-			  ;; chunked
-			  (let-values (((inpipe outpipe) (make-pipe)))
-			    (thread (λ () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
-			    (if (and encoding (string=? "gzip" encoding))
-				(let-values (((gz-inp gz-outp) (make-pipe)))
-				  (thread (λ () (http-pipe-gunzip inpipe gz-outp)))
-				  (HTTPConnection resp op gz-inp ip))
-				(HTTPConnection resp op inpipe ip)))))
-		    (failed-connection "Invalid response from server")))))))))
+                                      (ssl-connect conn-host conn-port)
+                                      (tcp-connect conn-host conn-port))))
+              (send-http-header op method url (map header->string headers))
+              
+              ;; processing a payload will add additional headers
+              (if payload
+                  (send-payload payload op)
+                  (begin
+                    (terminate-http-header op) 
+                    (flush-output op)))
+              
+              (let ((resp (read-response-header ip)))                
+                (if resp
+                    (if (eq? method 'HEAD) ;; HEAD has content length, but never actual content.                       
+                        (HTTPConnection resp op ip #f)
+                        (let  ((chunked/length (content-length-or-chunked? (ResponseHeader-headers resp)))
+                               (encoding (get-header-value "Content-Encoding" (ResponseHeader-headers resp))))
+                          (if (number? chunked/length)
+                              ;; content/length
+                              (let-values (((inpipe outpipe) (make-pipe)))
+                                (thread (λ () (http-pipe-content-length-block chunked/length ip outpipe)))
+                                (if (and encoding (string=? "gzip" encoding))
+                                    (let-values (((gz-inp gz-outp) (make-pipe)))
+                                      (thread (λ () (http-pipe-gunzip inpipe gz-outp)))
+                                      (HTTPConnection resp op gz-inp ip))
+                                    (HTTPConnection resp op inpipe ip)))
+                              ;; chunked
+                              (let-values (((inpipe outpipe) (make-pipe)))
+                                (thread (λ () (http-pipe-chunks (get-chunk-length ip) ip outpipe)))
+                                (if (and encoding (string=? "gzip" encoding))
+                                    (let-values (((gz-inp gz-outp) (make-pipe)))
+                                      (thread (λ () (http-pipe-gunzip inpipe gz-outp)))
+                                      (HTTPConnection resp op gz-inp ip))
+                                    (HTTPConnection resp op inpipe ip))))))
+                    (failed-connection "Invalid response from server")))))))))
 
 
 
 ;; Lightweight sending of an HTTP response
 (: http-send-response (String Headers Output-Port Input-Port Integer -> Void))
 (define (http-send-response code headers socket-output-port content-input-port length)
-
+  
   (: preamble String)
   (define preamble "HTTP/1.1 ")
-
+  
   (: colon-sp String)
   (define colon-sp ": ")
   
@@ -637,7 +640,7 @@
     (send (cdr hdr))
     (send terminate)
     (void))
-
+  
   (send preamble)
   (send code)
   (send terminate)
@@ -649,19 +652,19 @@
   (send terminate)
   (if (input-port? content-input-port)
       (let ((buffsz 1024))
-	(let ((buffer (make-bytes buffsz)))
-	  (let: loop : Void ((cnt : (U EOF Integer) 
-				  (read-bytes! buffer content-input-port 0 buffsz)))
-		(if (eof-object? cnt)
-		    (begin
-		      (send "0")
-		      (send terminate)(send terminate))
-		    (begin
-		      (send (number->string cnt 16))
-		      (send terminate)
-		      (write-bytes buffer socket-output-port 0 cnt)
-		      (send terminate)
-		      (loop  (read-bytes! buffer content-input-port 0 buffsz)))))))
+        (let ((buffer (make-bytes buffsz)))
+          (let: loop : Void ((cnt : (U EOF Integer) 
+                                  (read-bytes! buffer content-input-port 0 buffsz)))
+            (if (eof-object? cnt)
+                (begin
+                  (send "0")
+                  (send terminate)(send terminate))
+                (begin
+                  (send (number->string cnt 16))
+                  (send terminate)
+                  (write-bytes buffer socket-output-port 0 cnt)
+                  (send terminate)
+                  (loop  (read-bytes! buffer content-input-port 0 buffsz)))))))
       (send terminate)))
 
 (: http-status-code (HTTPConnection -> Integer))
@@ -675,18 +678,18 @@
 (: http-has-content? (HTTPConnection -> Boolean))
 (define (http-has-content? connection)
   (let ((content (content-length-or-chunked? 
-		  (ResponseHeader-headers (HTTPConnection-header connection)))))
+                  (ResponseHeader-headers (HTTPConnection-header connection)))))
     (cond 
-     ((exact-integer? content) (> content 0))
-     ((symbol? content) #t)
-     (else #f))))
+      ((exact-integer? content) (> content 0))
+      ((symbol? content) #t)
+      (else #f))))
 
 (: http-close-connection (HTTPConnection -> Void))
 (define (http-close-connection conn)
   (let ((real-in (HTTPConnection-real-in conn)))
     (if real-in
-	(begin
-	  (close-input-port (HTTPConnection-in conn))
-	  (close-input-port real-in))
-	(close-input-port (HTTPConnection-in conn)))
+        (begin
+          (close-input-port (HTTPConnection-in conn))
+          (close-input-port real-in))
+        (close-input-port (HTTPConnection-in conn)))
     (close-output-port (HTTPConnection-out conn))))
