@@ -24,11 +24,10 @@
  build-restriction merge-restrictions)
  
 (require
- racket/pretty
- (only-in (planet rpr/prelude:1/text/util)
-	  weave-string-separator)
- (only-in (planet rpr/httpclient:1/uri/url/param)
-	  Param))
+ (only-in "../../prelude/text/util.rkt"
+          weave-string-separator)
+ (only-in "../../httpclient/uri/url/param.rkt"
+          Param))
 
 (: build-restriction (String (Listof String) -> Param))
 (define (build-restriction key values)

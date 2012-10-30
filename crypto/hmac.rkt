@@ -2,18 +2,19 @@
 
 (provide hmac-sha256 hmac-sha1)
 
-(require (only-in (planet rpr/r6rslib:1/bytevectors)
-		  bytevector?
-		  string->utf8
-		  make-bytevector
-		  bytevector-copy
-		  bytevector-copy!
-		  bytevector-fill!
-		  bytevector-u32-set!
-		  bytevector-u32-ref
-		  bytevector-length
-		  bytevector-u8-ref
-		  bytevector-u8-set!))
+(require 
+ (only-in "../r6rslib/bytevectors.rkt"
+          bytevector?
+          string->utf8
+          make-bytevector
+          bytevector-copy
+          bytevector-copy!
+          bytevector-fill!
+          bytevector-u32-set!
+          bytevector-u32-ref
+          bytevector-length
+          bytevector-u8-ref
+          bytevector-u8-set!))
 
 (require racket/fixnum
 	 "hash/sha256.rkt"

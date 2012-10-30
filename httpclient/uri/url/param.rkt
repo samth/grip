@@ -18,16 +18,18 @@
 
 #lang typed/racket/base
 
-(provide parse-params encode-param encode-param-string params->query
-	 param Param Param? Params)
+(provide 
+ parse-params encode-param encode-param-string 
+ params->query
+ param Param Param? Params)
 
 (require 
  (only-in typed/srfi/14
 	  Char-Set
 	  string->char-set
 	  char-set-complement)
- (only-in (planet rpr/prelude:1/text/util)
-	  weave-string-separator)
+ (only-in "../../../prelude/text/util.rkt"
+          weave-string-separator)
  "../uricharset.rkt")
 
 (require/typed 

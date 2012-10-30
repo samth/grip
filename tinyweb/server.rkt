@@ -4,17 +4,17 @@
 
 (require
  racket/tcp
- (only-in (planet rpr/httpclient:1/uri)
-	  http-path-path
-	  parse-http-path)
- (only-in (planet rpr/httpclient:1/uri/path)
-	  path-split)
- (only-in (planet rpr/httpclient:1/http/http11)
-	  read-request-header)
+ (only-in "../httpclient/uri.rkt"
+          http-path-path
+          parse-http-path)
+ (only-in "../httpclient/uri/path.rkt"
+          path-split)
+ (only-in "../httpclient/http/http11.rkt"
+          read-request-header)
  (only-in "log.rkt"
-	  www-log)
+          www-log)
  (only-in "dispatch.rkt"
-	  DispatchTree dispatch))
+          DispatchTree dispatch))
 
 (: http-server-task (DispatchTree Integer -> Void))
 (define (http-server-task dispatch-tree port)

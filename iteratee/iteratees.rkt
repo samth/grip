@@ -4,6 +4,7 @@
  counter drop 
  head head-n
  sum 
+ print
  rev upcase
  and-iteratee)
 
@@ -93,15 +94,17 @@
         [(eq? str 'EOS)     (Done 'EOS total)])))
   (Continue (step 0)))
 
-(: print (All (D) (-> (Iteratee D Void))))
-(define (print)
+(: print (All (D) (Output-Port -> (Iteratee D Void))))
+(define (print outp)
   (: step ((Stream D) -> (Iteratee D Void)))
   (define step
     (λ: ((str : (Stream D)))
       (match str
         ('Nothing (Continue step))
         ('EOS     (Done 'EOS (void)))
-        (s        (Done 'EOS (void))))))
+        (s        (begin
+                    (write s outp)
+                    (Continue step))))))
   (Continue step))
 
 ;; silly example
@@ -131,7 +134,3 @@
          (Done 'EOS (list->string (reverse (string->list str)))))
         (else       (Continue (step (string-append elem str)))))))
   (Continue (step str)))
-            
-      
-     
-  

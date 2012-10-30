@@ -4,7 +4,8 @@
 
 (require 
  racket/pretty
- (only-in (planet rpr/r6rslib:1/bytevectors)
+ racket/fixnum
+ (only-in "../../r6rslib/bytevectors.rkt"
 	  bytevector?
 	  string->utf8
 	  make-bytevector
@@ -15,16 +16,12 @@
 	  bytevector-u32-ref
 	  bytevector-length
 	  bytevector-u8-ref
-	  bytevector-u8-set!))
-
-(require (only-in (planet rpr/r6rslib:1/arithmetic/bitwise)
- 		  bitwise-arithmetic-shift-right
- 		  bitwise-arithmetic-shift-left))
-
-(require racket/fixnum)
-
-(require (only-in "../private/util.rkt"
-		  fxdiv-and-mod fx1+ fx1- fxzero? str->bv))
+	  bytevector-u8-set!)
+ (only-in "../../r6rslib/arithmetic/bitwise.rkt"
+          bitwise-arithmetic-shift-right
+          bitwise-arithmetic-shift-left)
+ (only-in "../private/util.rkt"
+          fxdiv-and-mod fx1+ fx1- fxzero? str->bv))
 
 ;; (require (filtered-in
 ;;           (λ (name) (regexp-replace #rx"unsafe-" name ""))

@@ -27,20 +27,20 @@
 
 (require
  racket/pretty
- (only-in (planet rpr/httpclient:1/http/header)
+ (only-in "../../httpclient/http/header.rkt"
           make-header Headers)
- (only-in (planet rpr/httpclient:1/uri)
-	  Uri make-uri parse-uri uri->string)
- (only-in (planet rpr/httpclient:1/uri/url/param)
-	  params->query encode-param-string Param Params)
- (only-in (planet rpr/httpclient:1/http/http11)
-	  HTTPConnection-in http-successful? http-close-connection http-invoke)
- (only-in (planet rpr/format:1/xml/sxml)
-	  Sxml SXPath sxpath html->sxml xml->sxml extract-text extract-integer)
+ (only-in "../../httpclient/uri.rkt"
+          Uri make-uri parse-uri uri->string)
+ (only-in "../../httpclient/uri/url/param.rkt"
+          params->query encode-param-string Param Params)
+ (only-in "../../httpclient/http/http11.rkt"
+          HTTPConnection-in http-successful? http-close-connection http-invoke)
+ (only-in "../../format/xml/sxml.rkt"
+          Sxml SXPath sxpath html->sxml xml->sxml extract-text extract-integer)
  (only-in "access.rkt"
-	  load-key)
+          load-key)
  (only-in "config.rkt"
-	  gproduct-host gproduct-path std-query-params gproduct-nss))
+          gproduct-host gproduct-path std-query-params gproduct-nss))
 
 (: key String)
 (define key (load-key #f))

@@ -10,19 +10,19 @@
 
  (require
   racket/pretty
- (only-in (planet rpr/httpclient:1/uri)
-	  Uri-authority Authority-host
-	  Uri make-uri uri->string) 
- (only-in (planet rpr/httpclient:1/http/http11)
-	  http-invoke http-close-connection
-	  HTTPConnection-in)
- (only-in (planet rpr/httpclient:1/http/header)
-	  make-header
-	  agent-header
-	  host-header)
- (only-in "../../xml/sxml.rkt"
-	  Sxml SXPath 
-	  sxpath xml->sxml select-single-node-text))
+ (only-in "../../../httpclient/uri.rkt"
+          Uri-authority Authority-host
+          Uri make-uri uri->string) 
+ (only-in "../../../httpclient/http/http11.rkt"
+          http-invoke http-close-connection
+          HTTPConnection-in)
+ (only-in "../../../httpclient/http/header.rkt"
+          make-header
+          agent-header
+          host-header)
+ (only-in "../../../format/xml/sxml.rkt"
+          Sxml SXPath 
+          sxpath xml->sxml select-single-node-text))
 
 (: content-ns (Pair Symbol String))
 (define content-ns

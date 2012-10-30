@@ -6,18 +6,18 @@
 
 @title{HTTP Client}
 
-@defmodule[(planet rpr/httpclient/http/http11)]
+@defmodule["../../httpclient/http/http11.rkt"]
 
 @section{HTTP Data Structures}
 
 Performs synchronous HTTP 1.1 invocations against a server.  Full HTTP 1.1 support is not yet in place.  The current incarnation supports gzip compression, SSL and chunk encoding.
 
 @defstruct*[RequestLine ([method   Method]
-		         [path     String]
-		         [version  Version]) #:transparent]{
-The HTTP standard header line for a request.
-}
-
+                         [path     String]
+                         [version  Version]) #:transparent]{
+                                                            The HTTP standard header line for a request.
+                                                            }
+                                                           
 @defstruct*[RequestHeader ([request RequestLine]
 		      	   [headers (Listof Header)]) #:transparent]{
 The HTTP protocol header for a requests consisting of the request line, e.g., @racket{GET /index.html HTTP/1.1} and a set of HTTP headers (name value pairs).
@@ -100,7 +100,7 @@ Properly close the connection to the server.  Currently a close @italic{must} be
 
 Headers are name value pairs defined in the HTTP 1.1 specification.
 
-@defmodule[(planet rpr/httpclient/http/header)]{
+@defmodule["../httpclient/http/header.rkt"]{
 
 @defthing[Header (define-type Header (Pair String String))]{
 A Header is typed defined as a pairof strings, the name and value.

@@ -19,15 +19,16 @@
 #lang typed/racket/base
 
 (provide make-uri
+         (struct-out Uri)
+         (struct-out Authority)
 	 parse-uri parse-authority uri->string
 	 parse-http-path uri->start-line-path-string
-	 http-path-path http-path-query http-path-fragment
-	 Authority Authority-user Authority-host Authority-port
-	 Uri Uri? Uri-scheme Uri-authority Uri-path Uri-query Uri-fragment)
+	 http-path-path http-path-query http-path-fragment)
+	 
 
 (require 
- (only-in (planet rpr/prelude:1/std/opt)
-	  opt-apply-orelse)
+ (only-in "../prelude/std/opt.rkt"
+          opt-apply-orelse)
  (only-in "uri/uricharset.rkt"
 	  sub-delim-char?
 	  pct-encoded-char?

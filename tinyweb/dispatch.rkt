@@ -9,13 +9,13 @@
  rest-resource)
 
 (require 
- (only-in (planet rpr/httpclient:1/http/http11)
+ (only-in "../httpclient/http/http11.rkt"
 	  Method RequestHeader RequestHeader-request
 	  RequestLine-path RequestLine-method)
- (only-in (planet rpr/httpclient:1/uri)
-	  parse-http-path)
- (only-in (planet rpr/httpclient:1/uri/path)
-	  path-split)
+ (only-in "../httpclient/uri.rkt"
+          parse-http-path)
+ (only-in "../httpclient/uri/path.rkt"
+          path-split)
  (only-in "log.rkt"
 	  www-log))
 

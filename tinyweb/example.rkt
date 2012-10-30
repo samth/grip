@@ -4,16 +4,16 @@
  main)
 
 (require
- (only-in (planet rpr/httpclient:1/http/http11)
-	  http-send-response
-	  RequestHeader
-	  RequestLine-method)
- (only-in (planet rpr/format:1/xml/sxml)
-	  sxml->html)		  
+ (only-in "../httpclient/http/http11.rkt"
+          http-send-response
+          RequestHeader
+          RequestLine-method)
+ (only-in "../format/xml/sxml.rkt"
+          sxml->html)		  
  (only-in "dispatch.rkt"
-	  DispatchTree Dispatcher rest-resource)
+          DispatchTree Dispatcher rest-resource)
  (only-in "server.rkt"
-	  webserver))
+          webserver))
 
 (:  hello-html (-> (Listof Any)))
 (define (hello-html)

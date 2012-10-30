@@ -19,14 +19,14 @@
 ;; Useful for testing, i.e. simulate an IO read of a string
 (: enumerator/string (All (A) String -> (Enumerator String A)))
 (define (enumerator/string str)
-  (lambda: ((iter : (Iteratee String A)))
+  (λ: ((iter : (Iteratee String A)))
     (match iter
       [(Done _ _) iter]
       [(Continue k) (k str)])))
 
 (: enumerator/list (All (D A) (Listof D) -> (Enumerator D A)))
 (define (enumerator/list lst)
-  (lambda: ((iter : (Iteratee D A)))
+  (λ: ((iter : (Iteratee D A)))
     (let: loop : (Iteratee D A) ((lst : (Listof D) lst) 
                                  (iter : (Iteratee D A) iter))
       (match (cons lst iter)
@@ -36,7 +36,7 @@
 
 (: enumerator/text-input-port (All (A) (Input-Port -> (Enumerator String A))))
 (define (enumerator/text-input-port inp)
-  (lambda: ((iter : (Iteratee String A)))
+  (λ: ((iter : (Iteratee String A)))
     (let loop ((iter iter))
       (match iter
         [(Done _ _) iter]

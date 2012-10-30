@@ -11,7 +11,7 @@ The original intent of the URI library was for full support of URI genericity, h
 
 @subsection{URI Data Structures}
 
-@defmodule[(planet rpr/httpclient/uri)]{
+@defmodule["../../httpclient/uri.rkt"]{
 
 @defstruct*[Uri ([scheme String]
 	         [authority  (U False Authority)]
@@ -43,7 +43,7 @@ Parse the given string into a @racket[Uri].  If the string fails to parse #f is 
 
 @subsection{URL Encoding / Decoding}
 
-@defmodule[(planet rpr/httpclient/uri/url/encode)]{
+@defmodule["../httpclient/uri/url/encode.rkt"]{
 
 @defproc[(url-encode-string [str String] [space-as-plus Boolean]) String]{
 URL encode a string converting reserved characters as percent hex values. 
@@ -61,7 +61,7 @@ Reading chars from the input port URL decoding percent hex encoded values.  If @
 
 @subsection{Query Params}
 
-@defmodule[(planet rpr/httpclient/uri/url/param)]{
+@defmodule["../httpclient/uri/url/param.rkt"]{
 
 A @racket[Param] is a name value pair intended for use in constructing the URL query string.
 
@@ -106,7 +106,7 @@ Example:
 
 @subsection{Path Utilties}
 
-@defmodule[(planet rpr/httpclient/uri/path)]{
+@defmodule["../../httclient/uri/path.rkt"]{
 
 @defproc[(path-split [path String]) (Listof String)]{
 Split a URL path into its constituent segments.  For reasons of arcania the first element of a split absolute path is the empty string.

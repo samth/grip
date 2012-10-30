@@ -9,10 +9,11 @@
 
 (require racket/fixnum)
 
-(require (only-in (planet rpr/r6rslib:1/bytevectors)
-		  bytevector-u8-ref
-		  bytevector-length
-		  string->utf8))
+(require 
+ (only-in "../../r6rslib/bytevectors.rkt"
+          bytevector-u8-ref
+          bytevector-length
+          string->utf8))
 
 (define-syntax fx1+
   (syntax-rules ()

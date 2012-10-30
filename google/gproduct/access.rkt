@@ -25,8 +25,8 @@
 	       ((read read-creds) (Input-Port -> (Listof (Pair Symbol String)))))
 
 (require
- (only-in (planet rpr/prelude:1/std/opt)
-	  opt-apply-orelse))
+ (only-in "../../prelude/std/opt.rkt"
+          opt-apply-orelse))
 
 (: default-access-config Path)
 (define default-access-config

@@ -43,27 +43,26 @@
     openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
 
 (require/typed
-    srfi/14
-  (opaque char-set char-set?)
-  (char-set:blank char-set)
-  (char-set-complement (char-set -> char-set)))
+ srfi/14
+ (opaque char-set char-set?)
+ (char-set:blank char-set)
+ (char-set-complement (char-set -> char-set)))
 
 (require/typed
-    srfi/13
-  (string-tokenize (String char-set -> (Listof String))))
+ srfi/13
+ (string-tokenize (String char-set -> (Listof String))))
 
 (require/typed
-    file/gunzip
-  (gunzip-through-ports (Input-Port Output-Port -> Void)))
+ file/gunzip
+ (gunzip-through-ports (Input-Port Output-Port -> Void)))
 
 (require
  ;;racket/pretty
- racket/date
  (only-in racket/tcp
           tcp-connect)
- (only-in (planet rpr/prelude:1/std/control)
+ (only-in "../../prelude/std/control.rkt"
           aif)
- (only-in (planet rpr/prelude:1/type/date)
+ (only-in "../../prelude/type/date.rkt"
           current-date-string-rfc-2822)
  (only-in "proxy.rkt"
           http-proxy-port

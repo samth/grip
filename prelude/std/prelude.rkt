@@ -2,7 +2,8 @@
 
 (provide 
  %%
- ==>)
+ ==>
+ vadd1)
 
 (require racket/pretty)
 
@@ -19,6 +20,12 @@
      (let ((tmp exp))
        (pretty-print tmp)
        tmp))))
+
+;; Bump counter for a Vectorof Integer at the given index position.
+(define-syntax vadd1
+  (syntax-rules ()
+    ([bump v idx]
+     (vector-set! v idx (add1 (vector-ref v idx))))))
 
 ;; (: cons* (All (a) a a * -> (Listof a)))
 ;; (define (cons* a1 a2 . rest)

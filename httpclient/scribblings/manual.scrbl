@@ -6,7 +6,7 @@
 
 @title[#:tag "top"]{@bold{HTTPClient} A Typed Racket HTTP Client}
 
-@declare-exporting[(planet rpr/httpclient:1)]
+@declare-exporting["../../httpclient.rkt"]
 
 @table-of-contents[]
 

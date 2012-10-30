@@ -6,7 +6,7 @@
 
 @title[#:tag "top"]{@bold{Crypto} Typed Racket crypto procedures}
 
-@declare-exporting[(planet rpr/crypto:1)]
+@declare-exporting["../../crypto.rkt"]
 
 @table-of-contents[]
 
