@@ -6,7 +6,7 @@
  (struct-out Continue)
  (struct-out Done)
  Enumerator eseq
- Enumeratee enumeratee)
+ Enumeratee)
 
 (require racket/match)
 
@@ -40,19 +40,3 @@
     (e2 (e1 iter))))
 
 (define-type (Enumeratee O I A) ((Iteratee I A) -> (Iteratee O (Iteratee I A))))
-
-(: enumeratee (All (O I A) ((O -> I) -> (Enumeratee O I A))))
-(define (enumeratee cvt)  
-  (λ: ((inner : (Iteratee I A)))    
-    (: step ((Iteratee I A) -> ((Stream O) -> (Iteratee O (Iteratee I A)))))
-    (define (step inner)
-      (λ: ((elem : (Stream O)))
-        (cond
-          ((eq? elem 'Nothing) (Continue (step inner)))
-          ((eq? elem 'EOS)     (Done 'EOS inner))
-          (else                (match inner
-                                 [(Done _ _ ) (Done elem inner)]
-                                 [(Continue istep)
-                                  (let ((newinner (istep (cvt elem))))
-                                    (Continue (step newinner)))])))))    
-    (Continue (step inner))))

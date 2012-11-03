@@ -4,7 +4,9 @@
  racket/pretty
  "iteratee.rkt"
  "iteratees.rkt"
- "enumerators.rkt")
+ "enumerators.rkt"
+ "enumeratees.rkt"
+ "iterfile.rkt")
  
 (: drop1keep1 (All (D) (-> (Iteratee D (Option D)))))
 (define (drop1keep1)
@@ -66,10 +68,28 @@
 ;; Iteratee which sums a given sequence of Integers.
 (: enumT (-> Integer))
 (define (enumT)
-  (let: ((producer : (Enumerator String (Iteratee Integer Integer)) 
+  (let: ((producer  : (Enumerator String (Iteratee Integer Integer)) 
                    (enumerator/list '("1" "2" "3" "4")))
          (converter : (Enumeratee String Integer Integer) 
-                    (enumeratee (λ: ((elem : String)) (assert (string->number elem) exact-integer?))))
-         (consumer : (Iteratee Integer Integer) 
+                    (enumeratee-transform (λ: ((elem : String)) (assert (string->number elem) exact-integer?))))
+         (consumer  : (Iteratee Integer Integer) 
                    (sum)))       
     (icomplete (icomplete (producer (converter consumer))))))
+
+(: showit-twice (-> IOResult))
+(define (showit-twice)
+  (let: ((enumerator   : (Enumerator Integer (Iteratee String IOResult))
+                       (enumerator/list '(1 2 3 4)))
+         (doubler      : (Enumeratee Integer String IOResult)
+                       (enumeratee-transform (λ: ((x : Integer)) (number->string (* x x)))))
+         (persist      : TextFileIteratee
+                       (iter-textfile (string->path "/run/shm/ray.txt"))))          
+    (icomplete (icomplete (enumerator (doubler persist))))))
+      
+(: showit-twice2 (-> IOResult))
+(define (showit-twice2)
+  (let ((enumerator (ann (enumerator/list '(1 2 3 4)) (Enumerator Integer (Iteratee String IOResult))))
+        (doubler (ann (enumeratee-transform (λ: ((x : Integer)) (number->string (* x x)))) (Enumeratee Integer String IOResult)))
+        (persist (iter-textfile (string->path "/run/shm/ray.txt"))))
+    (icomplete (icomplete (enumerator (doubler persist))))))
+      
