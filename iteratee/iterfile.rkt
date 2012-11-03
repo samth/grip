@@ -1,8 +1,10 @@
 #lang typed/racket/base
 
 (provide 
- iter-textfile
+ iter-text-file
+ iter-text-port
  TextFileIteratee
+ TextPortIteratee
  OK
  (struct-out IOResult)
  (struct-out IOSuccess)
@@ -29,6 +31,8 @@ Of course this puts an obligation on the library user to properly establish the 
 |#
 
 (define-type TextFileIteratee (Iteratee String IOResult))
+(define-type TextPortIteratee (Iteratee String IOResult))
+
 (define-type OutputFilePortIteratee (Iteratee String IOResult))
 
 (struct: IOResult ([msg : String]) #:transparent)
@@ -37,8 +41,26 @@ Of course this puts an obligation on the library user to properly establish the 
 
 (define OK (IOSuccess "OK"))
 
-(: iter-textfile (Path -> TextFileIteratee))
-(define (iter-textfile path)
+(: iter-text-port (Output-Port -> TextPortIteratee))
+(define (iter-text-port pout)
+  
+  (: step ((Stream String) -> (Iteratee String IOResult)))
+  (define step
+    (λ: ((s : (Stream String)))
+      (cond
+        ([eq? s 'Nothing] 
+         (Continue step))
+        ([eq? s 'EOS]
+         (flush-output pout)
+         (Done 'EOS  OK))
+        (else (begin
+                (displayln s)
+                (Continue step))))))
+  
+  (Continue step))
+
+(: iter-text-file (Path -> TextFileIteratee))
+(define (iter-text-file path)
   
   (define: pout : Output-Port (open-output-file path))      
   

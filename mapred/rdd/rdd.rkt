@@ -2,10 +2,13 @@
 
 (provide
  RDD
- (struct-out RDDFile)
+ ;; ;; (struct-out RDDFile)
+ ;; ;; (struct-out RDDList)
+ (struct-out RDDSeq)
  (struct-out RDDList)
  (struct-out RDDFilter)
  (struct-out RDDMap)
+ (struct-out RDDPrint)
  rdd-text)
 
 (require
@@ -20,31 +23,36 @@
  (only-in "../config.rkt" 
           rdd-materialization-directory))
 
-;(define-type (RDDSeq T) (Sequenceof T))
+(struct: (A B) RDDSeq ([xs : (Listof A)]))
+
+(struct: (A B) RDDList ([xs : (Listof A)]))
 
 ;;; an RDD is a set of distributed blocks
-(struct: (T) RDDFile ([blocks : (Listof Block)]))
+(struct: (A B) RDDFile ([blocks : (Listof Block)]))
 
-(struct: (T) RDDList ([block : (Listof T)]))
+;(struct: (T) RDDList ([block : (Listof T)]))
 
-(struct: (T V) RDDFilter ([parent : (RDD T V)]
-                          [filter-fn : (T -> Boolean)]))
+(struct: (A B) RDDFilter ([parent : (RDD A B)]
+                          [filterfn : (B -> Boolean)]))
 
-(struct: (T V) RDDMap ([parent : (RDD T V)]
-                       [cvt    : (T -> V)]))
+(struct: (A B) RDDMap ([parent : RDD]
+                       [cvt    : (A -> B)]))
 
-(define-type (RDD T V) (U (RDDFile T)
-                          (RDDList T)
-                          (RDDFilter T V)
-                          (RDDMap T V)))
+(struct: (A B) RDDPrint ([parent : RDD]))
+
+(define-type (RDD A B) ((RDDFilter A B)
+                        (RDDMap A B)
+                        (RDDFile A B)
+                        (RDDSeq A B)
+                        (RDDPrint A B)))
 
 ;; Build RDD from an input path
-(: rdd-text (Location -> (RDD Text Nothing)))
+(: rdd-text (Location -> RDD))
 (define (rdd-text loc)     
   (RDDFile (map (λ: ((p : Location)) (Block (path->complete-path p loc)
                                             (BlockStructure 0 0)))
                 (directory-list loc))))
 
-(: generate-rdd-block-filename (-> Path))
-(define (generate-rdd-block-filename)
-  (make-temporary-file "rktrdd-~a.block" #f rdd-materialization-directory))
+;; (: generate-rdd-block-filename (-> Path))
+;; (define (generate-rdd-block-filename)
+;;   (make-temporary-file "rktrdd-~a.block" #f rdd-materialization-directory))
