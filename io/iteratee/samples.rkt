@@ -83,13 +83,13 @@
          (doubler      : (Enumeratee Integer String IOResult)
                        (enumeratee-transform (λ: ((x : Integer)) (number->string (* x x)))))
          (persist      : TextFileIteratee
-                       (iter-textfile (string->path "/run/shm/ray.txt"))))          
+                       (iter-text-file (string->path "/run/shm/ray.txt"))))          
     (icomplete (icomplete (enumerator (doubler persist))))))
       
 (: showit-twice2 (-> IOResult))
 (define (showit-twice2)
   (let ((enumerator (ann (enumerator/list '(1 2 3 4)) (Enumerator Integer (Iteratee String IOResult))))
         (doubler (ann (enumeratee-transform (λ: ((x : Integer)) (number->string (* x x)))) (Enumeratee Integer String IOResult)))
-        (persist (iter-textfile (string->path "/run/shm/ray.txt"))))
+        (persist (iter-text-file (string->path "/run/shm/ray.txt"))))
     (icomplete (icomplete (enumerator (doubler persist))))))
       
