@@ -4,9 +4,9 @@
  (struct-out CrossTabulation))
 
 (require
- (only-in "../frame/series.rkt"
+ (only-in "../../RpR/frame/series.rkt"
           SIndex)
- (only-in "../frame/categorical-series.rkt"
+ (only-in "../../RpR/frame/categorical-series.rkt"
           CategoricalSeries
           CategoricalSeries->SIndex
           CategoricalSeries-data

@@ -21,13 +21,13 @@
 (require 
  (only-in prelude/std/prelude
           vadd1)
- (only-in "../frame/series.rkt"
+ (only-in "../../RpR/frame/series.rkt"
           SIndex)
- (only-in "../frame/categorical-series.rkt"
+ (only-in "../../RpR/frame/categorical-series.rkt"
           CategoricalSeries
           CategoricalSeries-nominals
           CategoricalSeries-data)          
- (only-in "../stats/tabulate.rkt"
+ (only-in "../../RpR/stats/tabulate.rkt"
           Tabulation)
  (only-in "../pgm/xtab.rkt"
           CrossTabulation))
@@ -98,8 +98,8 @@
     ([>= idx len] (MutualInformation
                    (phi)
                    ;;0.0
-                   (Tabulation d1-counts (CategoricalSeries-nominals cs1))
-                   (Tabulation d2-counts (CategoricalSeries-nominals cs2))
+                   (Tabulation (CategoricalSeries-nominals cs1) d1-counts)
+                   (Tabulation (CategoricalSeries-nominals cs2) d2-counts)
                    (CrossTabulation (CategoricalSeries-nominals cs1)
                                     (CategoricalSeries-nominals cs2)
                                     xtab-counts)))
