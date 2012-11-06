@@ -11,7 +11,7 @@
  (struct-out IOFailure))
 
 (require 
- (only-in iteratee/iteratee
+ (only-in "iteratee.rkt"
           Iteratee Stream Continue Done))
 
 #| Iteratee for File output. |#

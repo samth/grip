@@ -7,12 +7,12 @@
 (require "../frame/frame.rkt"
          racket/match
          racket/pretty
-         (only-in iteratee/enumerators
+         (only-in "../../io/iteratee/enumerators.rkt"
                   enumerator/text-input-port)
-         (only-in iteratee/iteratee                  
+         (only-in "../../io/iteratee/iteratee.rkt"
                   Iteratee Stream Continue Done
                   icomplete)
-         (only-in iteratee/iteratee-base
+         (only-in "../../io/iteratee/iteratees.rkt"
                   head-n)
          (only-in "parse.rkt"
                   parse-tab-line)

@@ -8,17 +8,17 @@
  RDDResult)
 
 (require
- (only-in iteratee/iteratee
+ (only-in "../../io/iteratee/iteratee.rkt"
           Enumerator
           Enumeratee)
- (only-in iteratee/iterfile
+ (only-in "../../io/iteratee/iterfile.rkt"
           IOResult)
- (only-in iteratee/enumeratees
+ (only-in "../../io/iteratee/enumeratees.rkt"
           enumeratee-filter
           enumeratee-transform)
- (only-in iteratee/enumerators
+ (only-in "../../io/iteratee/enumerators.rkt"
           enumerator/list)
- (only-in iteratee/iterfile
+ (only-in "../../io/iteratee/iterfile.rkt"
           TextPortIteratee
           iter-text-port)
  (only-in "rdd.rkt" 

@@ -7,8 +7,8 @@
 ; complete-SeriesBuilder)
 
 (require 
- (only-in"series.rkt"
-         CategoricalSeries))
+ (only-in "categorical-series.rkt"
+          CategoricalSeries))
 
 (struct: (D S) SeriesBuilder ([append : (D -> Void)]
                               [complete : (-> S)]))
