@@ -30,7 +30,7 @@ Base64 decode the given string to an array of bytes.
 Various cryptography hash functions.
 
 @subsection{MD5}
-@defmodule[(planet rpr/crypto/hash/md5)]{
+@defmodule["crypto/hash/md5.rkt"]{
 
 @deftogether[[
 @defproc[(md5-hex [array (U String Bytes Input-Port)]) Bytes]
@@ -50,7 +50,7 @@ Typed wrappers around the MD5 procedures in @tt{file/md5} in untyped Racket exce
 
 @subsection{SHA-1}
 
-@defmodule[(planet rpr/crypto/hash/sha1)]{
+@defmodule["crypto/hash/sha1.rkt"]{
 
 @defproc[(sha1-bytes [bytes Bytes]) Bytes]{
 Typed wrapper around sha1-bytes procedure provided by Racket's @tt{openssl/sha1}.
@@ -62,7 +62,7 @@ Typed wrapper around sha1-bytes procedure provided by Racket's @tt{openssl/sha1}
 
 Pure Typed Racket implementation of SHA-256.
 
-@defmodule[(planet rpr/crypto/hash/sha256)]{
+@defmodule["crypto/hash/sha256.rkt"]{
 
 @defproc[(sha256 [data (U Bytes String)]) Bytes]{
 Hash the given data using SHA-256 algorithm.
@@ -72,7 +72,7 @@ Hash the given data using SHA-256 algorithm.
 
 @section{HMAC}
 
-@defmodule[(planet rpr/crypto/hmac)]{
+@defmodule["crypto/hmac.rkt"]{
 
 @defproc[(hmac-sha256 [secret (U String Bytes)] [message (U Bytes String)]) Bytes]{
 Generates the an HMAC signature of the @racket{message} with the @racket{secret}.
