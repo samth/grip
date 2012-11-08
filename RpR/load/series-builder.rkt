@@ -5,9 +5,9 @@
 
 (require
  (only-in "numeric-series-builder.rkt"
-          NumericSeriesBuilder)
+          NSeriesBuilder)
  (only-in "categorical-series-builder.rkt"
-          CategoricalSeriesBuilder))
+          CSeriesBuilder))
 
-(define-type SeriesBuilderTypes (U CategoricalSeriesBuilder NumericSeriesBuilder))
+(define-type SeriesBuilderTypes (U CSeriesBuilder NSeriesBuilder))
 

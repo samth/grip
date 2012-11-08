@@ -5,9 +5,9 @@
 
 (provide:
  [mean (FlVector -> Float)]
- [variance (NumericSeries -> Float)]
- [stddev  (NumericSeries -> Float)]
- [summary (NumericSeries -> Summary)])
+ [variance (NSeries -> Float)]
+ [stddev   (NSeries -> Float)]
+ [summary  (NSeries -> Summary)])
 
 (require
  (only-in racket/flonum
@@ -15,7 +15,7 @@
           flvector-length
           flsqrt)
  (only-in "../frame/numeric-series.rkt"
-           NumericSeries NumericSeries-data))
+           NSeries NSeries-data))
 
 (struct: Summary ([mean : Float]
                   [variance : Float]
@@ -51,10 +51,10 @@
                       (loop (add1 i) (add1 k) (+ m (/ (- x m) k)))))
                 m))))))
 
-(: summary (NumericSeries -> Summary))
+(: summary (NSeries -> Summary))
 (define (summary nseries)
   
-  (define data (NumericSeries-data nseries))
+  (define data (NSeries-data nseries))
   (define: min-x : Float (flvector-ref data 0))  
   (define: max-x : Float min-x)
   (define: cnt   : Natural (if (eqv? +nan.0 min-x) 0 1))
@@ -81,10 +81,10 @@
               (Summary m (/ s (- k 2)) min-x max-x cnt nans)              
               (Summary min-x 0.0 (min min-x 0.0) (max min-x 0.0) cnt nans))))))
 
-(: variance (NumericSeries -> Float))
+(: variance (NSeries -> Float))
 (define (variance nseries)
   (Summary-variance (summary nseries)))
 
-(: stddev (NumericSeries -> Float))
+(: stddev (NSeries -> Float))
 (define (stddev nseries)
   (flsqrt (variance nseries)))

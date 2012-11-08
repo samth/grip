@@ -15,21 +15,23 @@
  (only-in "series-builder.rkt"
           SeriesBuilderTypes)
  (only-in "numeric-series-builder.rkt"
-          mkNumericSeriesBuilder
-          NumericSeriesBuilder 
-          NumericSeriesBuilder?
-          complete-NumericSeriesBuilder)
+          mkNSeriesBuilder
+          NSeriesBuilder 
+          NSeriesBuilder?
+          complete-NSeriesBuilder)
  (only-in "categorical-series-builder.rkt"
-          mkCategoricalSeriesBuilder
-          CategoricalSeriesBuilder
-          CategoricalSeriesBuilder?
-          complete-CategoricalSeriesBuilder
-          append-CategoricalSeriesBuilder)
+          mkCSeriesBuilder
+          CSeriesBuilder
+          CSeriesBuilder?
+          complete-CSeriesBuilder
+          append-CSeriesBuilder)
  (only-in "tab-delimited.rkt"
           read-tab-delimited-file
           sample-tab-delimited-file)
+ (only-in "../frame/series-description.rkt"
+          Series)
  (only-in "../frame/frame.rkt"
-          Frame FrameSeries
+          Frame 
           mkFrame))
 
 (: mkFrameBuilder-from-Schema (Schema -> FrameBuilder))
@@ -38,21 +40,21 @@
   (: determine-SeriesBuilder (SeriesTypes -> SeriesBuilderTypes))
   (define (determine-SeriesBuilder stypes)    
     (match stypes
-      ['CATEGORICAL (mkCategoricalSeriesBuilder)]
-      ['NUMERIC     (mkNumericSeriesBuilder)]))
+      ['CATEGORICAL (mkCSeriesBuilder)]
+      ['NUMERIC     (mkNSeriesBuilder)]))
   
   (FrameBuilder ((inst map SeriesBuilderTypes SeriesTypes) 
                  determine-SeriesBuilder 
                  (Schema-SeriesTypes schema))))
 
-(: complete-SeriesBuilders (FrameBuilder -> (Listof FrameSeries)))
+(: complete-SeriesBuilders (FrameBuilder -> (Listof Series)))
 (define (complete-SeriesBuilders frame-builder)
   (map (λ: ((builder : SeriesBuilderTypes))
          (cond
-           [(CategoricalSeriesBuilder? builder)
-            (complete-CategoricalSeriesBuilder builder)]
-           [(NumericSeriesBuilder? builder)
-            (complete-NumericSeriesBuilder builder)]
+           [(CSeriesBuilder? builder)
+            (complete-CSeriesBuilder builder)]
+           [(NSeriesBuilder? builder)
+            (complete-NSeriesBuilder builder)]
            [else (error "Inconsistent FrameBuilder")]))
        (FrameBuilder-builders frame-builder)))
 
@@ -66,7 +68,7 @@
     (let ((headers (if (Schema-has-headers schema) 
                        (Schema-headers schema) 
                        (anon-headers (length cols)))))
-      (mkFrame ((inst zip Symbol FrameSeries) headers cols)))))
+      (mkFrame ((inst zip Symbol Series) headers cols)))))
 
 (: load-tab-delimited-file (Path [#:schema (Option Schema)] -> Frame))
 (define (load-tab-delimited-file fpath #:schema [schema #f])

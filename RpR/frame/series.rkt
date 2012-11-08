@@ -1,15 +1,18 @@
 #lang typed/racket/base
 
+(provide:
+ [gseries-count (All (A) (GSeries A) -> Nonnegative-Integer)])
+
 (provide
  SIndex
  Label Label? is-labeled?
  Labeling 
  LabelIndex LabelIndex-index
- GenericSeries
- (struct-out GenericSeries)
- mkGenericSeries 
+ GSeries
+ (struct-out GSeries)
+ mkGSeries 
  series-ref series-iref
- map/GenericSeries 
+ map/GSeries 
  build-index-from-labels label-index label->idx)
 
 (require 
@@ -44,10 +47,10 @@
 
 ;; General Series parameterized by A
 ;; See NumSeries below for an optimized for Float implemenation.
-(struct: (A) GenericSeries LabelIndex ([data : (Vectorof A)]))
+(struct: (A) GSeries LabelIndex ([data : (Vectorof A)]))
 
-(: mkGenericSeries (All (A) (Vectorof A) (Option (U (Listof Label) SIndex)) -> (GenericSeries A)))
-(define (mkGenericSeries data labels)  
+(: mkGSeries (All (A) (Vectorof A) (Option (U (Listof Label) SIndex)) -> (GSeries A)))
+(define (mkGSeries data labels)  
   
   (: check-mismatch (SIndex -> Void))
   (define (check-mismatch index)
@@ -59,12 +62,12 @@
   (if(hash? labels)
      (begin
        (check-mismatch labels)
-       (GenericSeries labels data))
+       (GSeries labels data))
      (if labels	 
          (let ((index (build-index-from-labels labels)))
            (check-mismatch index)
-           (GenericSeries index data))
-         (GenericSeries #f data))))
+           (GSeries index data))
+         (GSeries #f data))))
 
 (: is-labeled? (LabelIndex -> Boolean))
 (define (is-labeled? series)
@@ -78,20 +81,24 @@
         (let ((k (current-continuation-marks)))
           (raise (make-exn:fail:contract "Cannot obtain the index of a label for a series which is unlabeled" k))))))
 
-(: series-iref (All (A) (GenericSeries A) Index -> (U Float A)))
+(: series-iref (All (A) (GSeries A) Index -> (U Float A)))
 (define (series-iref series idx)
-  (vector-ref (GenericSeries-data series) idx))
+  (vector-ref (GSeries-data series) idx))
 
-(: series-ref (All (A) (GenericSeries A) Label -> (U A Float)))
+(: series-ref (All (A) (GSeries A) Label -> (U A Float)))
 (define (series-ref series label)
   (series-iref series (label->idx series label)))
 
-(: map/GenericSeries (All (A B) (GenericSeries A) (A -> B) -> (GenericSeries B)))
-(define (map/GenericSeries series fn)
-  (let*: ((old-data : (Vectorof A) (GenericSeries-data series))
+(: gseries-count (All (A) (GSeries A) -> Nonnegative-Integer))
+(define (gseries-count series)
+  (vector-length (GSeries-data series)))
+
+(: map/GSeries (All (A B) (GSeries A) (A -> B) -> (GSeries B)))
+(define (map/GSeries series fn)
+  (let*: ((old-data : (Vectorof A) (GSeries-data series))
           (new-data : (Vectorof B) (build-vector (vector-length old-data) 
                                                  (λ: ((idx : Integer)) 
                                                    (fn (vector-ref old-data idx))))))
-    (GenericSeries (LabelIndex-index series) new-data)))
+    (GSeries (LabelIndex-index series) new-data)))
 
 

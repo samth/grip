@@ -21,14 +21,14 @@
                   determine-Schema
                   Schema)
          (only-in "categorical-series-builder.rkt"
-                  CategoricalSeriesBuilder
-                  CategoricalSeriesBuilder?
-                  complete-CategoricalSeriesBuilder
-                  append-CategoricalSeriesBuilder)
+                  CSeriesBuilder
+                  CSeriesBuilder?
+                  complete-CSeriesBuilder
+                  append-CSeriesBuilder)
          (only-in "numeric-series-builder.rkt"
-                  NumericSeriesBuilder
-                  NumericSeriesBuilder?
-                  append-NumericSeriesBuilder)
+                  NSeriesBuilder
+                  NSeriesBuilder?
+                  append-NSeriesBuilder)
          (only-in "series-builder.rkt"
                   SeriesBuilderTypes)                  
          (only-in "frame-builder.rkt"
@@ -42,12 +42,12 @@
   (: appenders (Listof (String -> Void)))
   (define appenders (map (λ: ((builder : SeriesBuilderTypes))
                            (cond
-                             [(CategoricalSeriesBuilder? builder)
+                             [(CSeriesBuilder? builder)
                               (λ: ((str : String))
-                                (append-CategoricalSeriesBuilder builder str))]
-                             [(NumericSeriesBuilder? builder)
+                                (append-CSeriesBuilder builder str))]
+                             [(NSeriesBuilder? builder)
                               (λ: ((str : String))
-                                (append-NumericSeriesBuilder builder str))]
+                                (append-NSeriesBuilder builder str))]
                              [else (λ: ((str : String)) (void))]))
                          (FrameBuilder-builders frame-builder)))
   

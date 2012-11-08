@@ -1,13 +1,15 @@
 #lang typed/racket/base
 
+(provide:
+ [nseries-count (NSeries -> Nonnegative-Integer)])
+
 (provide
- NumericSeries NumericSeries?
- NumericSeries-data
- NumericSeries-length
- mkNumericSeries map/NumericSeries
- NumericSeries-ref NumericSeries-iref
- map/series->NumericSeries map/NumericSeries->series)
- 
+ flvector-print
+ (struct-out NSeries)
+ mkNSeries map/NSeries
+ NSeries-ref NSeries-iref
+ map/series->NSeries map/NSeries->series)
+
 (require 
  racket/flonum
  (only-in "settings.rkt" 
@@ -18,7 +20,7 @@
           label-index label->idx
           build-index-from-labels
           Label SIndex
-          GenericSeries GenericSeries-data
+          GSeries GSeries-data
           LabelIndex LabelIndex-index))
          
 (: flvector-print (FlVector Output-Port -> Void))
@@ -40,19 +42,19 @@
             (display " " port))))
     (display "]" port)))
 
-(: writer-NumericSeries (NumericSeries Output-Port Boolean -> Void))
-(define (writer-NumericSeries series port mode)
-  (let* ([data (NumericSeries-data series)]
+(: writer-NSeries (NSeries Output-Port Boolean -> Void))
+(define (writer-NSeries series port mode)
+  (let* ([data (NSeries-data series)]
          [len (flvector-length data)])
-    (displayln (format "(NumericSeries #:length ~s)" len) port)))    
+    (displayln (format "(NSeries #:length ~s)" len) port)))    
 
-;; An NumericSeries is an optimized Series for computation over vectors of Float
-;; i.e., NumericSeries should be faster then (Series Float)
-(struct: NumericSeries LabelIndex ([data : FlVector]))
-  ;;#:methods gen:custom-write [(define write-proc writer-NumericSeries)])
+;; An NSeries is an optimized Series for computation over vectors of Float
+;; i.e., NSeries should be faster then (Series Float)
+(struct: NSeries LabelIndex ([data : FlVector])
+  #:methods gen:custom-write [(define write-proc writer-NSeries)])
 
-(: mkNumericSeries (FlVector (Option (U (Listof Label) SIndex)) -> NumericSeries))
-(define (mkNumericSeries data labels)
+(: mkNSeries (FlVector (Option (U (Listof Label) SIndex)) -> NSeries))
+(define (mkNSeries data labels)
 
   (: check-mismatch (SIndex -> Void))
   (define (check-mismatch index)
@@ -64,29 +66,29 @@
   (if (hash? labels)
      (begin
        (check-mismatch labels)
-       (NumericSeries labels data))
+       (NSeries labels data))
      (if labels
 	(let ((index (build-index-from-labels labels)))
 	  (check-mismatch index)
-	  (NumericSeries index data))
-	(NumericSeries #f data))))
+	  (NSeries index data))
+	(NSeries #f data))))
 
-(: NumericSeries-iref (NumericSeries Index -> Float))
-(define (NumericSeries-iref series idx)
-  (flvector-ref (NumericSeries-data series) idx))
+(: NSeries-iref (NSeries Index -> Float))
+(define (NSeries-iref series idx)
+  (flvector-ref (NSeries-data series) idx))
 
-(: NumericSeries-ref (NumericSeries Label -> Float))
-(define (NumericSeries-ref series label)
-  (NumericSeries-iref series (label->idx series label)))
+(: NSeries-ref (NSeries Label -> Float))
+(define (NSeries-ref series label)
+  (NSeries-iref series (label->idx series label)))
 
-(: NumericSeries-length (NumericSeries -> Nonnegative-Integer))
-(define (NumericSeries-length nseries)
-  (flvector-length (NumericSeries-data nseries)))
+(: nseries-count (NSeries -> Nonnegative-Integer))
+(define (nseries-count nseries)
+  (flvector-length (NSeries-data nseries)))
 
-(: map/NumericSeries (NumericSeries (Float -> Float) -> NumericSeries))
-(define (map/NumericSeries series fn)  
-  (let ((old-data (NumericSeries-data series))
-      (new-data (make-flvector (flvector-length (NumericSeries-data series)))))
+(: map/NSeries (NSeries (Float -> Float) -> NSeries))
+(define (map/NSeries series fn)  
+  (let ((old-data (NSeries-data series))
+      (new-data (make-flvector (flvector-length (NSeries-data series)))))
     (let ((len (flvector-length old-data)))
       (let loop ((idx 0))
 	(if (< idx len)
@@ -94,19 +96,19 @@
 	     (flvector-set! new-data idx (fn (flvector-ref old-data idx)))
 	     (loop (add1 idx)))
 	   (void))))
-    (NumericSeries (LabelIndex-index series) new-data)))
+    (NSeries (LabelIndex-index series) new-data)))
 
-(: map/NumericSeries->series (All (A) NumericSeries (Float -> A) -> (GenericSeries A)))
-(define (map/NumericSeries->series series fn)
-  (let*: ((old-data : FlVector (NumericSeries-data series))
+(: map/NSeries->series (All (A) NSeries (Float -> A) -> (GSeries A)))
+(define (map/NSeries->series series fn)
+  (let*: ((old-data : FlVector (NSeries-data series))
 	(new-data : (Vectorof A) (build-vector (flvector-length old-data) 
 					       (λ: ((idx : Integer)) 
                                                  (fn (flvector-ref old-data idx))))))
-       (GenericSeries (LabelIndex-index series) new-data)))
+       (GSeries (LabelIndex-index series) new-data)))
 
-(: map/series->NumericSeries (All (A) (GenericSeries A) (A -> Float) -> NumericSeries))
-(define (map/series->NumericSeries series fn)
-  (let* ((old-data (GenericSeries-data series))
+(: map/series->NSeries (All (A) (GSeries A) (A -> Float) -> NSeries))
+(define (map/series->NSeries series fn)
+  (let* ((old-data (GSeries-data series))
          (len (vector-length old-data))
          (new-data (make-flvector len)))
     (let loop ((idx 0))
@@ -114,4 +116,4 @@
           (begin
             (flvector-set! new-data idx (fn (vector-ref old-data idx)))
             (loop (add1 idx)))
-          (NumericSeries (LabelIndex-index series) new-data)))))
+          (NSeries (LabelIndex-index series) new-data)))))

@@ -31,4 +31,4 @@
           alter-schema-columns
           alter-schema-no-headers)
  (only-in "frame/gen-nseries.rkt"
-          generate-NumericSeries))
+          generate-NSeries))

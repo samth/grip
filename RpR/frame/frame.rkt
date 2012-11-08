@@ -2,56 +2,58 @@
 
 (provide
  Frame
- (rename-out [frame-series Frame-series])
- Frame-names Frame-dim 
- Frame-cseries Frame-nseries
- FrameSeries
+ frame-series
+ frame-names frame-dim 
+ frame-cseries frame-nseries
+ frame-series
  mkFrame)
 
-(require
- (only-in racket/flonum
-          flvector-length)
+(require 
  (only-in "../frame/types.rkt"
           Dim)
  (only-in "series.rkt"
           Label LabelIndex LabelIndex-index
-          GenericSeries 
+          GSeries 
           build-index-from-labels label-index)
+ (only-in "series-description.rkt"
+          series-count
+          frame-series-type-label
+          Series SeriesDescription)
  (only-in "categorical-series.rkt"
-          CategoricalSeries CategoricalSeries?
-          CategoricalSeries-data)
+          CSeries CSeries?
+          CSeries-data)
  (only-in "numeric-series.rkt"
-          NumericSeries NumericSeries? 
-          NumericSeries-data
-          mkNumericSeries))
-
-(define-type FrameSeries (U GenericSeries NumericSeries CategoricalSeries))
+          NSeries NSeries? 
+          NSeries-data
+          mkNSeries))
 
 ;; A frame is map of series.
-(struct: Frame LabelIndex ((series : (Vectorof FrameSeries))))
+(struct: Frame LabelIndex ([series : (Vectorof Series)]))
 
-(: mkFrame ((Listof (Pair Symbol FrameSeries)) -> Frame))
+(struct: FrameDescription ([series : (Listof SeriesDescription)]))
+
+(: mkFrame ((Listof (Pair Symbol Series)) -> Frame))
 (define (mkFrame cols)
-  (let ((index (build-index-from-labels ((inst map Label (Pair Label FrameSeries)) 
-                                         (inst car Label FrameSeries) cols)))        
-        (data (apply vector ((inst map FrameSeries (Pair Label FrameSeries)) cdr cols))))
+  (let ((index (build-index-from-labels ((inst map Label (Pair Label Series)) 
+                                         (inst car Label Series) cols)))        
+        (data (apply vector ((inst map Series (Pair Label Series)) cdr cols))))
     (Frame index data)))
 
-(: frame-series (Frame Symbol -> FrameSeries))
+(: frame-series (Frame Symbol -> Series))
 (define (frame-series frame col)
   (vector-ref (Frame-series frame)
               (label-index (assert (LabelIndex-index frame)) col)))
 
-(: Frame-cseries (Frame Symbol -> CategoricalSeries))
-(define (Frame-cseries frame name)
-  (assert (frame-series frame name) CategoricalSeries?))
+(: frame-cseries (Frame Symbol -> CSeries))
+(define (frame-cseries frame name)
+  (assert (frame-series frame name) CSeries?))
 
-(: Frame-nseries (Frame Symbol -> NumericSeries))
-(define (Frame-nseries frame name)
-  (assert (frame-series frame name) NumericSeries?))
+(: frame-nseries (Frame Symbol -> NSeries))
+(define (frame-nseries frame name)
+  (assert (frame-series frame name) NSeries?))
 
-(: Frame-names (Frame -> (Listof Symbol)))
-(define (Frame-names frame)  
+(: frame-names (Frame -> (Listof Symbol)))
+(define (frame-names frame)  
   (map (λ: ((kv : (Pair Symbol Integer)))
          (car kv))
        ((inst sort (Pair Symbol Integer) (Pair Symbol Integer))
@@ -60,20 +62,27 @@
              (kv2 : (Pair Symbol Integer)))
           (< (cdr kv1) (cdr kv2))))))
 
-(: Frame-dim (Frame -> Dim))
-(define (Frame-dim frame)
+(: frame-dim (Frame -> Dim))
+(define (frame-dim frame)
   (let ((cols (length (hash-keys (assert (LabelIndex-index frame))))))
     (if (zero? cols)
         (Dim 0 0)
-        (let ((rows (let ((col1 (vector-ref (Frame-series frame) 0)))
-                      (cond
-                        [(NumericSeries? col1) 
-                         (display 'Numeric)
-                         (flvector-length (NumericSeries-data col1))]
-                        [(CategoricalSeries? col1)
-                         (vector-length (CategoricalSeries-data col1))]
-                        [else (error "Unknown Series type in Frame")]))))
+        (let ((rows (let ((series (vector-ref (Frame-series frame) 0)))
+                      (series-count series))))                      
           (Dim rows cols)))))
+
+(: frame-description (Frame -> FrameDescription))
+(define (frame-description frame)
+  (let ((names (frame-names frame)))
+    (let: loop : FrameDescription ((names : (Listof Label) names) (descs : (Listof SeriesDescription) '()))
+      (if (null? names)
+          (FrameDescription (reverse descs))
+          (let* ((name (car names))
+                 (series (frame-series frame name)))
+            (loop (cdr names) (cons (SeriesDescription name 
+                                                       (frame-series-type-label series) 
+                                                       (series-count series))
+                                    descs)))))))
 
 
 

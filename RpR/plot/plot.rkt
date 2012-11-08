@@ -9,9 +9,9 @@
           Tabulation
           tabulate)
  (only-in "../frame/categorical-series.rkt"
-          CategoricalSeries
-          CategoricalSeries-data
-          CategoricalSeries-nominals)
+          CSeries
+          CSeries-data
+          CSeries-nominals)
  (only-in typed/plot/main
           Plot-Result
           Discrete-Histogram-Data

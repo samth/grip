@@ -1,27 +1,27 @@
 #lang typed/racket/base
 
 (provide
- (struct-out NumericSeriesBuilder))
+ (struct-out NSeriesBuilder))
 
 (provide:
- [mkNumericSeriesBuilder        (-> NumericSeriesBuilder)]
- [append-NumericSeriesBuilder   (NumericSeriesBuilder String -> Void)]
- [complete-NumericSeriesBuilder (NumericSeriesBuilder -> NumericSeries)])
+ [mkNSeriesBuilder        (-> NSeriesBuilder)]
+ [append-NSeriesBuilder   (NSeriesBuilder String -> Void)]
+ [complete-NSeriesBuilder (NSeriesBuilder -> NSeries)])
 
 (require
  racket/flonum
  (only-in "../frame/numeric-series.rkt"
-          NumericSeries))
-(struct: NumericSeriesBuilder ([index  : Index]
+          NSeries))
+(struct: NSeriesBuilder ([index  : Index]
                                [data : FlVector]) #:mutable #:transparent)
 
-(: mkNumericSeriesBuilder (-> NumericSeriesBuilder))
-(define (mkNumericSeriesBuilder)
+(: mkNSeriesBuilder (-> NSeriesBuilder))
+(define (mkNSeriesBuilder)
   (define base-len 32)
-  (NumericSeriesBuilder 0 (make-flvector base-len +nan.0)))
+  (NSeriesBuilder 0 (make-flvector base-len +nan.0)))
 
-(: append-NumericSeriesBuilder (NumericSeriesBuilder String -> Void))
-(define (append-NumericSeriesBuilder builder str)
+(: append-NSeriesBuilder (NSeriesBuilder String -> Void))
+(define (append-NSeriesBuilder builder str)
   
   (define-syntax bump
     (syntax-rules ()
@@ -29,33 +29,33 @@
        (assert (add1 x) index?)]))
   
   (define (bump-index)
-    (let ((idx (NumericSeriesBuilder-index builder)))
-      (set-NumericSeriesBuilder-index! builder (bump idx))
+    (let ((idx (NSeriesBuilder-index builder)))
+      (set-NSeriesBuilder-index! builder (bump idx))
       idx))
   
   (: extend-data (-> Void))
   (define (extend-data)
-    (let* ((data (NumericSeriesBuilder-data builder))
+    (let* ((data (NSeriesBuilder-data builder))
 	 (curr-len (flvector-length data))
 	 (new-len  (assert (inexact->exact (round (* 1.5 curr-len))) exact-integer?)))
       (let: ((new-data : FlVector (make-flvector new-len +nan.0)))
         (do ([idx 0 (add1 idx)])  ;; RACKET REQUEST FOR RUNTIME SUPPORT FOR COPY
-	    ([>= idx curr-len] (set-NumericSeriesBuilder-data! builder new-data))
+	    ([>= idx curr-len] (set-NSeriesBuilder-data! builder new-data))
           (flvector-set! new-data idx (flvector-ref data idx))))))
   
-  (if (< (NumericSeriesBuilder-index builder)         
-         (flvector-length (NumericSeriesBuilder-data builder)))
+  (if (< (NSeriesBuilder-index builder)         
+         (flvector-length (NSeriesBuilder-data builder)))
       (let ((num (let ((num (string->number str)))
                    (if num (assert (exact->inexact num) flonum?) +nan.0))))        
-        (flvector-set! (NumericSeriesBuilder-data builder)
+        (flvector-set! (NSeriesBuilder-data builder)
                        (bump-index)
                        num))
       (begin
         (extend-data)       
-        (append-NumericSeriesBuilder builder str))))
+        (append-NSeriesBuilder builder str))))
 
-(: complete-NumericSeriesBuilder (NumericSeriesBuilder -> NumericSeries))
-(define (complete-NumericSeriesBuilder builder)  
-  (let* ((data (NumericSeriesBuilder-data builder))
-         (len (NumericSeriesBuilder-index builder)))
-    (NumericSeries #f (flvector-copy data 0 len))))
+(: complete-NSeriesBuilder (NSeriesBuilder -> NSeries))
+(define (complete-NSeriesBuilder builder)  
+  (let* ((data (NSeriesBuilder-data builder))
+         (len (NSeriesBuilder-index builder)))
+    (NSeries #f (flvector-copy data 0 len))))

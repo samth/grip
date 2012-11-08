@@ -5,9 +5,9 @@
  (struct-out Binning))
 
 (provide:
- [categorize (NumericSeries Binning -> CategoricalSeries)]
- [tabulate (CategoricalSeries -> Tabulation)]
- [ntabulate (NumericSeries [#:algo Binning-Algo] -> NTabulation)]
+ [categorize (NSeries Binning -> CSeries)]
+ [tabulate (CSeries -> Tabulation)]
+ [ntabulate (NSeries [#:algo Binning-Algo] -> NTabulation)]
  [ntabulation->tabulation (NTabulation -> Tabulation)])
 
 (require 
@@ -47,14 +47,14 @@
  (only-in "../frame/series.rkt"
           Labeling)
  (only-in "../frame/categorical-series.rkt"
-          CategoricalSeries
-          CategoricalSeries-data
-          CategoricalSeries-nominals)
+          CSeries
+          CSeries-data
+          CSeries-nominals)
  (only-in "../frame/numeric-series.rkt"
-          NumericSeries NumericSeries-data)
+          NSeries NSeries-data)
  (only-in "../frame/gen-nseries.rkt"
           flvector-print
-          generate-NumericSeries))
+          generate-NSeries))
 
 (require/typed racket
   [vector-copy (All (A) ((Vectorof A) -> (Vectorof A)))])
@@ -65,10 +65,10 @@
 (struct: Binning ([breaks : FlVector]
                   [nominals : Labeling]) #:transparent)
 
-(: tabulate (CategoricalSeries -> Tabulation))
+(: tabulate (CSeries -> Tabulation))
 (define (tabulate catseries)    
-  (let ((nominals (CategoricalSeries-nominals catseries))
-        (data      (CategoricalSeries-data catseries)))
+  (let ((nominals (CSeries-nominals catseries))
+        (data      (CSeries-data catseries)))
     (let ((noms-sz (vector-length nominals))
           (data-len (vector-length data)))
       (let: ((cnts : (Vectorof Natural)    (make-vector noms-sz 0))
@@ -111,7 +111,7 @@
      (case algo
        ([Fixed] (if bin-cnt
                     (let* ((width (determine-width-or-bin-count min-x max-x bin-cnt))
-                           (breaks (NumericSeries-data (generate-NumericSeries min-x max-x #:by (exact->inexact width)))))
+                           (breaks (NSeries-data (generate-NSeries min-x max-x #:by (exact->inexact width)))))
                       (Binning breaks (list->vector (generate-anon-labels (flvector-length breaks)))))
                     (error "Fixed width algo requires #:width value to be provided.")))
        (else (error "Unhandled binning algo (can't happend)")))]))
@@ -134,30 +134,30 @@
                       (binary-search (add1 i-mid) i-max)
                       i-mid))))))))
 
-(: ntabulate (NumericSeries [#:algo Binning-Algo] -> NTabulation))
+(: ntabulate (NSeries [#:algo Binning-Algo] -> NTabulation))
 (define (ntabulate nseries #:algo [algo 'Struges])  
-  (define data (NumericSeries-data nseries))
+  (define data (NSeries-data nseries))
   (define data-length (flvector-length data))
   (define summary-data (summary nseries))
   (define min-x (floor (Summary-min summary-data)))
   (define max-x (ceiling (Summary-max summary-data)))
   (define bin-count (strudges-bin-count (Summary-count summary-data)))
   (define bin-width (exact->inexact (determine-width-or-bin-count min-x max-x bin-count)))
-  (define breaks (NumericSeries-data (generate-NumericSeries min-x max-x #:by bin-width)))  
+  (define breaks (NSeries-data (generate-NSeries min-x max-x #:by bin-width)))  
   (define: counts : (Vectorof Natural) (make-vector bin-count 0))  
   (do ([i 0 (add1 i)])
     ([>= i data-length] (NTabulation min-x bin-width counts))    
     (vadd1 counts (pigeon-by-breaks breaks (flvector-ref data i)))))
 
-(: categorize (NumericSeries Binning -> CategoricalSeries))
+(: categorize (NSeries Binning -> CSeries))
 (define (categorize nseries binning)
-  (define data (NumericSeries-data nseries))
+  (define data (NSeries-data nseries))
   (define data-len (flvector-length data))
   (define: nominal-data : (Vectorof Index) (make-vector data-len 0))  
   (match binning
     [(Binning breaks nominals)
      (do ([i 0 (add1 i)])
-       ([>= i data-len] (CategoricalSeries #f nominal-data nominals))
+       ([>= i data-len] (CSeries #f nominal-data nominals))
        (displayln (format "~s :: ~s" (flvector-ref data i) (pigeon-by-breaks breaks (flvector-ref data i))))
        (vector-set! nominal-data i (assert (pigeon-by-breaks breaks (flvector-ref data i)) index?)))]))
 
