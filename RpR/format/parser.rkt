@@ -1,11 +1,14 @@
 #lang typed/racket/base
 
-(provide define-parser-for-layout)
+(provide define-static-parser-for-layout)
+
+(require/typed racket
+               [string-trim (String -> String)])
 
 (require
  (for-syntax 
   racket/pretty
-  typed/racket/base
+  typed/racket/base  
   syntax/parse
   (only-in racket/syntax
            format-id)
@@ -33,31 +36,38 @@
   (: build-struct-field-syntax ((Listof Field) -> Syntax))
   (define (build-struct-field-syntax fields)
     (for/list ([field fields])
-    #`[#,(Field-name field) : #,(Field-type field)]))
+      #`[#,(Field-name field) : #,(Field-type field)]))
   
   (: build-parser-let-bindings ((Listof Field) -> Syntax))
   (define (build-parser-let-bindings fields)
-        (for/list ([field fields])
-          (let ((name (Field-name field))
-                (type (Field-type field))
-                (start (Field-offset field)))
-            (let ((end (sub1 (+ start (Field-length field)))))    
-              #`(#,name : #,type (substring line #,start #,end))))))
+    (for/list ([field fields])
+      (let ((name (Field-name field))
+            (type (Field-type field))
+            (start (Field-offset field)))
+        (let ((end (+ start (Field-length field))))
+          (case type
+            ((String) #`(#,name : #,type (string-trim (substring line #,start #,end))))
+            ((Symbol) #`(#,name : #,type (string->symbol (substring line #,start #,end))))
+            (else #`(#,name : #,type (substring line #,start #,end))))))))
   
   (: build-ctor-args ((Listof Field) -> Syntax))
   (define (build-ctor-args fields)
     (for/list ([field fields])
       #`#,(Field-name field)))
   
-  )
-    
-(define-syntax (define-parser-for-layout stx)    
+  (: extract-base-name (Syntax Symbol -> Syntax))
+  (define (extract-base-name stx full-name)
+    (define base (car (regexp-split #rx"-" (symbol->string full-name))))
+    (datum->syntax stx (string->symbol base))))
+
+(define-syntax (define-static-parser-for-layout stx)    
   (syntax-parse stx
-    [(_ name:id (f0:id f1:id ...))
-     (let ((sname (syntax-e #'name)))
-       (with-syntax ((desc-name (format-id #'name "~a-desc" sname))
-                     (parser-name (format-id #'name "~a-parser" sname))
-                     (parser-struct (format-id #'name "~a-fields" sname)))
+    [(_ (parser-name:id layout-name:id) (f0:id f1:id ...))
+     (let* ((full-name (syntax-e #'layout-name))
+            (base-name (extract-base-name stx full-name)))       
+       (with-syntax ((desc-name (format-id #'layout-name "~a-desc" full-name))
+                     ;(parser-name (format-id #'layout-name "~a-parser" base-name))
+                     (parser-struct (format-id #'layout-name "~a" base-name)))                 
          (let ((pfields (fields-to-project 
                          (syntax-local-value #'desc-name)
                          (syntax->list #'(f0 f1 ...)))))                          

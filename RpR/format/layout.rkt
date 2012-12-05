@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide 
- layout)
+ define-fixed-layout)
 
 (require  
  (only-in "layout-types.rkt" Field Layout)
@@ -12,7 +12,7 @@
            format-id)
   (only-in "layout-types.rkt" Field Layout)))
 
-(define-syntax (layout stx)
+(define-syntax (define-fixed-layout stx)
   
   (define-syntax-class field
     (pattern (fid:id type:id length:nat)))
@@ -53,7 +53,7 @@
     [(_ name:id f0:field f1:field ...)   
      (with-syntax ((lo  #`(list #,@(field-syntax-with-offsets 
                                     (syntax->list #'(f0 f1 ...)))))
-                   (desc-name (format-id #'name "~a-desc" (syntax-e #'name))))
+                   (desc-name (format-id #'name "~a-desc" (syntax-e #'name))))       
        (let ((name-id (symbol->string (syntax->datum #'name))))
          #'(begin
              (define-syntax desc-name (Layout 'name lo))
