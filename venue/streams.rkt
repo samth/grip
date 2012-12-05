@@ -6,13 +6,19 @@
 (provide:
  [if-stream-in  (Symbol (Option Input-Port)  -> (Option Input-Port))]
  [if-stream-out (Symbol (Option Output-Port) -> (Option Output-Port))]
- [pump-ports (Event Output-Port
-                    (Option Input-Port)
-                    (Option Input-Port)
-                    Input-Port (Option Output-Port) Output-Port
+ [pump-ports (Event Output-Port (Option Input-Port) (Option Input-Port)
+                    (Option Input-Port) (Option Output-Port) (Option Output-Port)
                     -> (Values (U Thread (Option Output-Port))
                                (U Thread (Option Input-Port))
                                (U Thread (Option Input-Port))))])
+
+ ;[pump-ports (Event Output-Port
+ ;                   (Option Input-Port)
+ ;                   (Option Input-Port)
+ ;                   Input-Port (Option Output-Port) Output-Port
+ ;                   -> (Values (U Thread (Option Output-Port))
+ ;                              (U Thread (Option Input-Port))
+ ;                              (U Thread (Option Input-Port))))])
 
  
 ;; Differentiate between a file stream port vs a generic port.
@@ -60,10 +66,10 @@
 (: streamify-in ((Option Input-Port) (Option Output-Port) (Boolean -> Void) -> (U Thread (Option Output-Port))))
 (define (streamify-in cin in ready-for-break)
   (if (and in cin (not (file-stream-port? cin)))
-      (thread (lambda ()
+      (thread (λ ()
                 ((inst dynamic-wind Void)
                  void
-                 (lambda ()
+                 (λ ()
                    (with-handlers ([exn:break? void])
                      (ready-for-break #t)
                      (copy-port cin in)
@@ -78,17 +84,17 @@
   (if (and out cout 
            (not (eq? cout 'stdout))
            (not (file-stream-port? cout)))
-      (thread (lambda ()
+      (thread (λ ()
                 (dynamic-wind
                  void
-                 (lambda () (copy-port out cout))
-                 (lambda () (close-input-port out)))))
+                 (λ () (copy-port out cout))
+                 (λ () (close-input-port out)))))
       out))
 
 (: pump-ports (Event Output-Port
                      (Option Input-Port)
                      (Option Input-Port)
-                     Input-Port (Option Output-Port) Output-Port
+                     (Option Input-Port) (Option Output-Port) (Option Output-Port)
                      -> (Values (U Thread (Option Output-Port))
                                 (U Thread (Option Input-Port))
                                 (U Thread (Option Input-Port)))))
