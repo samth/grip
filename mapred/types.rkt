@@ -1,17 +1,31 @@
 #lang typed/racket
 
 (provide 
+ (struct-out DynFn)
  Text Date Num Url
  Fields TextFields
+ Location
  (struct-out Record)
+ (struct-out Block)
+ (struct-out RDDFile)
  TextRecord TextReader Transform
- Status (struct-out Success) (struct-out Failure) OK)
+ Status (struct-out Success) (struct-out Failure) OK
+ TextParser Writer Sorter Mapper Grouper Partition
+ BlockFormatter)
 
 (define-type Status (U Success Failure))
 (struct: Success ())
 (struct: Failure ([msg : String]) #:transparent)
 (define OK (Success))
 
+(struct: DynFn ([module : Module-Path]
+                [fn     : Symbol]) #:prefab)
+
+;;; an RDD is a set of distributed blocks
+(struct: (A) RDDFile ([blocks : (Listof Block)])
+  #:methods gen:custom-write [(define write-proc (λ (rddfile outp mode)
+                                                   (display (format "#<RDDFile blocks=~s>" 
+                                                                    (length (RDDFile-blocks rddfile))) outp)))])
 ;; Local Paths for now.
 ;; (url->path) (path->url)
 (define-type Url Path)
@@ -31,3 +45,32 @@
 (define-type TextReader (String -> TextRecord))
 
 (define-type Transform (Record -> Record))
+
+;; Get rid of this.
+(define-type (BlockFormatter A) ((Block A) -> (Listof A)))
+
+(define-type (TextParser D) (Text -> D))
+(define-type (Mapper D E)   (D -> E))
+(define-type (Writer A)     (A Output-Port -> Void))
+(define-type (Sorter A)     (A A -> Boolean))
+(define-type (Partition D)  (Vectorof (RDDFile D)))
+(define-type (Grouper D)    (D -> Index))
+
+;; The location of a block.
+;; An absolute location will cluster globally uniqually identify the location of a block.
+;; A partial location must be capable of being resolved to an absolution location.
+(define-type Location Path)
+
+;; Note the EOD marker is the exclusive marker of the position of the last record.
+;; It may (most likely) indicates a position inside the last record.
+;; Therefore a Reader of a Block should read past EOD until the record is complete and then no further.
+;; As a corollary a block must extend past the EOD position at least 1 Record length in size.
+;; This all works as a Reader reads the first complete record of a block and the last record which contains the EOD position.
+;; All contigous blocks therefore must overlap by at least one MAX-RECORD-LENGTH.
+;; All trouble is because we are assuming the persisted data API being used supports offset reading.
+;; such as S3 and an OS.
+;; A Block is a chunk of semi/structured data subject to manipulation
+(struct: (A) Block ([loc : Location]
+                    [sod : Natural]
+                    [eod : Natural]) #:transparent)
+                

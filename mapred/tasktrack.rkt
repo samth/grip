@@ -1,73 +1,74 @@
 #lang typed/racket/base
 
 (provide 
+ (struct-out Tracker)
  completed?
  todo-count inprogress-count complete-count
- track-tasks
+ make-tracker
  record-inprogress record-complete reschedule restart)
- 
+
 (require
  racket/set)
 
-(struct: (A) Track ([todo : (Setof A)]
-                    [inprogress : (Setof A)]
-                    [complete : (Setof A)]))
+(struct: (A) Tracker ([todo : (Setof A)]
+                      [inprogress : (Setof A)]
+                      [complete : (Setof A)]))
 
-(: completed? (All (A) (Track A) -> Boolean))
+(: completed? (All (A) (Tracker A) -> Boolean))
 (define (completed? tt)
-  (and (set-empty? (Track-todo tt))
-       (set-empty? (Track-inprogress tt))))
+  (and (set-empty? (Tracker-todo tt))
+       (set-empty? (Tracker-inprogress tt))))
 
-(: todo-count (All (A) (Track A) -> Natural))
+(: todo-count (All (A) (Tracker A) -> Natural))
 (define (todo-count tt)
-  (set-count (Track-todo tt)))
+  (set-count (Tracker-todo tt)))
 
-(: inprogress-count (All (A) (Track A) -> Natural))
+(: inprogress-count (All (A) (Tracker A) -> Natural))
 (define (inprogress-count tt)
-  (set-count (Track-inprogress tt)))
+  (set-count (Tracker-inprogress tt)))
 
-(: complete-count (All (A) (Track A) -> Natural))
+(: complete-count (All (A) (Tracker A) -> Natural))
 (define (complete-count tt)
-  (set-count (Track-complete tt)))
+  (set-count (Tracker-complete tt)))
 
-(: track-tasks (All (A) (Setof A) -> (Track A)))
-(define (track-tasks ts)
-  (Track ts ((inst set A)) ((inst set A))))
+(: make-tracker (All (A) (Setof A) -> (Tracker A)))
+(define (make-tracker ts)
+  (Tracker ts ((inst set A)) ((inst set A))))
 
-(: record-inprogress (All (A) (Track A) A -> (Track A)))
+(: record-inprogress (All (A) (Tracker A) A -> (Tracker A)))
 (define (record-inprogress tt a)
-  (let ((todos (Track-todo tt)))
+  (let ((todos (Tracker-todo tt)))
     (if (set-member? todos a)
-      (Track (set-remove todos a)
-             (set-add (Track-inprogress tt) a)
-             (Track-complete tt))
-      tt)))
+        (Tracker (set-remove todos a)
+                 (set-add (Tracker-inprogress tt) a)
+                 (Tracker-complete tt))
+        tt)))
 
-(: record-complete (All (A) (Track A) A -> (Track A)))
+(: record-complete (All (A) (Tracker A) A -> (Tracker A)))
 (define (record-complete tt a)
-  (let ((inflight (Track-inprogress tt)))
+  (let ((inflight (Tracker-inprogress tt)))
     (if (set-member? inflight a)
-        (Track (Track-todo tt)
-               (set-remove inflight a)
-               (set-add (Track-complete tt) a))
+        (Tracker (Tracker-todo tt)
+                 (set-remove inflight a)
+                 (set-add (Tracker-complete tt) a))
         tt)))
 
-(: reschedule (All (A) (Track A) A -> (Track A)))
+(: reschedule (All (A) (Tracker A) A -> (Tracker A)))
 (define (reschedule tt a)
-  (let ((inflight (Track-inprogress tt)))
+  (let ((inflight (Tracker-inprogress tt)))
     (if (set-member? inflight a)
-        (Track (set-add (Track-complete tt) a)
-               (set-remove inflight a)
-               (Track-complete tt))
+        (Tracker (set-add (Tracker-complete tt) a)
+                 (set-remove inflight a)
+                 (Tracker-complete tt))
         tt)))
 
-(: restart (All (A) (Track A) A -> (Track A)))
+(: restart (All (A) (Tracker A) A -> (Tracker A)))
 (define (restart tt a)
-  (let ((inflight (Track-inprogress tt)))
+  (let ((inflight (Tracker-inprogress tt)))
     (if (set-member? inflight a)        
-        (Track (Track-todo tt)
-               (set-add (set-remove inflight a) a)
-               (Track-complete tt))
+        (Tracker (Tracker-todo tt)
+                 (set-add (set-remove inflight a) a)
+                 (Tracker-complete tt))
         tt)))
 
 
