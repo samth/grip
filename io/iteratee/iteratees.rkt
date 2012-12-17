@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide
+ list-maker-iteratee
  counter drop 
  head head-n
  sum 
@@ -67,6 +68,21 @@
         (Continue (step n accum))))
   
   (head-n-accum n '()))
+
+(: list-maker-iteratee (All (D) (-> (Iteratee D (Listof D)))))
+(define (list-maker-iteratee)
+  
+  (: step ((Listof D) -> ((Stream D) -> (Iteratee D (Listof D)))))
+  (define (step lst)
+    (λ: ((s : (Stream D)))
+      (cond
+        [(eq? s 'Nothing)
+         (Continue (step lst))]
+        [(eq? s 'EOS)
+         (Done 'EOS (reverse lst))]
+        [else (Continue (step (cons s lst)))])))
+  
+  (Continue (step '())))
           
 ;; Predicate Iteratees
 
