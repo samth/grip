@@ -2,14 +2,11 @@
 
 (provide
  Venue
- place-channel-get
- place-channel-put
- venue-channel-get
- venue-channel-put
- start-venue)
+ place-channel-get place-channel-put
+ venue-channel-get venue-channel-put
+ start-venue venue-event)
 
 (require
- racket/pretty
  (prefix-in RT- (only-in '#%place
                          place-channel-put
                          place-channel-get
@@ -29,6 +26,7 @@
                 [inp   : Venue-Sink]
                 [outp  : Venue-Source]
                 [errp  : Venue-Source]) 
+  #:property prop:evt (struct-field-index place) ;; hmmmm
   #:methods gen:custom-write [(define (write-proc venue port mode)
                                 (display (format "#<Venue-~s>" (Venue-who venue)) port))]
   #:transparent)
@@ -76,3 +74,7 @@
 (: venue-channel-put (Venue Any -> Void))
 (define (venue-channel-put venue value)
   (RT-place-channel-put (Venue-place venue) value))
+
+(: venue-event (Venue -> Event))
+(define (venue-event venue)
+  (cast venue Event))
