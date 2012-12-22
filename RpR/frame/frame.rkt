@@ -1,5 +1,9 @@
 #lang typed/racket/base
 
+(provide:
+ [frame-description (Frame -> FrameDescription)]
+ [show-frame-description (FrameDescription -> Void)])
+
 (provide
  Frame
  frame-series
@@ -10,7 +14,7 @@
 
 (require 
  (only-in "../frame/types.rkt"
-          Dim)
+          Dim Dim-rows Dim-cols)
  (only-in "series.rkt"
           Label LabelIndex LabelIndex-index
           GSeries 
@@ -18,7 +22,9 @@
  (only-in "series-description.rkt"
           series-count
           frame-series-type-label
-          Series SeriesDescription)
+          Series 
+          SeriesDescription SeriesDescription-name
+          SeriesDescription-type SeriesDescription-count)
  (only-in "categorical-series.rkt"
           CSeries CSeries?
           CSeries-data)
@@ -30,7 +36,9 @@
 ;; A frame is map of series.
 (struct: Frame LabelIndex ([series : (Vectorof Series)]))
 
-(struct: FrameDescription ([series : (Listof SeriesDescription)]))
+(struct: FrameDescription ([dimensions : Dim]
+                           [series : (Listof SeriesDescription)]))
+                           
 
 (: mkFrame ((Listof (Pair Symbol Series)) -> Frame))
 (define (mkFrame cols)
@@ -76,7 +84,7 @@
   (let ((names (frame-names frame)))
     (let: loop : FrameDescription ((names : (Listof Label) names) (descs : (Listof SeriesDescription) '()))
       (if (null? names)
-          (FrameDescription (reverse descs))
+          (FrameDescription (frame-dim frame) (reverse descs))
           (let* ((name (car names))
                  (series (frame-series frame name)))
             (loop (cdr names) (cons (SeriesDescription name 
@@ -84,5 +92,17 @@
                                                        (series-count series))
                                     descs)))))))
 
-
-
+;; Really need to enumerate a minimal set of generic functions, such as `show'
+(: show-frame-description (FrameDescription -> Void))
+(define (show-frame-description fdesc)
+  
+  (: print-series-description (SeriesDescription -> Void))
+  (define (print-series-description sdesc)
+   (displayln (format "  - ~a: ~a"
+                      (SeriesDescription-name sdesc)
+                      (SeriesDescription-type sdesc))))                      
+  
+  (let ((dim (FrameDescription-dimensions fdesc)))
+    (displayln (format "Frame::(Cols: ~a, Rows: ~a)" (Dim-cols dim) (Dim-rows dim)))
+    (for-each print-series-description (FrameDescription-series fdesc))))
+            

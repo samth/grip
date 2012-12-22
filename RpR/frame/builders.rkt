@@ -8,7 +8,7 @@
 
 (require 
  (only-in "categorical-series.rkt"
-          CategoricalSeries))
+          CSeries))
 
 (struct: (D S) SeriesBuilder ([append : (D -> Void)]
                               [complete : (-> S)]))
