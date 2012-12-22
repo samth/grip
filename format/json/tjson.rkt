@@ -42,7 +42,7 @@
 (: write-json (Json Output-Port -> Void))
 (define (write-json json port)
 
-  (: write-object ((HashTable Any Json) -> Void))
+  (: write-object ((HashTable Symbol Json) -> Void))
   (define (write-object json)
     (display "{" port)
     (for ([(key value) json]
@@ -64,7 +64,7 @@
     (display "]" port))
 
   (cond
-  ;; [(hash? json) (write-object json)]
+   [(hash? json) (write-object (cast json JsObject))]
    [(list? json) (write-list json)]   
    [(or (string? json) (and (number? json) (or (integer? json) (inexact? json))))
     (write json port)]
