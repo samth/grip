@@ -5,3 +5,9 @@
 *.scm
 *.sls
 aws/doc
+ai/doc
+ai/pgm/doc
+crypto/doc
+format/doc
+google/doc
+httpclient/doc
