@@ -5,11 +5,8 @@
  jsobject
  jsobject-add-attribute
  jsobject-remove-attribute
- Json JsNull JsObject JsList JsObject? JsList?
+ Json JsNull JsObject JsList
  json->string string->json write-json read-json)
-
-(require
- racket/pretty)
 
 (define js-null 'JsNull)
 
@@ -17,12 +14,27 @@
 (define-predicate JsNull? JsNull)
 
 (define-type Json (Rec Json (U String Boolean JsNull Number (Listof Json) (HashTable Symbol Json))))
+;(define-predicate Json? Json)
 
 (define-type JsObject (HashTable Symbol Json))
-(define-predicate JsObject? JsObject)
-
+;(define-predicate JsObject? (HashTable Symbol String))
+  
 (define-type JsList (Listof Json))
-(define-predicate JsList? JsList)
+;(define-predicate JsList? pair?)
+
+;(: JsObject? (Any -> Boolean : JsObject))
+;(define (JsObject? jsobj)  
+; (cond
+;   ((string? jsobj) #f)
+;   ((boolean? jsobj) #f)
+;   ((eq? 'JsNull jsobj) #f)
+;   ((list? jsobj) #f)
+;   ((number? jsobj) #f)
+;   (else #t))
+;  (andmap (λ: ((p : (Pair Symbol Json)))
+;            (hash? jsobj))
+;          (hash-values jsobj)))
+
 
 (: JsObject-empty JsObject)
 (define JsObject-empty (make-hash))
@@ -30,7 +42,7 @@
 (: write-json (Json Output-Port -> Void))
 (define (write-json json port)
 
-  (: write-object (JsObject -> Void))
+  (: write-object ((HashTable Any Json) -> Void))
   (define (write-object json)
     (display "{" port)
     (for ([(key value) json]
@@ -52,8 +64,8 @@
     (display "]" port))
 
   (cond
-   [(JsObject? json) (write-object json)]
-   [(JsList? json) (write-list json)]   
+  ;; [(hash? json) (write-object json)]
+   [(list? json) (write-list json)]   
    [(or (string? json) (and (number? json) (or (integer? json) (inexact? json))))
     (write json port)]
    [(boolean? json) (write (if json 'true 'false) port)]
