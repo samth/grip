@@ -2,7 +2,7 @@
 
 (provide
  JsObject-empty
- jsobject jsobject-opt
+ jsobject jsobject-opt json->jsobject
  jsobject-add-attribute
  jsobject-remove-attribute
  Json JsNull JsObject JsList
@@ -127,23 +127,24 @@
 (define (read/list port)
   (expect (read-char port) '(#\[))
   (let: ((json : JsList  
-               (for/list: : JsList ([value : Json
-                                           (read-until port
-                                                       (lambda: ((port : Input-Port))
-                                                         (skip-whitespace port)
-                                                         (begin0 (read-json port)
-                                                                 (skip-whitespace port)
-                                                                 (let ((ch (peek-char port)))
-                                                                   (expect ch '(#\, #\]))
-                                                                   (when (and (char? ch)
-                                                                              (char=? ch #\,))
-                                                                     (read-char port)))))
-                                                       (lambda: ((port : Input-Port))
-                                                         (skip-whitespace port)
-                                                         (let ((ch (peek-char port)))
-                                                           (if (char? ch)
-                                                               (char=? ch #\])
-                                                               #f))))])
+               (for/list: : JsList 
+                 ([value : Json
+                         (read-until port
+                                     (lambda: ((port : Input-Port))
+                                       (skip-whitespace port)
+                                       (begin0 (read-json port)
+                                               (skip-whitespace port)
+                                               (let ((ch (peek-char port)))
+                                                 (expect ch '(#\, #\]))
+                                                 (when (and (char? ch)
+                                                            (char=? ch #\,))
+                                                   (read-char port)))))
+                                     (lambda: ((port : Input-Port))
+                                       (skip-whitespace port)
+                                       (let ((ch (peek-char port)))
+                                         (if (char? ch)
+                                             (char=? ch #\])
+                                             #f))))])
                  value)))
     (expect (read-char port) '(#\]))
     json))
@@ -285,19 +286,30 @@
 
 ;; Helpers to make json
 
+(: json->jsobject (Json -> JsObject))
+(define (json->jsobject json)
+  (if (hash? json)
+      (cast json JsObject)
+      (error 'Json->JsObject "Json is not a JsObject: ~s" json)))
+
 (: jsobject ((Listof (Pair Symbol Json)) -> JsObject))
 (define (jsobject attrs)
   (make-hasheq attrs))
 
-
-;; Careful will filter out boolean values, which are #f.
+;; Careful will filter out boolean values, which are #f
+;; string values which are ""
+;; object values which are empty
+;; list values are emmpty.
 (: jsobject-opt ((Listof (Pair Symbol Json)) -> JsObject))
 (define (jsobject-opt attrs-opt)
   (let: ((attrs : (Listof (Pair Symbol Json))
                 (filter (λ: ((attr : (Pair Symbol Json)))
                           (let ((value (cdr attr)))
-                            (or (not (boolean? value))
-                                value)))
+                            (cond
+                              [(boolean? value)  value]
+                              [(string? value) (not (string=? value ""))]
+                              [(hash? value) (> (hash-count (cast value JsObject)) 0)]
+                              [(list? value) (pair? value)])))
                         attrs-opt)))
     (apply jsobject (list attrs))))
 
