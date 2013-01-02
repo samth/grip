@@ -404,7 +404,6 @@
 
 (: parse-authority (String String -> (Option Authority)))
 (define (parse-authority auth-str scheme)
-  (displayln auth-str)
   (if (not (string? auth-str))
       #f
       (let ((ip (open-input-string auth-str)))
