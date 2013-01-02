@@ -27,10 +27,11 @@
  RequestLine RequestLine? RequestLine-method RequestLine-path RequestLine-version
  RequestHeader RequestHeader? RequestHeader-request RequestHeader-headers
  ResponseHeader ResponseHeader? ResponseHeader-status ResponseHeader-headers
- StatusLine StatusLine? StatusLine-version StatusLine-code StatusLine-msg
+ (struct-out StatusLine); StatusLine? StatusLine-version StatusLine-code StatusLine-msg
  HTTPConnection-in
  HTTPConnection-header
  http-successful?
+ http-status
  http-status-code
  http-has-content?
  http-close-connection
@@ -40,7 +41,7 @@
  read-request-header)
 
 (require/typed
-    openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
+ openssl/openssl (ssl-connect (String Integer -> (Values Input-Port Output-Port))))
 
 (require/typed
  srfi/14
@@ -298,9 +299,9 @@
 (define-type HTTPHeader (Pair String (Listof Header)))
 
 (require/typed racket
-  ((cons resp-header-cons) (Header RevHTTPHeader -> RevHTTPHeader))
-  ((cons resp-msg-cons)    (String RevHTTPHeader -> RevHTTPHeader))
-  ((reverse reverse-response) (RevHTTPHeader -> HTTPHeader)))
+               ((cons resp-header-cons) (Header RevHTTPHeader -> RevHTTPHeader))
+               ((cons resp-msg-cons)    (String RevHTTPHeader -> RevHTTPHeader))
+               ((reverse reverse-response) (RevHTTPHeader -> HTTPHeader)))
 
 ;; Max size allowed for an HTTP response
 (define MAX-REQUEST (* 3 1024))
@@ -665,6 +666,10 @@
                   (send terminate)
                   (loop  (read-bytes! buffer content-input-port 0 buffsz)))))))
       (send terminate)))
+
+(: http-status (HTTPConnection -> StatusLine))
+(define (http-status conn)
+  (ResponseHeader-status (HTTPConnection-header conn)))
 
 (: http-status-code (HTTPConnection -> Integer))
 (define (http-status-code conn)
