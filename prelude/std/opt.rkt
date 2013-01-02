@@ -5,6 +5,7 @@
  opt-defined?
  opt-exists
  opt-getorelse
+ opt-getorelse-value
  opt-orelse
  opt-map
  opt-flatmap
@@ -36,6 +37,10 @@
 (: opt-getorelse (All (a) (Option a) (-> a) -> a))
 (define (opt-getorelse opt exp)
   (if opt opt (exp)))
+
+(: opt-getorelse-value (All (a) (Option a) a -> a))
+(define (opt-getorelse-value opt v)
+  (if opt opt v))
 
 ;; The Option value if defined otherwise the given alternative
 (: opt-orelse (All (a) (Option a) (-> (Option a)) -> (Option a)))
