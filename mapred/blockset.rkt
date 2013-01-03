@@ -2,20 +2,25 @@
 
 (provide 
  (struct-out BlockSet)
- block-path
+ block-path 
+ block-local-path
+ blockset-local-path
  blockset-host
  blockset-uris
  blockset-paths
- blockset-build-paths)
+ blockset-build-paths
+ blockset-build-local-paths)
 
 (require
  (only-in httpclient/uri
           Uri Authority-host Uri-authority Uri-path extend-path)
+ (only-in httpclient/uri/filescheme
+          local-file-uri? local-file-uri->path)
  (only-in "types.rkt"
           Block Block-name Block-range))
 
 (struct: BlockSet ([base : Uri]
-                   [blocks : (Listof Block)]))
+                   [blocks : (Listof Block)]) #:transparent)
 
 (: blockset-uris (BlockSet -> (Listof Uri)))
 (define (blockset-uris blockset)
@@ -45,6 +50,21 @@
 (define (block-path base block)
   (build-path (Uri-path base) (Block-name block)))
 
+(: block-local-path (Path Block -> Path))
+(define (block-local-path path block)
+  (build-path path (Block-name block)))
+
 (: blockset-host (BlockSet -> String))
 (define (blockset-host blockset)
   (Authority-host (assert (Uri-authority (BlockSet-base blockset)))))
+
+(: blockset-local-path (BlockSet -> Path))
+(define (blockset-local-path blockset)
+  (let ((base (BlockSet-base blockset)))
+    (if (local-file-uri? base)        
+        (local-file-uri->path base)
+        (error 'blockset-local-path "BlockSet base Uri has a host or is not a file scheme: ~s" base))))
+
+(: blockset-build-local-paths (BlockSet -> (Listof Path)))
+(define (blockset-build-local-paths blockset)
+  (blockset-build-paths blockset (blockset-local-path blockset)))

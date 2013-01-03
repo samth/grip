@@ -1,30 +1,36 @@
+#| Fetch and store sets of Blocks in and out of S3|#
+
 #lang typed/racket/base
 
-#| Fetch and store Blocks to S3|#
-
 (provide 
- main
+ store-blockset
  fetch-blockset)
 
-(require
- racket/pretty
+(require 
  (only-in "logging.rkt"
           log-mr-error
           log-mr-info)
  (only-in prelude/std/opt
           opt-map)
- (only-in httpclient/uri
-          parse-uri
-          Uri Uri-path)
+ (only-in httpclient/uri          
+          Authority-host
+          Uri  Uri-path Uri-authority)
+ (only-in aws/s3/invoke
+          S3Response)
  (only-in aws/s3/objects
           [Range S3Range]
+          s3-put-file-object
           s3-get-object-to-file)
  (only-in "types.rkt"
           Range Range-sod Range-eod
-          Block Block-name Block-range)
+          Block-range)
  (only-in "blockset.rkt"
-          BlockSet BlockSet-blocks BlockSet-base
+          BlockSet
+          BlockSet-blocks
+          BlockSet-base
           block-path
+          block-local-path
+          blockset-local-path
           blockset-build-paths
           blockset-host))
 
@@ -49,9 +55,14 @@
                 (log-mr-error "Skipping fetch as ~s exists in target directory." to)
                 (s3-get-object-to-file bucket (path->string from) to (opt-map (Block-range block) range->s3range))))))))
 
-(define (main)  
-  (fetch-blockset (BlockSet (assert (parse-uri "s3://odbd/itemset/input"))
-                            (list (Block "part-00110" (Range 0 99))
-                                  (Block "part-00111" (Range 100 299))
-                                  (Block "part-00112" (Range 100 1099))))
-                  (string->path "/tmp")))
+(: store-blockset (BlockSet Uri -> (Listof S3Response)))
+(define (store-blockset blockset s3-uri)    
+  (let ((local-path (blockset-local-path blockset))
+        (s3-local-path (string->path (Uri-path s3-uri))))
+    (for/list ((block (BlockSet-blocks blockset)))
+      (let ((in-path (block-local-path local-path block))
+            (bucket  (assert (Authority-host (assert (Uri-authority s3-uri)))))
+            (out-path (path->string (block-local-path s3-local-path block))))
+        (log-mr-info "S3 put: ~s -> Bucket ~s, ~s" in-path bucket out-path)
+        (s3-put-file-object in-path bucket out-path)))))  
+
