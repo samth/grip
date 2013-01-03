@@ -13,10 +13,9 @@
 (: local-file-uri? (Uri -> Boolean))
 (define (local-file-uri? uri)
   (and (string=? (Uri-scheme uri) "file")
-       (eq? #f (Uri-authority uri))))      
+       (eq? #f (Uri-authority uri))))
 
 (: local-file-uri->path (Uri -> Path))
-(define (local-file-uri->path uri)
-  (if (local-file-uri? uri)
-      (string->path (Uri-path uri))
-      (error 'file-uri->local-path "Uri has a host or is not a file: ~s" uri)))
+(define (local-file-uri->path uri)  
+  (string->path (Uri-path uri)))
+
