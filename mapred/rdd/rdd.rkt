@@ -3,6 +3,7 @@
 (provide
  RDD 
  ;; ;; (struct-out RDDList)
+ ;; (struct-out RDDFile)
  (struct-out RDDSeq)
  (struct-out RDDList)
  (struct-out RDDFilter)
@@ -14,21 +15,27 @@
 
 (require
  racket/pretty
+ (only-in httpclient/uri/filescheme
+          local-path->uri)
  (only-in mapred/types
           Text)
  (only-in racket/file
           make-temporary-file)
  (only-in "../types.rkt"
-          Block RDDFile RDDFile-blocks     
-          Location)     
+          Range
+          Block BlockSet
+          RDDFile RDDFile-blocksets)          
  (only-in "../config.rkt" 
           DEFAULT-BLOCK-SIZE
-          rdd-materialization-directory))
+          rdd-materialization-directory)
+ (only-in "../blockset.rkt"
+          blockset-count))
+
+;(struct: (A B) RDDFile ([blocks : (Listof BlockSet)]))
 
 (struct: (A B) RDDSeq ([xs : (Listof A)]))
 
 (struct: (A B) RDDList ([xs : (Listof A)]))
-
 
 ;(struct: (T) RDDList ([block : (Listof T)]))
 
@@ -47,19 +54,23 @@
                         (RDDPrint A B)))
 
 ;; Build RDD from an input path
-(: rdd-text (case-> (Location -> (RDD Nothing Text))
-                    (Location Nonnegative-Integer -> (RDD Nothing Text))))
+(: rdd-text (case-> (Path -> (RDDFile Text))
+                    (Path Natural -> (RDDFile Text))))
 (define (rdd-text base-dir-path [block-size DEFAULT-BLOCK-SIZE])
-  (RDDFile (apply append (map (λ: ((file-name : Location)) 
-                                (let ((full-path (path->complete-path file-name base-dir-path)))                                  
-                                  (n-block full-path (file-size full-path) block-size)))
-                              (directory-list base-dir-path)))))
-
+  (RDDFile (list (BlockSet (local-path->uri base-dir-path)
+                           (apply append (map (λ: ((file-name : Path)) 
+                                                (let ((full-path (path->complete-path file-name base-dir-path)))                                  
+                                                  (n-block (path->string file-name) (file-size full-path) block-size)))
+                                              (directory-list base-dir-path)))))))
+  
 (: rddfile-block-count (RDDFile -> Integer))
 (define (rddfile-block-count rdd)
-  (length (RDDFile-blocks rdd)))
+  (define: total : Natural 0)
+  (for ((blockset (RDDFile-blocksets rdd)))    
+      (set! total (+ total (blockset-count blockset))))
+  total)
 
-(: n-block (Location Nonnegative-Integer Nonnegative-Integer -> (Listof Block)))
+(: n-block (String Nonnegative-Integer Nonnegative-Integer -> (Listof Block)))
 (define (n-block loc n sz)
   (let-values (((bs lb-sz) (quotient/remainder n sz)))
     (let: ((full-blocks : (Listof Block) 
@@ -67,11 +78,11 @@
                                    #:when (>= b 0)) ;; for type-checker                          
                           (let ((sod (* b sz))
                                 (eod (* (add1 b) sz)))
-                            (Block loc sod eod)))))
+                            (Block loc (Range sod eod))))))
       (if (> lb-sz 0) ;; partial block
           (let* ((sod (* bs sz))
                  (eod (+ sod lb-sz)))
-            (cons (Block loc sod eod) full-blocks))
+            (cons (Block loc (Range sod eod)) full-blocks))
           full-blocks))))
 
 (: generate-rdd-block-filename (-> Path))

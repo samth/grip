@@ -1,6 +1,27 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's MapReduce API Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#| Operate on a block of data via enumeration. |#
+
 #lang typed/racket/base
 
 (provide: 
+ [enum/text-block (All (D E A) (Block D) (TextParser D) (Mapper D E) -> (Enumerator E A))]
  [map/text-block (All (D E) (Block D) (TextParser D) (Mapper D E) (Iteratee E (Partition E)) -> (Iteratee E (Partition E)))])
  
 (require
@@ -12,16 +33,17 @@
           Mapper TextParser Partition
           Text)
  (only-in "../types.rkt"            
-          Block Block-loc Block-sod Block-eod
-          Location RDDFile))
+          Block Block-name Block-range
+          Range-sod Range-eod
+          RDDFile))
 
 (: open-text-block (Block -> Input-Port))
 (define (open-text-block block)
-  (let ((inp (open-input-file (Block-loc block)
+  (let ((inp (open-input-file (Block-name block)
                               #:mode 'text)))                              
-    (let ((sod (Block-sod block)))
-      (when (> sod 0)
-        (file-position inp sod)        
+    (let ((range (Block-range block)))
+      (when range
+        (file-position inp (Range-sod range))        
         (read-line inp)))
     inp))
 
@@ -33,7 +55,7 @@
 (: enum/text-block (All (D E A) (Block D) (TextParser D) (Mapper D E) -> (Enumerator E A)))
 (define (enum/text-block block parser mapper)
   (define inp (open-text-block block))
-  (define eod (Block-eod block))
+  (define eod (Range-eod (Block-range block)))
   (λ: ((iter : (Iteratee E A)))
     (let loop ((iter iter))
       (match iter
