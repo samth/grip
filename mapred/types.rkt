@@ -4,15 +4,19 @@
  (struct-out DynFn)
  Text Date Num Url
  Fields TextFields
- Location
  (struct-out Record)
- (struct-out Block) mkBlock
+ (struct-out Block) 
+ (struct-out BlockSet)                   
  (struct-out Range)
  (struct-out RDDFile)
  TextRecord TextReader Transform
  Status (struct-out Success) (struct-out Failure) OK
- TextParser Writer Sorter Mapper Grouper Partition
+ TextParser Writer Sorter Mapper Grouper Partitioner Partition
  BlockFormatter)
+
+(require
+ (only-in httpclient/uri
+          Uri))
 
 (define-type Status (U Success Failure))
 (struct: Success ())
@@ -23,10 +27,10 @@
                 [fn     : Symbol]) #:prefab)
 
 ;;; an RDD is a set of distributed blocks
-(struct: (A) RDDFile ([blocks : (Listof Block)])
-  #:methods gen:custom-write [(define write-proc (λ (rddfile outp mode)
-                                                   (display (format "#<RDDFile blocks=~s>" 
-                                                                    (length (RDDFile-blocks rddfile))) outp)))])
+(struct: (A) RDDFile ([blocksets : (Listof BlockSet)]) #:transparent)
+  ;#:methods gen:custom-write [(define write-proc (λ (rddfile outp mode)
+  ;                                                 (display (format "#<RDDFile blocks=~s>" 
+  ;                                                                  (length (RDDFile-blocks rddfile))) outp)))])
 ;; Local Paths for now.
 ;; (url->path) (path->url)
 (define-type Url Path)
@@ -50,19 +54,13 @@
 ;; Get rid of this.
 (define-type (BlockFormatter A) ((Block A) -> (Listof A)))
 
-(define-type (TextParser D) (Text -> D))
-(define-type (Mapper D E)   (D -> E))
-(define-type (Writer A)     (A Output-Port -> Void))
-(define-type (Sorter A)     (A A -> Boolean))
-;(define-type (Partitioner A) (A -> Index))
-(define-type (Partition D)  (Vectorof (RDDFile D)))
-
-(define-type (Grouper D)    (D -> Index))
-
-;; The location of a block.
-;; An absolute location will cluster globally uniqually identify the location of a block.
-;; A partial location must be capable of being resolved to an absolution location.
-(define-type Location Path)
+(define-type (TextParser D)  (Text -> D))
+(define-type (Mapper D E)    (D -> E))
+(define-type (Writer A)      (A Output-Port -> Void))
+(define-type (Sorter A)      (A A -> Boolean))
+(define-type (Partitioner A) (A -> Index))
+(define-type (Partition D)   (Vectorof (RDDFile D)))
+(define-type (Grouper D)     (D -> Index))
 
 (struct: Range ([sod : Natural]
                 [eod : Natural]) #:transparent)
@@ -76,10 +74,8 @@
 ;; All trouble is because we are assuming the persisted data API being used supports offset reading.
 ;; such as S3 and an OS.
 ;; A Block is a chunk of semi/structured data subject to manipulation
-(struct: Block ([name : String]
-                [range : (Option Range)]) #:transparent)
+(struct: (D) Block ([name : String]
+                    [range : Range]) #:transparent)
                 
-(: mkBlock (case-> (String -> Block)
-                   (String Range -> Block)))
-(define (mkBlock name [range #f])
-  (Block name range))
+(struct: (D) BlockSet ([uri : Uri]
+                       [blocks : (Listof Block)]) #:transparent)

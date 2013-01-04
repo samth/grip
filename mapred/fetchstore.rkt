@@ -23,11 +23,11 @@
           s3-get-object-to-file)
  (only-in "types.rkt"
           Range Range-sod Range-eod
-          Block-range)
- (only-in "blockset.rkt"
+          Block-range
           BlockSet
           BlockSet-blocks
-          BlockSet-base
+          BlockSet-uri)
+ (only-in "blockset.rkt"
           block-path
           block-local-path
           blockset-local-path
@@ -45,7 +45,7 @@
   (if (not (directory-exists? target-dir))
       (error 'fetch-blockset "Target directory: ~s does not exist." target-dir)
       (let ((bucket (blockset-host blockset))
-            (base-uri (BlockSet-base blockset))            
+            (base-uri (BlockSet-uri blockset))            
             (to-paths (blockset-build-paths blockset target-dir)))                
         (for ([block (BlockSet-blocks blockset)]
               [to   to-paths])

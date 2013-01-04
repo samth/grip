@@ -1,3 +1,21 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's MapReduce API Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket/base
 
 (provide 
@@ -16,9 +34,9 @@
  racket/match
  (only-in io/iteratee/iteratee
           Iteratee Stream Continue Done)
- (only-in "types.rkt"
+ (only-in "types.rkt"          
           Text Record Record-key Record-value
-          Block Block-loc)
+          Block Block-name Range)
  (only-in "rdd/rdd.rkt"
          generate-rdd-block-filename))
 
@@ -62,10 +80,10 @@ Of course this puts an obligation on the library user to properly establish the 
       (let ((path (generate-rdd-block-filename)))
         (if (pair? blocks)
             (let ((block (car blocks)))
-              (let ((blocks (cons (Block (Block-loc block) 0 sz) blocks))
+              (let ((blocks (cons (Block (Block-name block) (Range 0 sz)) blocks))
                     (pout (open-output-file path #:mode mode)))
-                (values pout (cons (Block path 0 0) blocks))))
-            (values pout (list ((inst Block D) path 0 0))))))) ;; can't happen
+                (values pout (cons (Block (path->string path) (Range 0 0)) blocks)))) ;; FIX ME THIS IS WRONG
+            (values pout (list ((inst Block D) (path->string path) (Range 0 0)))))))) ;; can't happen
                   
   (: step (Output-Port (Listof (Block D)) -> ((Stream D) -> (Iteratee D (Listof (Block D))))))
   (define (step pout blocks)
@@ -88,7 +106,7 @@ Of course this puts an obligation on the library user to properly establish the 
   
   (let ((path (generate-rdd-block-filename)))
     (Continue (step (open-output-file path #:mode mode)
-                    (list ((inst Block D) path 0 0))))))
+                    (list ((inst Block D) (path->string path) (Range 0 0)))))))
 
 (: iter-block (All (D) 
                    (case-> (Path (D Output-Port -> Void) [#:mode (U 'text 'binary)] -> (Iteratee D (Listof (Block D))))
@@ -107,7 +125,7 @@ Of course this puts an obligation on the library user to properly establish the 
         ([eq? record 'EOS]         
          (let ((blks (match blocks
                        [(list-rest h t) 
-                        (cons (Block (Block-loc h) 0 (file-position pout)) t)]
+                        (cons (Block (Block-name h) (Range 0 (file-position pout))) t)]
                        [else blocks])))
            (close-output-port pout)
            (Done 'EOS blks)))
@@ -115,7 +133,7 @@ Of course this puts an obligation on the library user to properly establish the 
          (writer record pout)
          (Continue (step blocks))))))
   
-  (Continue (step (list (Block path 0 0)))))
+  (Continue (step (list (Block (path->string path) (Range 0 0))))))
 
 (: iter-file (All (D) Path (D Output-Port -> Void) [#:mode (U 'text 'binary)] -> (Iteratee D IOResult)))
 (define (iter-file path writer #:mode [mode 'text])
