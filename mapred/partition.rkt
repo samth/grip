@@ -1,28 +1,54 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's MapReduce API Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket/base
 
 (provide:
- [partition-iteratee (All (A) (Writer A) (Grouper A) Index -> (Iteratee A (Partition A)))]) 
+ [partition-iteratee (All (D) (Writer D) (Partitioner D) (BlockSet D) -> (Iteratee D (BlockSet D)))])
 
 (require 
  (only-in io/iteratee/iteratee
           Iteratee Stream Continue Done)
+ (only-in httpclient/uri
+          parse-uri)
  (only-in "types.rkt"
-          Writer Grouper Partition
+          BlockSet BlockSet-uri Range
+          Writer Partitioner Partition
           Block RDDFile)
+ (only-in "blockset.rkt"
+          blockset-count
+          blockset-build-local-paths)
  (only-in "./rdd/rdd.rkt"         
           generate-rdd-block-filename)
  (only-in "iterfile.rkt"
           OK IOResult))
 
-;; Create an Iteratee which will write a value into one of N partition files.
+#| Iteratee which partitions fed data by the given patition function into multiple target files. |#
+
 ;; TODO - Buffer and pre-shuffle, and segment each RDDFile into more than one giant block.
-(: partition-iteratee (All (A) (Writer A) (Grouper A) Index -> (Iteratee A (Partition A))))
-(define (partition-iteratee writer grouper partition-count)
-  
-  (: block-names (Vectorof Path))
-  (define block-names (for/vector: : (Vectorof Path) #:length partition-count ([i (in-range partition-count)])
-                        (generate-rdd-block-filename)))
-  
+;; If sub sets of target partitions are required use -x extension for each.
+(: partition-iteratee (All (D) (Writer D) (Partitioner D) (BlockSet D) -> (Iteratee D (BlockSet D))))
+(define (partition-iteratee writer partitioner partition-blockset)
+    
+  (define: partition-count : Index (assert (blockset-count partition-blockset) index?))
+    
+  (define: block-names : (Listof Path) (blockset-build-local-paths partition-blockset))
+   
   (: open-all-partitions (-> (Vectorof Output-Port)))
   (define (open-all-partitions)
     (for/vector: : (Vectorof Output-Port) #:length partition-count ([name block-names])
@@ -35,17 +61,14 @@
   (define (close-all-partitions)
     (for ([p partition-ports])
       (close-output-port p)))
-  
-  (: write-partitioned-value (A Index -> Void))
-  (define (write-partitioned-value s partition)
-    (writer s (vector-ref partition-ports partition)))
-  
-  (: create-rddfile-result (-> (Vectorof (RDDFile A))))
+      
+  (: create-rddfile-result (-> (BlockSet D)))
   (define (create-rddfile-result)
-    (for/vector: : (Vectorof (RDDFile A)) #:length partition-count ([name block-names])
-      ((inst RDDFile A) (list (Block name 0 (file-size name))))))
+    (let ((blocks (for/list: : (Listof (Block D)) ([name block-names])
+                    (Block (path->string name) (Range 0 (file-size name))))))
+      (BlockSet (BlockSet-uri partition-blockset) blocks)))
   
-  (: step ((Stream A) -> (Iteratee A (Vectorof (RDDFile A)))))
+  (: step ((Stream D) -> (Iteratee D (BlockSet D))))
   (define (step s)    
     (cond
       ([eq? s 'Nothing]
@@ -54,7 +77,7 @@
        (close-all-partitions)
        (Done 'EOS (create-rddfile-result)))
       (else                
-       (write-partitioned-value s (modulo (grouper s) partition-count))
+       (writer s (vector-ref partition-ports (modulo (partitioner s) partition-count)))
        (Continue step))))
   
   (Continue step))
