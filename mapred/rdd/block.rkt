@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Ray Racine's MapReduce API Library
+;; Ray Racine's Munger API Library
 ;; Copyright (C) 2007-2013  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@
 #lang typed/racket/base
 
 (provide: 
- [enum/text-block (All (D E A) (Block D) (TextParser D) (Mapper D E) -> (Enumerator E A))]
- [map/text-block (All (D E) (Block D) (TextParser D) (Mapper D E) (Iteratee E (Partition E)) -> (Iteratee E (Partition E)))])
+ [enum/text-block (All (D E A) Path (Block D) (TextParser D) (Mapper D E) -> (Enumerator E A))]
+ [map/text-block (All (D E) Path (Block D) (TextParser D) (Mapper D E) (Iteratee E (Partition E)) -> (Iteratee E (Partition E)))])
  
 (require
  racket/match
@@ -37,9 +37,9 @@
           Range-sod Range-eod
           RDDFile))
 
-(: open-text-block (Block -> Input-Port))
-(define (open-text-block block)
-  (let ((inp (open-input-file (Block-name block)
+(: open-text-block (Path Block -> Input-Port))
+(define (open-text-block work-dir block)
+  (let ((inp (open-input-file (build-path work-dir (Block-name block))
                               #:mode 'text)))                              
     (let ((range (Block-range block)))
       (when range
@@ -52,9 +52,9 @@
 ;; Giving (Enumerator/w parser + Enumeratee/w mapper + Iteratee/w partitioner.
 ;; But as an optimization step we drop the middle Enumeratee, though I can see 
 ;; where I would want to bring this back for composability flexibility reasons ... maybe.
-(: enum/text-block (All (D E A) (Block D) (TextParser D) (Mapper D E) -> (Enumerator E A)))
-(define (enum/text-block block parser mapper)
-  (define inp (open-text-block block))
+(: enum/text-block (All (D E A) Path (Block D) (TextParser D) (Mapper D E) -> (Enumerator E A)))
+(define (enum/text-block work-dir block parser mapper)
+  (define inp (open-text-block work-dir block))
   (define eod (Range-eod (Block-range block)))
   (λ: ((iter : (Iteratee E A)))
     (let loop ((iter iter))
@@ -73,7 +73,7 @@
                    (let ((data (mapper (parser line)))) ;; Just blowup on bad data, may even be the right-thing-to-do.
                      (loop (step data))))))]))))
 
-(: map/text-block (All (D E) (Block D) (TextParser D) (Mapper D E) (Iteratee E (Partition E)) -> (Iteratee E (Partition E))))
-(define (map/text-block block parser mapper partitioner)
-  (let: ((enum : (Enumerator E (Vectorof (RDDFile E))) (enum/text-block block parser mapper))) ;; assist TR typer
+(: map/text-block (All (D E) Path (Block D) (TextParser D) (Mapper D E) (Iteratee E (Partition E)) -> (Iteratee E (Partition E))))
+(define (map/text-block work-dir block parser mapper partitioner)
+  (let: ((enum : (Enumerator E (Vectorof (RDDFile E))) (enum/text-block work-dir block parser mapper))) ;; assist TR typer
     (enum partitioner)))

@@ -27,7 +27,8 @@
  blockset-count
  blockset-paths
  blockset-build-paths
- blockset-build-local-paths)
+ blockset-build-local-paths
+ local-file-blockset?)
 
 (require
  (only-in httpclient/uri
@@ -88,3 +89,7 @@
 (: blockset-build-local-paths (BlockSet -> (Listof Path)))
 (define (blockset-build-local-paths blockset)
   (blockset-build-paths blockset (blockset-local-path blockset)))
+
+(: local-file-blockset? (BlockSet -> Boolean))
+(define (local-file-blockset? blockset)
+  (local-file-uri? (BlockSet-uri blockset)))

@@ -65,4 +65,3 @@
             (out-path (path->string (block-local-path s3-local-path block))))
         (log-mr-info "S3 put: ~s -> Bucket ~s, ~s" in-path bucket out-path)
         (s3-put-file-object in-path bucket out-path)))))  
-

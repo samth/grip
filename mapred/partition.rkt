@@ -27,11 +27,13 @@
  (only-in httpclient/uri
           parse-uri)
  (only-in "types.rkt"
-          BlockSet BlockSet-uri Range
+          Block-name
+          BlockSet BlockSet-uri BlockSet-blocks Range
           Writer Partitioner Partition
           Block RDDFile)
  (only-in "blockset.rkt"
           blockset-count
+          blockset-local-path
           blockset-build-local-paths)
  (only-in "./rdd/rdd.rkt"         
           generate-rdd-block-filename)
