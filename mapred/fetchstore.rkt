@@ -7,6 +7,7 @@
  fetch-blockset)
 
 (require 
+ racket/pretty
  (only-in "logging.rkt"
           log-mr-error
           log-mr-info)
@@ -15,6 +16,8 @@
  (only-in httpclient/uri          
           Authority-host
           Uri  Uri-path Uri-authority)
+ (only-in httpclient/uri/filescheme
+          local-path->uri)
  (only-in aws/s3/invoke
           S3Response)
  (only-in aws/s3/objects
@@ -40,7 +43,7 @@
            (Range-eod range)))
 
 ;; Fetch the given S3 objects and store in the target directory.
-(: fetch-blockset (BlockSet Path -> Void))
+(: fetch-blockset (BlockSet Path -> BlockSet))
 (define (fetch-blockset blockset target-dir)
   (if (not (directory-exists? target-dir))
       (error 'fetch-blockset "Target directory: ~s does not exist." target-dir)
@@ -53,10 +56,11 @@
             (log-mr-info "S3 get: Bucket ~s, ~s::~s -> ~s" bucket from (Block-range block) to)
             (if (file-exists? to)
                 (log-mr-error "Skipping fetch as ~s exists in target directory." to)
-                (s3-get-object-to-file bucket (path->string from) to (opt-map (Block-range block) range->s3range))))))))
+                (s3-get-object-to-file bucket (path->string from) to (opt-map (Block-range block) range->s3range)))))
+        (BlockSet (local-path->uri target-dir) (BlockSet-blocks blockset)))))
 
 (: store-blockset (BlockSet Uri -> (Listof S3Response)))
-(define (store-blockset blockset s3-uri)    
+(define (store-blockset blockset s3-uri)      
   (let ((local-path (blockset-local-path blockset))
         (s3-local-path (string->path (Uri-path s3-uri))))
     (for/list ((block (BlockSet-blocks blockset)))
