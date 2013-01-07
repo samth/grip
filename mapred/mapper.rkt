@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Ray Racine's MapReduce API Library
+;; Ray Racine's Munger API Library
 ;; Copyright (C) 2007-2013  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -20,18 +20,32 @@
 
 #lang typed/racket/base
 
+(provide 
+ map-partition/text)
+
 (require
- racket/pretty
- (only-in "config.rkt"
-          working-directory)
+ racket/pretty 
+ (only-in "logging.rkt"
+          log-mr-info)
+ (only-in httpclient/uri
+          Uri extend-path)
+ (only-in httpclient/uri/filescheme
+          local-file-uri->path)
+ ;(only-in "config.rkt"
+ ;         working-directory)
+ (only-in aws/s3/invoke
+          S3Response)
  (only-in "types.rkt" 
           Block
           Writer TextParser Partition
-          BlockSet BlockSet-blocks
+          BlockSet BlockSet-blocks BlockSet-uri
           Mapper Partitioner)
  (only-in io/iteratee/iteratee
           icomplete
           Enumerator Iteratee)
+ (only-in "blockset.rkt"
+          blockset-count
+          local-file-blockset?)
  (only-in "fetchstore.rkt"
           fetch-blockset
           store-blockset)
