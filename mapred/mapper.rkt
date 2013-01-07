@@ -40,19 +40,42 @@
  (only-in "partition.rkt"
           partition-iteratee))
 
+(: partition-store-uris (Uri Natural -> (Listof Uri)))
+(define (partition-store-uris base count)  
+  (for/list ([idx (in-range 0 count)])
+    (extend-path base (number->string idx))))
+
 ;; Work unit is a successful map/partition of a set of blocks.
 ;; Succeed or blow-up, there is no middle ground, workflow system deals with a failure.
 ;; BUT must be idempotent, workflow engine state-machine may invoke multiple times, e.g. retry, cluster failure etc.
 
-(: map-partition/text (All (D E) ((Block D) (BlockSet D) (TextParser D) (Mapper D E) (Writer E) (Partitioner E) (BlockSet D) -> (BlockSet E))))
-(define (map-partition/text block blockset parser mapper writer partitioner partition-blockset)
-  (fetch-blockset blockset working-directory)      
+(: map-partition/text (All (D E) Path Uri (BlockSet D) (TextParser D) (Mapper D E) (Writer E) (Partitioner E) (BlockSet D) -> (Listof (BlockSet E))))
+(define (map-partition/text work-dir store-uri blockset parser mapper writer partitioner partition-blockset)
+  
+  (: working-blockset (BlockSet D))
+  (define working-blockset 
+    (if (local-file-blockset? blockset)
+        blockset
+        (fetch-blockset blockset work-dir)))        
   
   (: iter (Iteratee E (BlockSet E)))
   (define iter (partition-iteratee writer partitioner partition-blockset))
   
-  (for ([block (BlockSet-blocks blockset)])    
-    (let: ((enum : (Enumerator E (BlockSet E)) (enum/text-block block parser mapper)))
-      (enum iter))) ;; map and partition the block
+  (define base-dir (local-file-uri->path (BlockSet-uri working-blockset)))
   
-  (icomplete iter)) ;; close out the partition set
+  (for ([block (BlockSet-blocks working-blockset)])    
+    (log-mr-info "Mapping block: ~s" block)
+    (let: ((enum : (Enumerator E (BlockSet E)) 
+                 (enum/text-block base-dir block parser mapper)))
+      (enum iter))) 
+  
+  (let ((blockset (icomplete iter))
+        (s3-uris (partition-store-uris store-uri (blockset-count blockset))))
+    (let ((local-uri (BlockSet-uri blockset)))
+      (let ((store-blocksets (for/list: : (Listof BlockSet) ([block (BlockSet-blocks blockset)])
+                               (BlockSet local-uri (list block)))))
+        (let ((results (for ([blockset store-blocksets]
+                             [s3-uri s3-uris])
+                         (store-blockset blockset s3-uri))))
+          (pretty-print results))
+        store-blocksets))))

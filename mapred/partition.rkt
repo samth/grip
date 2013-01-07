@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Ray Racine's MapReduce API Library
+;; Ray Racine's Munger API Library
 ;; Copyright (C) 2007-2013  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -49,12 +49,12 @@
     
   (define: partition-count : Index (assert (blockset-count partition-blockset) index?))
     
-  (define: block-names : (Listof Path) (blockset-build-local-paths partition-blockset))
+  (define: block-paths : (Listof Path) (blockset-build-local-paths partition-blockset))
    
   (: open-all-partitions (-> (Vectorof Output-Port)))
   (define (open-all-partitions)
-    (for/vector: : (Vectorof Output-Port) #:length partition-count ([name block-names])
-      (open-output-file name #:mode 'text)))
+    (for/vector: : (Vectorof Output-Port) #:length partition-count ([path block-paths])
+      (open-output-file path #:mode 'text)))
   
   (: partition-ports (Vectorof Output-Port))
   (define partition-ports (open-all-partitions))
@@ -66,8 +66,10 @@
       
   (: create-rddfile-result (-> (BlockSet D)))
   (define (create-rddfile-result)
-    (let ((blocks (for/list: : (Listof (Block D)) ([name block-names])
-                    (Block (path->string name) (Range 0 (file-size name))))))
+    (define: path : Path (blockset-local-path partition-blockset))
+    (let ((blocks (for/list: : (Listof (Block D)) ([block (BlockSet-blocks partition-blockset)])
+                    (let ((name (Block-name block)))
+                      (Block name (Range 0 (file-size (build-path path name))))))))
       (BlockSet (BlockSet-uri partition-blockset) blocks)))
   
   (: step ((Stream D) -> (Iteratee D (BlockSet D))))
