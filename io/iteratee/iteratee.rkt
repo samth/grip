@@ -1,3 +1,21 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's TR Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket/base
 
 (provide
@@ -29,14 +47,13 @@
 (define (iseq iter fn)
   (match iter
     [(Done d a) (fn a)]
-    [(Continue step) (Continue (λ: ((d : (Stream D)))
-				   (iseq (step d) fn)))]))
+    [(Continue step) (Continue (λ: ((d : (Stream D))) 
+                                 (iseq (step d) fn)))]))
 
 (define-type (Enumerator D A) ((Iteratee D A) -> (Iteratee D A)))
 
 (: eseq (All (D A) (Enumerator D A) (Enumerator D A) -> (Enumerator D A)))
 (define (eseq e1 e2)
-  (lambda (iter)
-    (e2 (e1 iter))))
+  (λ (iter) (e2 (e1 iter))))
 
 (define-type (Enumeratee O I A) ((Iteratee I A) -> (Iteratee O (Iteratee I A))))

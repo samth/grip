@@ -71,7 +71,7 @@
   (let: ((producer  : (Enumerator String (Iteratee Integer Integer)) 
                    (enumerator/list '("1" "2" "3" "4")))
          (converter : (Enumeratee String Integer Integer) 
-                    (enumeratee-transform (λ: ((elem : String)) (assert (string->number elem) exact-integer?))))
+                    (enumeratee-map (λ: ((elem : String)) (assert (string->number elem) exact-integer?))))
          (consumer  : (Iteratee Integer Integer) 
                    (sum)))       
     (icomplete (icomplete (producer (converter consumer))))))
@@ -81,7 +81,7 @@
   (let: ((enumerator   : (Enumerator Integer (Iteratee String IOResult))
                        (enumerator/list '(1 2 3 4)))
          (doubler      : (Enumeratee Integer String IOResult)
-                       (enumeratee-transform (λ: ((x : Integer)) (number->string (* x x)))))
+                       (enumeratee-map (λ: ((x : Integer)) (number->string (* x x)))))
          (persist      : TextFileIteratee
                        (iter-text-file (string->path "/run/shm/ray.txt"))))          
     (icomplete (icomplete (enumerator (doubler persist))))))
@@ -89,7 +89,7 @@
 (: showit-twice2 (-> IOResult))
 (define (showit-twice2)
   (let ((enumerator (ann (enumerator/list '(1 2 3 4)) (Enumerator Integer (Iteratee String IOResult))))
-        (doubler (ann (enumeratee-transform (λ: ((x : Integer)) (number->string (* x x)))) (Enumeratee Integer String IOResult)))
+        (doubler (ann (enumeratee-map (λ: ((x : Integer)) (number->string (* x x)))) (Enumeratee Integer String IOResult)))
         (persist (iter-text-file (string->path "/run/shm/ray.txt"))))
     (icomplete (icomplete (enumerator (doubler persist))))))
       
