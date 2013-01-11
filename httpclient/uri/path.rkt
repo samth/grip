@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Knozama's Amazon API Library
-;; Copyright (C) 2007,2008,2009,2010  Raymond Paul Racine
+;; Ray Racine's AWS API Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -18,7 +18,13 @@
 
 #lang typed/racket/base
 
-(provide path-split)
+(provide 
+ uri-path-split
+ uri-build-path) 
+
+(require  
+ (only-in prelude/type/list
+          weave))
 
 (define-syntax ++
   (syntax-rules ()
@@ -30,9 +36,21 @@
     ((-- x)
      (- x 1))))
 
-(: path-split (String -> (Listof String)))
-(define (path-split s)
+(: uri-build-path ((Listof String) -> String))
+(define (uri-build-path segs)  
+  (let: ((path : (Listof String) 
+               (if (pair? segs)      
+                   (if (let ((seg (car segs)))
+                         (or (string=? seg "/")
+                             (string=? seg "")))
+                       (cons "/" (weave "/" (cdr segs)))
+                       (weave "/" segs))
+                   segs)))    
+    (apply string-append path)))
 
+(: uri-path-split (String -> (Listof String)))
+(define (uri-path-split s)
+  
   (: limit Index)
   (define limit (string-length s))
   
@@ -43,32 +61,32 @@
   (: prefix-root ((Listof String) -> (Listof String)))
   (define (prefix-root segs)
     (if (and (not (zero? limit))
-	     (char=? (string-ref s 0) #\/))
-	(cons "" segs)
-	segs))
+             (char=? (string-ref s 0) #\/))
+        (cons "" segs)
+        segs))
   
   (if (> limit 0)
       (begin
-	(let: loop : (Listof String) 
-	      ((idx : Integer 0)
-	       (start : Integer (if (at-slash 0) 1 0)) 
-	       (segments : (Listof String) '()))
-	      (cond ((>= idx limit)
-		     (cond 
-		      ((< start idx)
-		       (prefix-root (reverse (cons (substring s start idx) segments))))
-		      ((at-slash (-- limit))
-		       (prefix-root (reverse (cons "" segments))))
-		      (else
-		       (prefix-root (reverse segments)))))
-		    ((at-slash idx)
-		     (cond 
-		      ((> start idx)
-		       (loop (++ idx) (++ idx) segments))
-		      ((= start idx)
-		       (loop (++ idx) (++ idx) (cons "" segments)))
-		      (else
-		       (loop (++ idx) (++ idx) (cons (substring s start idx) segments)))))
-		    (else
-		     (loop (++ idx) start segments)))))
+        (let: loop : (Listof String) 
+          ((idx : Integer 0)
+           (start : Integer (if (at-slash 0) 1 0)) 
+           (segments : (Listof String) '()))
+          (cond ((>= idx limit)
+                 (cond 
+                   ((< start idx)
+                    (prefix-root (reverse (cons (substring s start idx) segments))))
+                   ((at-slash (-- limit))
+                    (prefix-root (reverse (cons "" segments))))
+                   (else
+                    (prefix-root (reverse segments)))))
+                ((at-slash idx)
+                 (cond 
+                   ((> start idx)
+                    (loop (++ idx) (++ idx) segments))
+                   ((= start idx)
+                    (loop (++ idx) (++ idx) (cons "" segments)))
+                   (else
+                    (loop (++ idx) (++ idx) (cons (substring s start idx) segments)))))
+                (else
+                 (loop (++ idx) start segments)))))
       (list s)))
