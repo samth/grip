@@ -19,6 +19,7 @@
 #lang typed/racket/base
 
 (provide
+ (struct-out MapReduceStart)
  (struct-out MRInit)
  (struct-out StartMapPhase)
  (struct-out StartReducePhase)
@@ -26,6 +27,8 @@
  (struct-out MapTaskReqResp))
 
 (require
+ (only-in httpclient/uri
+          Uri parse-uri extend-path)
  (only-in "types.rkt"
           DynFn Block
           Map Write Sort Group))
@@ -38,6 +41,13 @@
 
 (struct: BlockMap ([src : Block]
                    [dest : (Listof Block)]))
+
+
+(struct: MapReduceStart 
+	 ([path : Uri] ; Path to source files, local directory, S3 prefix, etc.
+	  [split-size : Natural] ; Max size in bytes to chop large files into
+	  [task-size  : Natural] ; Size of Blocksets assigned as atomic map to partition work units.
+	  ) #:prefab)
 
 (struct: (A B) MRInit TaskMsg ([parser  : DynFn]
                                [mapper  : DynFn]

@@ -1,6 +1,8 @@
 #lang typed/racket/base
 
 (provide
+ n-rdd
+ n-blockset
  ;; ;; (struct-out RDDList)
 
  (struct-out RDDSeq)
@@ -14,6 +16,8 @@
 
 (require
  racket/pretty
+ (only-in httpclient/uri
+	  Uri)
  (only-in httpclient/uri/filescheme
           local-path->uri)
  (only-in mapred/types
@@ -22,7 +26,7 @@
           make-temporary-file)
  (only-in "../types.rkt"
           Range
-          Block BlockSet
+          Block BlockSet BlockSet-uri BlockSet-blocks
           RDD RDD-blocksets)          
  (only-in "../config.rkt" 
           DEFAULT-BLOCK-SIZE
@@ -87,3 +91,26 @@
 (: generate-rdd-block-filename (-> Path))
 (define (generate-rdd-block-filename)
   (make-temporary-file "rdd-~a.block" #f rdd-materialization-directory))
+
+;; Split a BlockSet into smaller blocksets no larger than N Blocks in size.
+;; Does NOT split a Block.
+(: n-blockset (BlockSet Natural -> (Listof BlockSet)))
+(define (n-blockset blockset n)
+  (define uri (BlockSet-uri blockset))
+  (let: loop : (Listof BlockSet)  ((blocks     : (Listof Block)'())
+				   (blocksets  : (Listof BlockSet) '())
+				   (counter    : Natural n)
+				   (all-blocks : (Listof Block) (BlockSet-blocks blockset)))
+	(if (null? all-blocks)
+	    (cons (BlockSet uri blocks) blocksets)
+	    (if (zero? counter)
+		(loop '() (cons (BlockSet uri blocks) blocksets) n all-blocks)
+		(loop (cons (car all-blocks) blocks) blocksets (sub1 counter) (cdr all-blocks))))))
+
+;; Split an RDD into smaller BlockSets no larger than N of them.
+(: n-rdd (RDD Natural -> RDD))
+(define (n-rdd rdd n)
+  (RDD (apply append (map (λ: ((blockset : BlockSet))
+			      (n-blockset blockset n))
+			  (RDD-blocksets rdd)))))
+  
