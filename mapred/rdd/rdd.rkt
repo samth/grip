@@ -30,13 +30,13 @@
  (only-in "../blockset.rkt"
           blockset-count))
 
-					;(struct: (A B) RDD ([blocks : (Listof BlockSet)]))
+;;(struct: (A B) RDD ([blocks : (Listof BlockSet)]))
 
 (struct: (A B) RDDSeq ([xs : (Listof A)]))
 
 (struct: (A B) RDDList ([xs : (Listof A)]))
 
-					;(struct: (T) RDDList ([block : (Listof T)]))
+;;(struct: (T) RDDList ([block : (Listof T)]))
 
 ;;(struct: (A B) RDDFilter ([parent : (RDD A B)]
 ;;                          [filterfn : (B -> Boolean)]))
