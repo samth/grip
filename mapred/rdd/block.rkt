@@ -37,8 +37,7 @@
           Text)
  (only-in "../types.rkt"            
           Block Block-name Block-range
-          Range-sod Range-eod
-          RDDFile))
+          Range-sod Range-eod))
 
 (: open-text-block (Path Block -> Input-Port))
 (define (open-text-block work-dir block)

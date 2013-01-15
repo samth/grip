@@ -30,7 +30,7 @@
           Block-name
           BlockSet BlockSet-uri BlockSet-blocks Range
           Write Partition 
-          Block RDDFile)
+          Block)
  (only-in "blockset.rkt"
           blockset-count
           blockset-local-path
@@ -40,12 +40,11 @@
  (only-in "iterfile.rkt"
           OK IOResult))
 
-
 ;; REALLY DON"T NEED THIS AS WE ARE "STREAMING" THROUGH THE PARTITION STEP - KEEP AS REFERENCE FOR A BIT
 
 #| Iteratee which partitions fed data by the given partition function into multiple target files. |#
 
-;; TODO - Buffer and pre-shuffle, and segment each RDDFile into more than one giant block.
+;; TODO - Buffer and pre-shuffle, and segment each RDD into more than one giant block.
 ;; If sub sets of target partitions are required use -x extension for each.
 (: partition-iteratee (All (D) (Write D) (Partition D) (BlockSet D) -> (Iteratee D (BlockSet D))))
 (define (partition-iteratee writer partitioner partition-blockset)

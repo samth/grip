@@ -27,7 +27,7 @@
  (struct-out Block) 
  (struct-out BlockSet)                   
  (struct-out Range)
- (struct-out RDDFile)
+ (struct-out RDD)
  GroupCompare
  TextRecord TextReader Transform
  Status (struct-out Success) (struct-out Failure) OK
@@ -49,7 +49,7 @@
                 [fn     : Symbol]) #:prefab)
 
 ;;; an RDD is a set of distributed blocks
-(struct: (A) RDDFile ([blocksets : (Listof BlockSet)]) #:transparent)
+(struct: (A) RDD ([blocksets : (Listof BlockSet)]) #:transparent)
   ;#:methods gen:custom-write [(define write-proc (λ (rddfile outp mode)
   ;                                                 (display (format "#<RDDFile blocks=~s>" 
   ;                                                                  (length (RDDFile-blocks rddfile))) outp)))])

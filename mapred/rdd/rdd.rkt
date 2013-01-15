@@ -1,12 +1,11 @@
 #lang typed/racket/base
 
 (provide
- RDD 
  ;; ;; (struct-out RDDList)
- ;; (struct-out RDDFile)
+
  (struct-out RDDSeq)
  (struct-out RDDList)
- (struct-out RDDFilter)
+ ;;(struct-out RDDFilter)
  (struct-out RDDMap)
  (struct-out RDDPrint)
  generate-rdd-block-filename
@@ -24,50 +23,50 @@
  (only-in "../types.rkt"
           Range
           Block BlockSet
-          RDDFile RDDFile-blocksets)          
+          RDD RDD-blocksets)          
  (only-in "../config.rkt" 
           DEFAULT-BLOCK-SIZE
           rdd-materialization-directory)
  (only-in "../blockset.rkt"
           blockset-count))
 
-;(struct: (A B) RDDFile ([blocks : (Listof BlockSet)]))
+					;(struct: (A B) RDD ([blocks : (Listof BlockSet)]))
 
 (struct: (A B) RDDSeq ([xs : (Listof A)]))
 
 (struct: (A B) RDDList ([xs : (Listof A)]))
 
-;(struct: (T) RDDList ([block : (Listof T)]))
+					;(struct: (T) RDDList ([block : (Listof T)]))
 
-(struct: (A B) RDDFilter ([parent : (RDD A B)]
-                          [filterfn : (B -> Boolean)]))
+;;(struct: (A B) RDDFilter ([parent : (RDD A B)]
+;;                          [filterfn : (B -> Boolean)]))
 
 (struct: (A B) RDDMap ([parent : RDD]
                        [cvt    : (A -> B)]))
 
 (struct: (A B) RDDPrint ([parent : RDD]))
 
-(define-type (RDD A B) ((RDDFilter A B)
-                        (RDDMap A B)
-                        ;(RDDFile A B)
-                        (RDDSeq A B)
-                        (RDDPrint A B)))
+;; (define-type (RDD A B) ((RDDFilter A B)
+;;                         (RDDMap A B)
+;;                         ;(RDD A B)
+;;                         (RDDSeq A B)
+;;                         (RDDPrint A B)))
 
 ;; Build RDD from an input path
-(: rdd-text (case-> (Path -> (RDDFile Text))
-                    (Path Natural -> (RDDFile Text))))
+(: rdd-text (case-> (Path -> (RDD Text))
+                    (Path Natural -> (RDD Text))))
 (define (rdd-text base-dir-path [block-size DEFAULT-BLOCK-SIZE])
-  (RDDFile (list (BlockSet (local-path->uri base-dir-path)
-                           (apply append (map (λ: ((file-name : Path)) 
-                                                (let ((full-path (path->complete-path file-name base-dir-path)))                                  
-                                                  (n-block (path->string file-name) (file-size full-path) block-size)))
-                                              (directory-list base-dir-path)))))))
-  
-(: rddfile-block-count (RDDFile -> Integer))
+  (RDD (list (BlockSet (local-path->uri base-dir-path)
+		       (apply append (map (λ: ((file-name : Path)) 
+					      (let ((full-path (path->complete-path file-name base-dir-path)))
+						(n-block (path->string file-name) (file-size full-path) block-size)))
+					  (directory-list base-dir-path)))))))
+
+(: rddfile-block-count (RDD -> Integer))
 (define (rddfile-block-count rdd)
   (define: total : Natural 0)
-  (for ((blockset (RDDFile-blocksets rdd)))    
-      (set! total (+ total (blockset-count blockset))))
+  (for ((blockset (RDD-blocksets rdd)))    
+    (set! total (+ total (blockset-count blockset))))
   total)
 
 (: n-block (String Nonnegative-Integer Nonnegative-Integer -> (Listof Block)))

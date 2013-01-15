@@ -41,9 +41,7 @@
           DynFn TextParse Write Map Group
           Block Block-name Block-range 
           Range-sod Range-eod 
-          RDDFile RDDFile-blocksets)
- (only-in "tasktrack.rkt"
-          make-tracker Tracker todo-count))
+          RDD RDD-blocksets))
 
 (struct: (A B) MapDynFn1 ([module : Module-Path]
                           [fn     : Symbol]) #:transparent)                
@@ -101,31 +99,31 @@
 	       (semaphore-post notify))))
   (void))
 
-(: shuffle-rdd (All (A) (RDDFile A) -> (RDDFile A)))
+(: shuffle-rdd (All (A) (RDD A) -> (RDD A)))
 (define (shuffle-rdd rddfile)
   rddfile)
 
-(: reduce-rdd (All (A B) (RDDFile A) MapDynFn1 -> (RDDFile B)))
+(: reduce-rdd (All (A B) (RDD A) MapDynFn1 -> (RDD B)))
 (define (reduce-rdd rddfile dynfn)
   rddfile)
 
-(: map-rdd (All (A B) MapDynFn1 (RDDFile A) -> (RDDFile B)))
+(: map-rdd (All (A B) MapDynFn1 (RDD A) -> (RDD B)))
 (define (map-rdd dynfn rddfile) 
   
   (log-mr-info "Performing map step on ~s with ~s" rddfile dynfn)
   
   
-  ((inst RDDFile Void) '()))
+  ((inst RDD Void) '()))
 
-(: map-reduce (All (A) (RDDFile A) TextParse Map Write Group -> Void))
+(: map-reduce (All (A) (RDD A) TextParse Map Write Group -> Void))
 (define (map-reduce rddfile parser mapper writer grouper)  
   
 					;(define: tracker : (Tracker Block)
-					;  (make-tracker (list->set (RDDFile-blocks rddfile))))
+					;  (make-tracker (list->set (RDD-blocks rddfile))))
   
   (define: venues : (Listof Venue) (spawn-venues (processor-count)))
   
-					;(let: ((rdd : (RDDFile A)   (map-rdd map-dynfn rddfile)))
-					;  (let: ((rdd : (RDDFile A) (shuffle-rdd rdd)))
+					;(let: ((rdd : (RDD A)   (map-rdd map-dynfn rddfile)))
+					;  (let: ((rdd : (RDD A) (shuffle-rdd rdd)))
 					;    (reduce-rdd rdd reduce-dynfn)
   (void))
