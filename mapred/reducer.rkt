@@ -55,37 +55,40 @@
  (only-in "file-fetchstore.rkt"
 	  file-blockset-iteratee))
 
-(define-type (S3PutStore E)  (Iteratee E (BlockSet E)))
-(define-type (BlockSetIteratee D) (Iteratee D (BlockSet D)))
-(define-type (MergeSort D E) (Enumerator D (Iteratee (Listof D) (Iteratee E (BlockSet E)))))
+(define-type (BlockSetI D) (Iteratee D (BlockSet D)))
 
-(require
- (only-in httpclient/uri/filescheme
-	  local-path->uri))
+;; FIXME RPR - Oleg's namings are just too ... odd.
+;; Iteratee   -> Sink
+;; Enumerator -> Source
+;; Enumeratee -> Pipe
+
+;;(define-type (S3PutStore E)  (BlockSetI E))
+(define-type (MergeSort D E) (Enumerator D (Iteratee (Listof D) (BlockSetI E))))
+(define-type (ReduceToBlockSetI D E) (Iteratee (Listof D) (BlockSetI E)))
+(define-type (ReducerT D E) (Enumeratee (Listof D) E (BlockSet E)))
+(define-type (GrouperT D E) (Enumeratee D (Listof D) (BlockSetI E)))
+(define-type (ReducerI D E) (Iteratee D (ReduceToBlockSetI D E)))
 
 (: reduce-computation (All (D E)
 			   (MergeSort D E)
 			   (Reduce D E)
 			   (GroupCompare D)
-			   (BlockSetIteratee E) -> 
+			   (BlockSetI E) -> 
 			   (BlockSet E)))
-(define (reduce-computation enum reduce-fn comparer iter)
-  (let*: ((enumT-reduce    : (Enumeratee (Listof D) E (BlockSet E)) (enumeratee-flatmap reduce-fn))
-	  (iter-reduce     : (Iteratee (Listof D) (Iteratee E (BlockSet E))) (enumT-reduce iter))	  
-	  (enumT-lst       : (Enumeratee D (Listof D) (Iteratee E (BlockSet E))) (enumeratee-groupby comparer))
-	  (iter-lst-reduce : (Iteratee D (Iteratee (Listof D) (Iteratee E (BlockSet E)))) (enumT-lst iter-reduce)))
- 	 (icomplete (icomplete (icomplete (enum iter-lst-reduce))))))
-;	  (BlockSet (local-path->uri (string->path "/tmp")) '())))
+(define (reduce-computation partition-merge-sort-enum reduce-fn comparer iter)
+  (let*: ((enumT-reduce    : (ReducerT D E) (enumeratee-flatmap reduce-fn))
+	  (iter-reduce     : (ReduceToBlockSetI D E) (enumT-reduce iter))	  
+	  (enumT-lst       : (GrouperT D E) (enumeratee-groupby comparer))
+	  (iter-lst-reduce : (ReducerI D E) (enumT-lst iter-reduce)))
+ 	 (icomplete (icomplete (icomplete (partition-merge-sort-enum iter-lst-reduce))))))
 
-
-;(: reducer (All (D E) (Enumerator D (Iteratee (Listof D) (Iteratee E (BlockSet E)))) (Reducer D E) (GroupComparer D) (Iteratee E (BlockSet E)) -> (BlockSet E)))
-;(define (reducer enum reduce-fn comparer iter)
-;  (let*: ((enumT-tx  : (Enumeratee (Listof D) E (BlockSet E)) (enumeratee-flatmap reduce-fn))              
-;          (iter-reduce : (Iteratee (Listof D) (Iteratee E (BlockSet E))) (enumT-tx iter)))
-;    (let*: ((enumT-lst : (Enumeratee  D (Listof D) (Iteratee E (BlockSet E))) (enumeratee-groupby comparer))
-;            (iter-lst-reduce : (Iteratee D (Iteratee (Listof D) (Iteratee E (BlockSet E)))) (enumT-lst iter-reduce)))
-;      (icomplete (icomplete (icomplete (enum iter-lst-reduce)))))))
-
+;;(: reducer (All (D E) (Enumerator D (Iteratee (Listof D) (Iteratee E (BlockSet E)))) (Reducer D E) (GroupComparer D) (Iteratee E (BlockSet E)) -> (BlockSet E)))
+;;(define (reducer enum reduce-fn comparer iter)
+;;  (let*: ((enumT-tx  : (Enumeratee (Listof D) E (BlockSet E)) (enumeratee-flatmap reduce-fn))              
+;;          (iter-reduce : (Iteratee (Listof D) (Iteratee E (BlockSet E))) (enumT-tx iter)))
+;;    (let*: ((enumT-lst : (Enumeratee  D (Listof D) (Iteratee E (BlockSet E))) (enumeratee-groupby comparer))
+;;            (iter-lst-reduce : (Iteratee D (Iteratee (Listof D) (Iteratee E (BlockSet E)))) (enumT-lst iter-reduce)))
+;;      (icomplete (icomplete (icomplete (enum iter-lst-reduce)))))))
 
 #| 
 1) Fetch each block in a BlockSet from S3 (all are in a given partition)
@@ -112,10 +115,9 @@
 					     (S3Partition-partition-id partition))))
   
   (enumerator/select-from-n-lists (fetch-sorted-text-blocks partition parser sorter) sorter))
-    
 
-;(: reduce-partition/text (All (D E) S3Partition (TextParse D) (Sort D) (Reduce D E) (GroupCompare E) (Write E) (S3PutStore E) -> (BlockSet E)))
-;(define (reduce-partition/text s3-partition parser sorter reducer comparer writer s3-putter)
-;  (define: enum : (MergeSort  D E) (fetch-build-n-merge-sort-enumerator s3-partition parser sorter))
-;  (reduce-computation enum reducer comparer s3-putter))
+;;(: reduce-partition/text (All (D E) S3Partition (TextParse D) (Sort D) (Reduce D E) (GroupCompare E) (Write E) (S3PutStore E) -> (BlockSet E)))
+;;(define (reduce-partition/text s3-partition parser sorter reducer comparer writer s3-putter)
+;;  (define: enum : (MergeSort  D E) (fetch-build-n-merge-sort-enumerator s3-partition parser sorter))
+;;  (reduce-computation enum reducer comparer s3-putter))
 
