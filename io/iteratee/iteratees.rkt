@@ -19,7 +19,7 @@
 #lang typed/racket/base
 
 (provide
- list-iteratee
+ lister
  counter drop 
  head head-n
  sum 
@@ -37,10 +37,10 @@
   (: step (Integer -> ((Stream D) -> (Iteratee D Integer))))
   (define (step n)
     (λ: ((str : (Stream D)))
-      (match str
-        ['Nothing  (Continue (step n))]
-        ['EOS      (Done 'EOS n)]
-        [_         (Continue (step (add1 n)))])))
+	(match str
+	  ['Nothing  (Continue (step n))]
+	  ['EOS      (Done 'EOS n)]
+	  [_         (Continue (step (add1 n)))])))
   (Continue (step 0)))
 
 (: drop (All (D) Integer -> (Iteratee D Void)))
@@ -48,10 +48,10 @@
   (: step (-> ((Stream D) -> (Iteratee D Void))))
   (define (step) 
     (λ: ((str : (Stream D)))
-      (match str
-        ['Nothing  (Continue (step))]
-        ['EOS      (Done 'EOS (void))]
-        [_         (drop (sub1 n))])))
+	(match str
+	  ['Nothing  (Continue (step))]
+	  ['EOS      (Done 'EOS (void))]
+	  [_         (drop (sub1 n))])))
   (if (zero? n)
       (Done 'Nothing (void))
       (Continue (step))))
@@ -76,10 +76,10 @@
     (: step (Integer (Listof D) -> ((Stream D) -> (Iteratee D (Listof D)))))
     (define (step n accum)
       (λ: ((s : (Stream D)))
-        (cond
-          [(eq? s 'Nothing) (Continue  (step n accum))]
-          [(eq? s 'EOS)     (Done 'EOS (reverse accum))]
-          [else             (head-n-accum (sub1 n) (cons s accum))])))
+	  (cond
+	   [(eq? s 'Nothing) (Continue  (step n accum))]
+	   [(eq? s 'EOS)     (Done 'EOS (reverse accum))]
+	   [else             (head-n-accum (sub1 n) (cons s accum))])))
     
     (if (zero? n)
         (Done 'Nothing (reverse accum))
@@ -87,45 +87,45 @@
   
   (head-n-accum n '()))
 
-(: list-iteratee (All (D) (-> (Iteratee D (Listof D)))))
-(define (list-iteratee)
+(: lister (All (D) (-> (Iteratee D (Listof D)))))
+(define (lister)
   
   (: step ((Listof D) -> ((Stream D) -> (Iteratee D (Listof D)))))
   (define (step lst)
     (λ: ((s : (Stream D)))
-      (cond
-        [(eq? s 'Nothing)
-         (Continue (step lst))]
-        [(eq? s 'EOS)
-         (Done 'EOS (reverse lst))]
-        [else (Continue (step (cons s lst)))])))
+	(cond
+	 [(eq? s 'Nothing)
+	  (Continue (step lst))]
+	 [(eq? s 'EOS)
+	  (Done 'EOS (reverse lst))]
+	 [else (Continue (step (cons s lst)))])))
   
   (Continue (step '())))
-          
+
 ;; Predicate Iteratees
 
 ;; All datum elements satisfy the given predicate
 (: and-iteratee (All (D) ((D -> Boolean) -> (Iteratee D Boolean))))
 (define (and-iteratee pred)
-    
+  
   (: step ((Stream D) -> (Iteratee D Boolean)))
   (define (step input)
     (cond
-      [(eq? input 'Nothing)  (Continue step)]
-      [(eq? input 'EOS)      (Done 'EOS #t)]
-      [else (if (pred input) (Continue step) (Done input #f))]))
+     [(eq? input 'Nothing)  (Continue step)]
+     [(eq? input 'EOS)      (Done 'EOS #t)]
+     [else (if (pred input) (Continue step) (Done input #f))]))
   
   (Continue step))
 
-  (: sum (-> (Iteratee Integer Integer)))
+(: sum (-> (Iteratee Integer Integer)))
 (define (sum)
   (: step (Integer -> ((Stream Integer) -> (Iteratee Integer Integer))))
   (define (step total)
     (λ: ((str : (Stream Integer)))
-      (cond
-        ([number? str] (Continue (step (+ str total))))
-        [(eq? str 'Nothing) (Continue (step total))]
-        [(eq? str 'EOS)     (Done 'EOS total)])))
+	(cond
+	 ([number? str] (Continue (step (+ str total))))
+	 [(eq? str 'Nothing) (Continue (step total))]
+	 [(eq? str 'EOS)     (Done 'EOS total)])))
   (Continue (step 0)))
 
 (: print (All (D) (Output-Port -> (Iteratee D Void))))
@@ -133,12 +133,12 @@
   (: step ((Stream D) -> (Iteratee D Void)))
   (define step
     (λ: ((str : (Stream D)))
-      (match str
-        ('Nothing (Continue step))
-        ('EOS     (Done 'EOS (void)))
-        (s        (begin
-                    (write s outp)
-                    (Continue step))))))
+	(match str
+	  ('Nothing (Continue step))
+	  ('EOS     (Done 'EOS (void)))
+	  (s        (begin
+		      (write s outp)
+		      (Continue step))))))
   (Continue step))
 
 ;; silly example
@@ -147,12 +147,12 @@
   (: step (String -> ((Stream String) -> (Iteratee String String))))
   (define (step str)   
     (λ: ((elem : (Stream String)))
-      (cond
-        ((eq? elem 'Nothing) 
-         (Continue (step str)))
-        ((eq? elem 'EOS)     
-         (Done 'EOS (string-upcase str)))
-        (else (Continue (step (string-append " " elem str)))))))
+	(cond
+	 ((eq? elem 'Nothing) 
+	  (Continue (step str)))
+	 ((eq? elem 'EOS)     
+	  (Done 'EOS (string-upcase str)))
+	 (else (Continue (step (string-append " " elem str)))))))
   (Continue (step "")))
 
 ;; silly example
@@ -161,10 +161,10 @@
   (: step (String -> ((Stream String) -> (Iteratee String String))))
   (define (step str)
     (λ: ((elem : (Stream String)))
-      (cond
-        ((eq? elem 'Nothing) 
-         (Continue (step str)))
-        ((eq? elem 'EOS)
-         (Done 'EOS (list->string (reverse (string->list str)))))
-        (else       (Continue (step (string-append elem str)))))))
+	(cond
+	 ((eq? elem 'Nothing) 
+	  (Continue (step str)))
+	 ((eq? elem 'EOS)
+	  (Done 'EOS (list->string (reverse (string->list str)))))
+	 (else       (Continue (step (string-append elem str)))))))
   (Continue (step str)))
