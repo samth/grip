@@ -1,6 +1,25 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's Munger API Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket
 
 (provide 
+ (struct-out S3Partition)
  (struct-out DynFn)
  Text Date Num Url
  Fields TextFields
@@ -9,10 +28,13 @@
  (struct-out BlockSet)                   
  (struct-out Range)
  (struct-out RDDFile)
+ GroupCompare
  TextRecord TextReader Transform
  Status (struct-out Success) (struct-out Failure) OK
- TextParser Writer Sorter Mapper Grouper Partitioner Partition
- BlockFormatter)
+ TextParse Write Sort Group 
+ Partition ;Partition
+ Map Reduce
+ BlockFormat)
 
 (require
  (only-in httpclient/uri
@@ -51,16 +73,21 @@
 
 (define-type Transform (Record -> Record))
 
-;; Get rid of this.
-(define-type (BlockFormatter A) ((Block A) -> (Listof A)))
+(define-type (BlockFormat A) (Uri (Block A) -> (Listof A)))
 
-(define-type (TextParser D)  (Text -> D))
-(define-type (Mapper D E)    (D -> E))
-(define-type (Writer A)      (A Output-Port -> Void))
-(define-type (Sorter A)      (A A -> Boolean))
-(define-type (Partitioner A) (A -> Index))
-(define-type (Partition D)   (Vectorof (RDDFile D)))
-(define-type (Grouper D)     (D -> Index))
+(define-type (GroupCompare D) (D D -> Boolean)) ;; to do D's have the same key
+(define-type (TextParse D) (Text -> D))
+(define-type (Map D E) (D -> E))
+(define-type (Reduce A B) ((Listof A) -> B))
+(define-type (Write A) (A Output-Port -> Void))
+(define-type (Sort A) (A A -> Boolean))
+(define-type (Partition A) (A -> Index))
+;; (define-type (Partition D)   (Vectorof (RDDFile D)))
+(define-type (Group D) (D -> Index))
+
+(struct: S3Partition ([bucket : String]
+		      [job-id  : Natural]
+		      [partition-id   : Natural]))		       
 
 (struct: Range ([sod : Natural]
                 [eod : Natural]) #:transparent)
@@ -75,7 +102,7 @@
 ;; such as S3 and an OS.
 ;; A Block is a chunk of semi/structured data subject to manipulation
 (struct: (D) Block ([name : String]
-                    [range : Range]) #:transparent)
+                    [range : (Option Range)]) #:transparent)
                 
 (struct: (D) BlockSet ([uri : Uri]
                        [blocks : (Listof Block)]) #:transparent)
