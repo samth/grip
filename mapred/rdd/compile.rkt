@@ -15,7 +15,7 @@
           IOResult)
  (only-in "../../io/iteratee/enumeratees.rkt"
           enumeratee-filter
-          enumeratee-transform)
+          enumeratee-map)
  (only-in "../../io/iteratee/enumerators.rkt"
           enumerator/list)
  (only-in "../../io/iteratee/iterfile.rkt"
@@ -37,7 +37,7 @@
 (: compile-map (All (O I) RDDMap -> (Enumeratee O I RDDResult)))
 (define (compile-map rdd-map)
   (define: cvt : (O -> I) (RDDMap-cvt rdd-map))
-  (enumeratee-transform cvt))
+  (enumeratee-map cvt))
 
 (: compile-filter (All (T) RDDFilter -> (Enumeratee T T RDDResult)))
 (define (compile-filter rdd-filter)

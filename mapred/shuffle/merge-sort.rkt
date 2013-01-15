@@ -1,54 +1,66 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's Munger Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#| Given a set of blocks merge-sort transform it into an Enumerator of grouped records by a key. i.e.  Reducer ready. |#
+
 #lang typed/racket/base
 
-(provide 
- ;;inmemory-sort-blocks-and-mergesort-to-disc 
- blocks-merge-sort) 
+(provide:
+ (parse-block-sort-in-mem (All (D) Uri (Block D) (TextParse D) (Sort D) -> (Listof D)))
+ (sorted-blockset-enumerator (All (D E) (BlockSet D) (TextParse D) (Sort D) -> (Enumerator D E))))
 
 (require 
+ (only-in prelude/std/prelude
+          identityof)
+ (only-in httpclient/uri
+          Uri)
+ (only-in httpclient/uri/filescheme
+          local-file-uri->path)
  (only-in io/iteratee/iteratee          
           Iteratee Enumerator icomplete)
  (only-in io/iteratee/enumerators          
           enumerator/select-from-n-lists) 
- (only-in mapred/iterfile
-          iter-block)     
- (only-in "../types.rkt"
-          Block RDDFile
-          BlockFormatter Sorter Writer )
- (only-in "../rdd/rdd.rkt"
-          generate-rdd-block-filename))
+ (only-in io/iteratee/iteratees
+          lister)
+ (only-in "../types.rkt"  
+          TextParse
+          BlockSet BlockSet-uri BlockSet-blocks 
+          Block
+          Sort)
+ (only-in "../rdd/block.rkt"
+          enum/text-block))
 
-(: merge-sort-rdd (All (D) (RDDFile D) -> (RDDFile D)))
-(define (merge-sort-rdd rddfile)
-  rddfile)
+#| Load an entire partition into memory, create a from memory partition sorted enumerator ready to be fed to a Reducer. |#
+#| Obvious constraint here is that a MR partition need to fit into memory. Any MR key's data must fit into a partition, hence into memory. |#
 
-(: inmem-block-sort (All (D) (Block D) (BlockFormatter D) (Sorter D) -> (Listof D)))
-(define (inmem-block-sort block formatter sorter)
-  (sort (formatter block) sorter))
+(: parse-block-sort-in-mem (All (D) Uri (Block D) (TextParse D) (Sort D) -> (Listof D)))
+(define (parse-block-sort-in-mem uri block parser sorter)  
+  (let: ((enum : (Enumerator D (Listof D)) (enum/text-block (local-file-uri->path uri) 
+                                                            block parser (identityof D)))
+         (iter : (Iteratee D (Listof D)) (lister)))
+    (sort (icomplete (enum iter)) sorter)))
 
-(: inmemory-sort-blocks-and-mergesort-to-disc (All (D) (Listof (Block D)) (BlockFormatter D) (Sorter D) (Writer D) -> (Listof (Block D))))
-(define (inmemory-sort-blocks-and-mergesort-to-disc blocks formatter sorter writer)
-  (let: ((sorted-blocks : (Listof (Listof D))
-                        (map (λ: ((block : (Block D)))
-                               (inmem-block-sort block formatter sorter))
-                             blocks)))    
-    (merge-sort-inmem-blocks-to-disc sorted-blocks sorter writer)))
+(: sorted-blockset-enumerator (All (D E) (BlockSet D) (TextParse D) (Sort D) -> (Enumerator D E)))
+(define (sorted-blockset-enumerator blockset parser sorter)
+  (define: uri : Uri (BlockSet-uri blockset))
+  (define: data : (Listof (Listof D)) 
+    (map (λ: ((block : Block))
+	     (parse-block-sort-in-mem uri block parser sorter))
+         (BlockSet-blocks blockset)))
+  (enumerator/select-from-n-lists data sorter))
 
-(: merge-sort-blocks-to-disc (All (D) (Listof (Block D)) (BlockFormatter D) (Sorter D) (Writer D) -> (Listof (Block D))))
-(define (merge-sort-blocks-to-disc blocks formatter sorter writer)
-  (let ((lblocks (map formatter blocks)))
-    (merge-sort-inmem-blocks-to-disc lblocks sorter writer)))
-
-(: merge-sort-inmem-blocks-to-disc (All (D) (Listof (Listof D)) (Sorter D) (Writer D) -> (Listof (Block D))))
-(define (merge-sort-inmem-blocks-to-disc lst-data sorter writer)
-  (let: ((enum : (Enumerator D (Listof (Block D))) (enumerator/select-from-n-lists lst-data sorter))
-         (iter : (Iteratee D (Listof (Block D)))   (iter-block (generate-rdd-block-filename) writer)))
-    (icomplete (enum iter))))
-
-;; Given a list of blocks, and the initial sort status, merge sort the blocks into a list of blocks.
-(: blocks-merge-sort (All (D) (Listof (Block D)) (BlockFormatter D) (Sorter D) (Writer D) Boolean -> (Listof (Block D))))
-(define (blocks-merge-sort blocks formatter sorter writer block-sorted?)
-  (let: ((sorted-blocks : (Listof (Block D))
-                        (if block-sorted? 
-                            blocks
-                            (inmemory-sort-blocks-and-mergesort-to-disc blocks formatter sorter writer))))
-    sorted-blocks))

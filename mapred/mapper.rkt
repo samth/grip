@@ -32,21 +32,21 @@
  (only-in httpclient/uri/filescheme
           local-file-uri->path)
  ;(only-in "config.rkt"
- ;         working-directory)
+ ;         working-directory) 
  (only-in aws/s3/invoke
           S3Response)
  (only-in "types.rkt" 
           Block
-          Writer TextParser Partition
+          Write TextParse Partition GroupCompare
           BlockSet BlockSet-blocks BlockSet-uri
-          Mapper Partitioner)
+          Map)
  (only-in io/iteratee/iteratee
           icomplete
           Enumerator Iteratee)
  (only-in "blockset.rkt"
           blockset-count
           local-file-blockset?)
- (only-in "fetchstore.rkt"
+ (only-in "s3-fetchstore.rkt"
           fetch-blockset
           store-blockset)
  (only-in "rdd/block.rkt"
@@ -63,14 +63,14 @@
 ;; Succeed or blow-up, there is no middle ground, workflow system deals with a failure.
 ;; BUT must be idempotent, workflow engine state-machine may invoke multiple times, e.g. retry, cluster failure etc.
 
-(: map-partition/text (All (D E) Path Uri (BlockSet D) (TextParser D) (Mapper D E) (Writer E) (Partitioner E) (BlockSet D) -> (Listof (BlockSet E))))
+(: map-partition/text (All (D E) Path Uri (BlockSet D) (TextParse D) (Map D E) (Write E) (Partition E) (BlockSet D) -> (Listof (BlockSet E))))
 (define (map-partition/text work-dir store-uri blockset parser mapper writer partitioner partition-blockset)
   
   (: working-blockset (BlockSet D))
   (define working-blockset 
     (if (local-file-blockset? blockset)
         blockset
-        (fetch-blockset blockset work-dir)))        
+        (fetch-blockset blockset work-dir)))  
   
   (: iter (Iteratee E (BlockSet E)))
   (define iter (partition-iteratee writer partitioner partition-blockset))

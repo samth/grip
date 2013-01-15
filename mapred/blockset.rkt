@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Ray Racine's MapReduce API Library
+;; Ray Racine's Munger API Library
 ;; Copyright (C) 2007-2013  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -84,7 +84,9 @@
   (let ((base (BlockSet-uri blockset)))
     (if (local-file-uri? base)        
         (local-file-uri->path base)
-        (error 'blockset-local-path "BlockSet base Uri has a host or is not a file scheme: ~s" base))))
+        (error 'blockset-local-path 
+               "BlockSet base Uri has a host or is not a file scheme: ~s" 
+               base))))
 
 (: blockset-build-local-paths (BlockSet -> (Listof Path)))
 (define (blockset-build-local-paths blockset)

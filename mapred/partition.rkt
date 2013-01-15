@@ -19,7 +19,7 @@
 #lang typed/racket/base
 
 (provide:
- [partition-iteratee (All (D) (Writer D) (Partitioner D) (BlockSet D) -> (Iteratee D (BlockSet D)))])
+ [partition-iteratee (All (D) (Write D) (Partition D) (BlockSet D) -> (Iteratee D (BlockSet D)))])
 
 (require 
  (only-in io/iteratee/iteratee
@@ -29,7 +29,7 @@
  (only-in "types.rkt"
           Block-name
           BlockSet BlockSet-uri BlockSet-blocks Range
-          Writer Partitioner Partition
+          Write Partition 
           Block RDDFile)
  (only-in "blockset.rkt"
           blockset-count
@@ -40,21 +40,24 @@
  (only-in "iterfile.rkt"
           OK IOResult))
 
-#| Iteratee which partitions fed data by the given patition function into multiple target files. |#
+
+;; REALLY DON"T NEED THIS AS WE ARE "STREAMING" THROUGH THE PARTITION STEP - KEEP AS REFERENCE FOR A BIT
+
+#| Iteratee which partitions fed data by the given partition function into multiple target files. |#
 
 ;; TODO - Buffer and pre-shuffle, and segment each RDDFile into more than one giant block.
 ;; If sub sets of target partitions are required use -x extension for each.
-(: partition-iteratee (All (D) (Writer D) (Partitioner D) (BlockSet D) -> (Iteratee D (BlockSet D))))
+(: partition-iteratee (All (D) (Write D) (Partition D) (BlockSet D) -> (Iteratee D (BlockSet D))))
 (define (partition-iteratee writer partitioner partition-blockset)
-    
+  
   (define: partition-count : Index (assert (blockset-count partition-blockset) index?))
-    
+  
   (define: block-paths : (Listof Path) (blockset-build-local-paths partition-blockset))
-   
+  
   (: open-all-partitions (-> (Vectorof Output-Port)))
   (define (open-all-partitions)
     (for/vector: : (Vectorof Output-Port) #:length partition-count ([path block-paths])
-      (open-output-file path #:mode 'text)))
+		 (open-output-file path #:mode 'text)))
   
   (: partition-ports (Vectorof Output-Port))
   (define partition-ports (open-all-partitions))
@@ -63,25 +66,25 @@
   (define (close-all-partitions)
     (for ([p partition-ports])
       (close-output-port p)))
-      
+  
   (: create-rddfile-result (-> (BlockSet D)))
   (define (create-rddfile-result)
     (define: path : Path (blockset-local-path partition-blockset))
     (let ((blocks (for/list: : (Listof (Block D)) ([block (BlockSet-blocks partition-blockset)])
-                    (let ((name (Block-name block)))
-                      (Block name (Range 0 (file-size (build-path path name))))))))
+			     (let ((name (Block-name block)))
+			       (Block name (Range 0 (file-size (build-path path name))))))))
       (BlockSet (BlockSet-uri partition-blockset) blocks)))
   
   (: step ((Stream D) -> (Iteratee D (BlockSet D))))
   (define (step s)    
     (cond
-      ([eq? s 'Nothing]
-       (Continue step))
-      ([eq? s 'EOS]
-       (close-all-partitions)
-       (Done 'EOS (create-rddfile-result)))
-      (else                
-       (writer s (vector-ref partition-ports (modulo (partitioner s) partition-count)))
-       (Continue step))))
+     ([eq? s 'Nothing]
+      (Continue step))
+     ([eq? s 'EOS]
+      (close-all-partitions)
+      (Done 'EOS (create-rddfile-result)))
+     (else                
+      (writer s (vector-ref partition-ports (modulo (partitioner s) partition-count)))
+      (Continue step))))
   
   (Continue step))
