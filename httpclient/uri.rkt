@@ -43,14 +43,14 @@
 (struct: Authority ([user : (Option String)]
                     [host : String]
                     [port : (Option Natural)])
-  #:transparent)
+  #:prefab)
 
 (struct: Uri ([scheme : String]
               [authority : (Option Authority)]
               [path : String]
               [query : (Option String)]
               [fragment : (Option String)])
-  #:transparent)
+  #:prefab)
 
 (: null-string? (String -> Boolean))
 (define (null-string? s)  

@@ -90,7 +90,7 @@
 		      [partition-id   : Natural]))		       
 
 (struct: Range ([sod : Natural]
-                [eod : Natural]) #:transparent)
+                [eod : Natural]) #:prefab)
 
 ;; Note the EOD marker is the exclusive marker of the position of the last record.
 ;; It may (most likely) indicates a position inside the last record.
@@ -102,7 +102,7 @@
 ;; such as S3 and an OS.
 ;; A Block is a chunk of semi/structured data subject to manipulation
 (struct: (D) Block ([name : String]
-                    [range : (Option Range)]) #:transparent)
+                    [range : (Option Range)]) #:prefab)
                 
 (struct: (D) BlockSet ([uri : Uri]
-                       [blocks : (Listof Block)]) #:transparent)
+                       [blocks : (Listof Block)]) #:prefab)

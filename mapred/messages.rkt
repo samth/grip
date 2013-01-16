@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Ray Racine's MapReduce API Library
+;; Ray Racine's Munger API Library
 ;; Copyright (C) 2007-2013  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -19,18 +19,14 @@
 #lang typed/racket/base
 
 (provide
- (struct-out MapReduceStart)
- (struct-out MRInit)
- (struct-out StartMapPhase)
- (struct-out StartReducePhase)
- (struct-out TaskMsg)
- (struct-out MapTaskReqResp))
+ (struct-out MapReduceStart) serialize-MapReduceStart-msg deserialize-MapReduceStart-msg
+ (struct-out MapToPartitionActivity))
 
 (require
  (only-in httpclient/uri
           Uri parse-uri extend-path)
  (only-in "types.rkt"
-          DynFn Block
+          DynFn Block BlockSet
           Map Write Sort Group))
 
 (struct: TaskMsg () #:prefab)
@@ -39,23 +35,33 @@
                                  [sod : Natural]
                                  [eod : Natural]) #:prefab)
 
-(struct: BlockMap ([src : Block]
-                   [dest : (Listof Block)]))
-
-
 (struct: MapReduceStart 
-	 ([path : Uri] ; Path to source files, local directory, S3 prefix, etc.
-	  [split-size : Natural] ; Max size in bytes to chop large files into
-	  [task-size  : Natural] ; Size of Blocksets assigned as atomic map to partition work units.
-	  ) #:prefab)
+	 ([path : Uri]            ; Path to source files, local directory, S3 prefix, etc.
+	  [split-size : Natural]  ; Max size in bytes to chop large files into
+	  [task-size  : Natural]) ; Size of Blocksets assigned as atomic map to partition work units.
+	 #:prefab)
 
-(struct: (A B) MRInit TaskMsg ([parser  : DynFn]
-                               [mapper  : DynFn]
-                               [writer  : DynFn]
-                               [sorter  : DynFn]
-                               [grouper : DynFn]
-                               [partitions : Index]) #:prefab)
+(struct: MapToPartitionActivity
+	 ([src-blockset : BlockSet]
+	  [out-path     : Path]
+	  [partitions   : (Listof String)])
+	 #:prefab)
 
-(struct: StartMapPhase    TaskMsg ([partition-count : Index]) #:prefab)
-(struct: StartReducePhase TaskMsg () #:prefab)
+;; (struct: (A B) MRInit TaskMsg ([parser  : DynFn]
+;;                                [mapper  : DynFn]
+;;                                [writer  : DynFn]
+;;                                [sorter  : DynFn]
+;;                                [grouper : DynFn]
+;;                                [partitions : Index]) #:prefab)
 
+(: serialize-MapReduceStart-msg (MapReduceStart -> String))
+(define (serialize-MapReduceStart-msg start-msg)
+  (let ((sout (open-output-string)))
+    (write start-msg sout) ;; FIXME RPR - User proper serialization FASL?
+    (close-output-port sout)
+    (get-output-string sout)))
+
+(: deserialize-MapReduceStart-msg (String -> MapReduceStart))
+(define (deserialize-MapReduceStart-msg msg-str)
+  (let ((sin (open-input-string msg-str)))
+    (cast (read sin) MapReduceStart)))
