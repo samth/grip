@@ -20,11 +20,7 @@
           Block
           DynFn DynFn-module DynFn-fn
           TextParse Map Write Group Partition)
- (only-in "messages.rkt"
-          MRInit
-          StartMapPhase StartReducePhase
-          TaskMsg
-          MapTaskReqResp)          
+ (only-in "messages.rkt")
 ; (only-in "rdd/block.rkt"
  ;         map/text-block)
  (only-in "partition.rkt"
