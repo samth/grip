@@ -23,6 +23,9 @@
  (struct-out MapToPartitionActivity))
 
 (require
+ (only-in prelude/type/struct
+	  serialize-struct-to-string
+	  deserialize-struct-from-string)
  (only-in httpclient/uri
           Uri parse-uri extend-path)
  (only-in "types.rkt"
@@ -56,12 +59,9 @@
 
 (: serialize-MapReduceStart-msg (MapReduceStart -> String))
 (define (serialize-MapReduceStart-msg start-msg)
-  (let ((sout (open-output-string)))
-    (write start-msg sout) ;; FIXME RPR - User proper serialization FASL?
-    (close-output-port sout)
-    (get-output-string sout)))
+  (serialize-struct-to-string start-msg)) ;; RPR FixMe - What is proper "serialization" method in TR? prefab??
 
 (: deserialize-MapReduceStart-msg (String -> MapReduceStart))
 (define (deserialize-MapReduceStart-msg msg-str)
-  (let ((sin (open-input-string msg-str)))
-    (cast (read sin) MapReduceStart)))
+  (deserialize-struct-from-string msg-str MapReduceStart))
+

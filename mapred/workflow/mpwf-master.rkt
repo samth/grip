@@ -31,6 +31,9 @@
  racket/match
  ;; (only-in racket/serialize DOESN'T WORK IN TR
  ;;	  deserialize)
+ (only-in prelude/type/struct
+	  serialize-struct-to-string
+	  deserialize-struct-from-string)
  (only-in format/json/tjson
           JsObject)
  (only-in httpclient/uri/filescheme
@@ -98,9 +101,7 @@
 
 (: serialize-blockset (BlockSet -> String))
 (define (serialize-blockset blockset)
-  (let ((sout (open-output-string)))
-    (write blockset sout)
-    (get-output-string sout)))
+  (serialize-struct-to-string blockset))
 
 ;; Process a MR workflow start.
 (: schedule-map-to-partition-activity-decision (BlockSet -> JsObject))
@@ -111,8 +112,7 @@
 
 (: read-mapreduce-start-message (String -> MapReduceStart))
 (define (read-mapreduce-start-message msg-str)
-  (let ((sin (open-input-string msg-str)))
-    (cast (read sin) MapReduceStart)))
+  (deserialize-struct-from-string msg-str MapReduceStart))
 
 (: decision-for-started-event (DecisionTask HistoryEvent -> Void))
 (define (decision-for-started-event decision event)
