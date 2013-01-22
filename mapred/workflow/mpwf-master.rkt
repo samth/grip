@@ -20,10 +20,8 @@
 
 #lang typed/racket/base
 
-(provide
- map-to-partition-decider)
-
 (provide:
+ [map-to-partition-decider (String -> Void)]
  [mapreduce-start (String MapReduceStart -> WorkflowExecution)]
  [start-mapwf-execution (String WorkflowType String -> WorkflowExecution)]
  [terminate-mapwf-execution (String WorkflowExecution [#:reason String] [#:details String]  -> Void)])
@@ -46,7 +44,7 @@
  (only-in aws/swf/types
 	  WorkflowType ActivityType
 	  WorkflowExecution WorkflowExecution-workflow-id WorkflowExecution-run-id)
- (only-in aws/swf/activity
+ (only-in aws/swf/task
 	  ActivityTask 
 	  DecisionTask DecisionTask-task-token
 	  poll-for-decision-task)
@@ -60,8 +58,7 @@
           attr-value-jsobject attr-value-jslist
           attr-value-integer attr-value-integer-opt
 	  attr-value-string attr-value-string-opt)
- (only-in "../logging.rkt"
-	  log-mr-info)
+ "../logging.rkt"
  (only-in "../types.rkt"
 	  BlockSet
 	  RDD RDD-blocksets)
@@ -141,14 +138,21 @@
 
 (: map-to-partition-decider (String -> Void))
 (define (map-to-partition-decider domain)
+  (log-mr-info "Master polling for decision task")
   (let ((task (poll-for-decision-task domain MR-TASK-LIST)))
+    (displayln "=============================================")
+    (displayln "=============================================")
     (pretty-print task)
+    (displayln "=============================================")
+    (displayln "=============================================")
     (match task
       ((and decision-task (DecisionTask task-token events next-page-token started-event-id previous-started-event-id workflow-execution workflow-type))
        (let ((history (list->vector events)))
 	 (if (zero? previous-started-event-id)
 	     (begin
 	       (log-mr-info "Processing ExecutionStarted")
-	       (decision-for-started-event decision-task (vector-ref history 0)))	     
-	     (log-mr-info "Unhandled ~s" decision-task))))
-      (else (log-mr-info "No pending decision activity - timeout")))))
+	       (decision-for-started-event decision-task (vector-ref history 0)))	  
+	     (log-mr-info "FIX ME Not handling decision task beyond started event."))))
+      (else (if task
+		(log-mr-error "Decision Task was not handled.")
+		(log-mr-info "No pending decision activity - timeout"))))))

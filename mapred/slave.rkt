@@ -1,36 +1,54 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's Munger API Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket/base
 
 ;(provide 
 ; taskrunner-handler
 ; (struct-out TaskRunner))
 
-(require 
- (only-in "prelude.rkt"
-          dynamic-require/cast)
- racket/match
- (only-in io/iteratee/iteratee
-          icomplete Iteratee)
- (only-in venue/venue
-          Venue start-venue
-          place-channel-get
-          place-channel-put)
- (only-in "logging.rkt"
-          log-mr-info)
- (only-in "types.rkt"
-          Block
-          DynFn DynFn-module DynFn-fn
-          TextParse Map Write Group Partition)
- (only-in "messages.rkt")
-; (only-in "rdd/block.rkt"
- ;         map/text-block)
- (only-in "partition.rkt"
-          partition-iteratee))
+;; (require 
+;;  racket/match
+;;  (only-in "prelude.rkt"
+;;           dynamic-require/cast)
+;;  (only-in io/iteratee/iteratee
+;;           icomplete Iteratee)
+;;  (only-in venue/venue
+;;           Venue start-venue
+;;           place-channel-get
+;;           place-channel-put)
+;;  (only-in "logging.rkt"
+;;           log-mr-info)
+;;  (only-in "types.rkt"
+;;           Block
+;;           DynFn DynFn-module DynFn-fn
+;;           TextParse Map Write Group Partition)
+;;  (only-in "messages.rkt")
+;;  ;; (only-in "rdd/block.rkt"
+;;  ;;         map/text-block)
+;;  (only-in "partition.rkt"
+;;           partition-iteratee))
 
-(struct: TaskRunner ([venue : Venue]))
+;;(struct: TaskRunner ([venue : Venue]))
 
-(: map-phase-completion-response (Place-Channel (Partition Any) -> Void))
-(define (map-phase-completion-response ch partitions)
-  (void))
+;; (: map-phase-completion-response (Place-Channel (Partition Any) -> Void))
+;; (define (map-phase-completion-response ch partitions)
+;;   (void))
 
 ;; A Slave in the mapper state accepts *only* map block requests 
 ;; and complete map phase msg.  Upon completion returns the parition

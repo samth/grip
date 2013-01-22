@@ -16,23 +16,36 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#| Handle master and slave process, venue the thread handling |#
+
 #lang typed/racket/base
 
-;; (struct: (A B) MapDynFn1 ([module : Module-Path]
-;;                           [fn     : Symbol]) #:transparent)                
+(provide
+ thread-launch-mp-worker
+ thread-launch-master-decider)
 
-;; (struct: Task ([type : (U 'Map 'Reduce)]
-;;                [blocks : (Listof Block)]))               
+(require 
+ (only-in httpclient/uri/guid
+	  guid)
+ "logging.rkt"
+ (only-in "workflow/mpwf-worker.rkt"
+	  map-to-partition-worker)
+ (only-in "workflow/mpwf-master.rkt"
+	  map-to-partition-decider))
 
-;; (struct: MapTask ([taskid : Natural]
-;;                   [block  : Block]
-;;                   [dynfn  : MapDynFn1])
-;; 	 #:transparent
-;; 	 #:methods gen:equal+hash
-;; 	 [(define (equal-proc mt1 mt2 rec?)
-;; 	    (equal? (MapTask-taskid mt1) (MapTask-taskid mt2)))
-;; 	  (define (hash-proc mt rec?)
-;; 	    (eqv-hash-code (MapTask-taskid mt)))
-;; 	  (define (hash2-proc mt rec?)
-;; 	    (eqv-hash-code (* 17 (MapTask-taskid mt))))])
+(: thread-launch-mp-worker (String -> Thread))
+(define (thread-launch-mp-worker domain)
+  (define identity (guid))
+  (log-mr-info "Launching map to partition worker.")
+  (thread (λ ()
+	     (let loop ()
+	       (map-to-partition-worker domain identity)
+	       (loop)))))
 
+(: thread-launch-master-decider (String -> Thread))
+(define (thread-launch-master-decider domain)
+  (log-mr-info "Launching MapReduce Master Decider")
+  (thread (λ ()
+	     (let loop ()
+	       (map-to-partition-decider domain)
+	       (loop)))))
