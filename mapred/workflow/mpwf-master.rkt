@@ -39,7 +39,7 @@
  (only-in aws/swf/workflow
 	  start-workflow-execution
 	  terminate-workflow-execution)
- (only-in aws/swf/historyevent
+ (only-in aws/swf/history
 	  HistoryEvent HistoryEvent-event-type HistoryEvent-attributes)
  (only-in aws/swf/types
 	  WorkflowType ActivityType
