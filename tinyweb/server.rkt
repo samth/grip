@@ -7,8 +7,6 @@
  (only-in "../httpclient/uri.rkt"
           http-path-path
           parse-http-path)
- (only-in "../httpclient/uri/path.rkt"
-          path-split)
  (only-in "../httpclient/http/http11.rkt"
           read-request-header)
  (only-in "log.rkt"

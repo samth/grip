@@ -15,7 +15,7 @@
  (only-in "../httpclient/uri.rkt"
           parse-http-path)
  (only-in "../httpclient/uri/path.rkt"
-          path-split)
+          uri-path-split)
  (only-in "log.rkt"
 	  www-log))
 
@@ -93,7 +93,7 @@
   (let ((http-path (RequestLine-path (RequestHeader-request request))))
     ;; (www-log "Full Request: ~s~%" request)
     ;; (www-log "HTTP Path: ~s~%" http-path)
-    (let ((path (path-split http-path)))
+    (let ((path (uri-path-split http-path)))
       ;; (www-log "URI Path: ~s~%" path)
       (let-values (((resource-handler path-remainder) (dispatch-path-on-tree path dispatch-tree (car dispatch-tree))))
 	;; (www-log "Handler: ~s~% Remainder: ~s~%" resource-handler remainder)
