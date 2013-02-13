@@ -12,11 +12,18 @@
  opt-filter
  opt-reject
  opt-foreach
- opt-apply-orelse)
+ opt-apply-orelse
+ opt-car)
 
 
 (require 
  "partialfn.rkt")
+
+(: opt-car (All (A) ((Listof A) -> (Option A))))
+(define (opt-car lst)
+  (if (pair? lst)
+      (car lst)
+      #f))
 
 ;; Is the Option value not defined.
 (: opt-undefined? (All (a) (Option a) -> Boolean))
