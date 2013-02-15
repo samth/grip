@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide:
- [gseries-count (All (A) (GSeries A) -> Nonnegative-Integer)])
+ [gseries-count (GSeries -> Natural)])
 
 (provide
  SIndex
@@ -89,7 +89,7 @@
 (define (series-ref series label)
   (series-iref series (label->idx series label)))
 
-(: gseries-count (All (A) (GSeries A) -> Nonnegative-Integer))
+(: gseries-count (GSeries -> Nonnegative-Integer))
 (define (gseries-count series)
   (vector-length (GSeries-data series)))
 

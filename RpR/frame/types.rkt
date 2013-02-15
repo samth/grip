@@ -11,4 +11,4 @@
 
 (struct: Dim ([rows : Integer]
               [cols : Integer])
-  #:methods gen:custom-write [(define write-proc writer-Dim)])
+	 #:methods gen:custom-write [(define write-proc writer-Dim)])

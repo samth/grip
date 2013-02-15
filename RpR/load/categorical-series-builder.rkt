@@ -77,7 +77,6 @@
     (let* ((data (CSeriesBuilder-data builder))
            (curr-len (vector-length data))
            (new-len (assert (inexact->exact (round (* 2.0 curr-len))) exact-integer?)))
-      (displayln (format "Extending from ~s to ~s" curr-len new-len))
       (let: ((new-data : (Vectorof Index) (make-vector new-len 0)))
         ((inst vector-copy! Index) new-data 0 data)
         (set-CSeriesBuilder-data! builder new-data))))

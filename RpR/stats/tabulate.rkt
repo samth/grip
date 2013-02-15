@@ -8,12 +8,21 @@
  [categorize (NSeries Binning -> CSeries)]
  [tabulate (CSeries -> Tabulation)]
  [ntabulate (NSeries [#:algo Binning-Algo] -> NTabulation)]
- [ntabulation->tabulation (NTabulation -> Tabulation)])
+ [ntabulation->tabulation (NTabulation -> Tabulation)]
+ [frame-cseries-tabulate (Frame Symbol -> Frame)])
 
 (require 
  (only-in "../frame/series.rkt"
-          Label))
-  
+          Label)
+ (only-in "../frame/categorical-series.rkt"
+	  new-CSeries)
+ (only-in "../frame/integer-series.rkt"
+	  new-ISeries)
+ (only-in "../frame/frame.rkt"
+	  Frame
+	  new-frame
+	  frame-cseries))
+	    
   (: generate-anon-labels (Integer -> (Listof Label)))
   (define (generate-anon-labels n)
     
@@ -60,10 +69,16 @@
   [vector-copy (All (A) ((Vectorof A) -> (Vectorof A)))])
 
 (struct: Tabulation ([nominals : (Vectorof Symbol)]
-                     [counts : (Vectorof Natural)]) #:transparent)
+                     [counts : (Vectorof Fixnum)]) #:transparent)
 
 (struct: Binning ([breaks : FlVector]
                   [nominals : Labeling]) #:transparent)
+
+(: frame-cseries-tabulate  (Frame Symbol -> Frame))
+(define (frame-cseries-tabulate frame symbol)
+  (let ((tab (tabulate (frame-cseries frame symbol))))
+    (new-frame (list (cons symbol (new-CSeries (Tabulation-nominals tab)))
+		     (cons 'freq (new-ISeries (Tabulation-counts tab) #f))))))
 
 (: tabulate (CSeries -> Tabulation))
 (define (tabulate catseries)    
@@ -71,11 +86,12 @@
         (data      (CSeries-data catseries)))
     (let ((noms-sz (vector-length nominals))
           (data-len (vector-length data)))
-      (let: ((cnts : (Vectorof Natural)    (make-vector noms-sz 0))
+      (let: ((cnts : (Vectorof Fixnum)    (make-vector noms-sz 0))
              (nominals : (Vectorof Symbol) (vector-copy nominals)))
         (do ([i 0 (add1 i)])
           ([>= i data-len] (Tabulation nominals cnts))
-          (vadd1 cnts (vector-ref data i)))))))
+	  (let ((idx (vector-ref data i)))
+	    (vector-set! cnts idx (assert (add1 (vector-ref cnts idx)) index?))))))))
 
 ;; Numeric Series Tabulations
 
@@ -85,7 +101,7 @@
 
 (struct: NTabulation ([start  : Float]
                       [width  : Float]
-                      [counts : (Vectorof Natural)]) #:transparent)
+                      [counts : (Vectorof Fixnum)]) #:transparent)
 
 (define-type Binning-Algo
   (U 'Fixed 'Struges 'Doane 'Scott 'Sqr 'Freedman-Diaconis))
@@ -144,10 +160,11 @@
   (define bin-count (strudges-bin-count (Summary-count summary-data)))
   (define bin-width (exact->inexact (determine-width-or-bin-count min-x max-x bin-count)))
   (define breaks (NSeries-data (generate-NSeries min-x max-x #:by bin-width)))  
-  (define: counts : (Vectorof Natural) (make-vector bin-count 0))  
+  (define: counts : (Vectorof Fixnum) (make-vector bin-count 0))  
   (do ([i 0 (add1 i)])
     ([>= i data-length] (NTabulation min-x bin-width counts))    
-    (vadd1 counts (pigeon-by-breaks breaks (flvector-ref data i)))))
+    (let ((idx (pigeon-by-breaks breaks (flvector-ref data i))))
+      (vector-set! counts idx (assert (add1 (vector-ref counts idx)) index?)))))
 
 (: categorize (NSeries Binning -> CSeries))
 (define (categorize nseries binning)

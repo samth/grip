@@ -10,10 +10,10 @@
  frame-names frame-dim 
  frame-cseries frame-nseries
  frame-series
- mkFrame)
+ new-frame)
 
 (require 
- (only-in "../frame/types.rkt"
+ (only-in "types.rkt"
           Dim Dim-rows Dim-cols)
  (only-in "series.rkt"
           Label LabelIndex LabelIndex-index
@@ -31,17 +31,21 @@
  (only-in "numeric-series.rkt"
           NSeries NSeries? 
           NSeries-data
-          mkNSeries))
+          mkNSeries)
+ (only-in "integer-series.rkt"
+	  ISeries ISeries?
+	  ISeries-data
+	  new-ISeries))
 
 ;; A frame is map of series.
 (struct: Frame LabelIndex ([series : (Vectorof Series)]))
 
 (struct: FrameDescription ([dimensions : Dim]
                            [series : (Listof SeriesDescription)]))
-                           
 
-(: mkFrame ((Listof (Pair Symbol Series)) -> Frame))
-(define (mkFrame cols)
+
+(: new-frame ((Listof (Pair Symbol Series)) -> Frame))
+(define (new-frame cols)
   (let ((index (build-index-from-labels ((inst map Label (Pair Label Series)) 
                                          (inst car Label Series) cols)))        
         (data (apply vector ((inst map Series (Pair Label Series)) cdr cols))))
@@ -60,15 +64,19 @@
 (define (frame-nseries frame name)
   (assert (frame-series frame name) NSeries?))
 
+(: Frame-iseries (Frame Symbol -> ISeries))
+(define (Frame-iseries frame name)
+  (assert (frame-series frame name) ISeries?))
+
 (: frame-names (Frame -> (Listof Symbol)))
 (define (frame-names frame)  
   (map (λ: ((kv : (Pair Symbol Integer)))
-         (car kv))
+	   (car kv))
        ((inst sort (Pair Symbol Integer) (Pair Symbol Integer))
         (hash->list (assert (LabelIndex-index frame)))        
         (λ: ((kv1 : (Pair Symbol Integer)) 
              (kv2 : (Pair Symbol Integer)))
-          (< (cdr kv1) (cdr kv2))))))
+	    (< (cdr kv1) (cdr kv2))))))
 
 (: frame-dim (Frame -> Dim))
 (define (frame-dim frame)
@@ -83,14 +91,14 @@
 (define (frame-description frame)
   (let ((names (frame-names frame)))
     (let: loop : FrameDescription ((names : (Listof Label) names) (descs : (Listof SeriesDescription) '()))
-      (if (null? names)
-          (FrameDescription (frame-dim frame) (reverse descs))
-          (let* ((name (car names))
-                 (series (frame-series frame name)))
-            (loop (cdr names) (cons (SeriesDescription name 
-                                                       (frame-series-type-label series) 
-                                                       (series-count series))
-                                    descs)))))))
+	  (if (null? names)
+	      (FrameDescription (frame-dim frame) (reverse descs))
+	      (let* ((name (car names))
+		     (series (frame-series frame name)))
+		(loop (cdr names) (cons (SeriesDescription name 
+							   (frame-series-type-label series) 
+							   (series-count series))
+					descs)))))))
 
 ;; Really need to enumerate a minimal set of generic functions, such as `show'
 (: show-frame-description (FrameDescription -> Void))
@@ -98,11 +106,11 @@
   
   (: print-series-description (SeriesDescription -> Void))
   (define (print-series-description sdesc)
-   (displayln (format "  - ~a: ~a"
-                      (SeriesDescription-name sdesc)
-                      (SeriesDescription-type sdesc))))                      
+    (displayln (format "  - ~a: ~a"
+		       (SeriesDescription-name sdesc)
+		       (SeriesDescription-type sdesc))))                      
   
   (let ((dim (FrameDescription-dimensions fdesc)))
     (displayln (format "Frame::(Cols: ~a, Rows: ~a)" (Dim-cols dim) (Dim-rows dim)))
     (for-each print-series-description (FrameDescription-series fdesc))))
-            
+

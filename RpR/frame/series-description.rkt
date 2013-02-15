@@ -17,9 +17,11 @@
  (only-in "categorical-series.rkt"
           CSeries CSeries? CSeries-data cseries-count)
  (only-in "numeric-series.rkt"
-          NSeries NSeries? NSeries-data nseries-count))
+          NSeries NSeries? NSeries-data nseries-count)
+ (only-in "integer-series.rkt"
+	  ISeries ISeries? ISeries-data iseries-count))
           
-(define-type Series (U GSeries NSeries CSeries))
+(define-type Series (U GSeries NSeries CSeries ISeries))
 
 (struct: SeriesDescription ([name : Label]
                             [type : Label]
@@ -31,14 +33,16 @@
     ((GSeries? series) 'GenericSeries)
     ((NSeries? series) 'NumericSeries)
     ((CSeries? series) 'CategoricalSeries)
+    ((ISeries? series) 'IntegerSeries)
     (else 'UnknownSeries)))
 
-(: series-count (Series -> Nonnegative-Integer))
+(: series-count (Series -> Natural))
 (define (series-count series)
   (cond
     [(NSeries? series) (nseries-count series)]     
     [(CSeries? series) (cseries-count series)]     
-    [(GSeries? series) (gseries-count series)]     
+;;    [(GSeries? series) (gseries-count series)]     
+    [(ISeries? series) (iseries-count series)]
     [else (error "Unknown Series type in Frame")]))
     
   

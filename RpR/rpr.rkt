@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide
- ;(all-from-out typed/plot/main)
+ ;(all-from-out typed/plot/main
+ (all-from-out "frame/types.rkt")
  (all-from-out "load/load.rkt")
  (all-from-out "load/tab-delimited.rkt")
  (all-from-out "load/schema.rkt")
@@ -9,6 +10,7 @@
  (all-from-out "stats/tabulate.rkt")
  (all-from-out "stats/statistics.rkt")
  ;(all-from-out "plot/plot.rkt")
+ (all-from-out "frame/integer-series.rkt")
  (all-from-out "frame/numeric-series.rkt")
  (all-from-out "frame/categorical-series.rkt")
  (all-from-out "frame/gen-nseries.rkt"))
@@ -17,7 +19,9 @@
  ;typed/plot/main
  (only-in "load/load.rkt"          
           load-tab-delimited-file)
+ "frame/types.rkt"
  "frame/frame.rkt"
+ "frame/integer-series.rkt"
  "frame/numeric-series.rkt"
  "frame/categorical-series.rkt"
  "stats/tabulate.rkt"

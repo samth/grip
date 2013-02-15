@@ -32,7 +32,7 @@
           Series)
  (only-in "../frame/frame.rkt"
           Frame 
-          mkFrame))
+          new-frame))
 
 (: mkFrameBuilder-from-Schema (Schema -> FrameBuilder))
 (define (mkFrameBuilder-from-Schema schema)
@@ -68,7 +68,7 @@
     (let ((headers (if (Schema-has-headers schema) 
                        (Schema-headers schema) 
                        (anon-headers (length cols)))))
-      (mkFrame ((inst zip Symbol Series) headers cols)))))
+      (new-frame ((inst zip Symbol Series) headers cols)))))
 
 (: load-tab-delimited-file (Path [#:schema (Option Schema)] -> Frame))
 (define (load-tab-delimited-file fpath #:schema [schema #f])
