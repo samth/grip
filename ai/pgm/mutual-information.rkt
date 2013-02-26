@@ -19,6 +19,7 @@
  mutual-information)
 
 (require 
+ racket/fixnum
  (only-in prelude/std/prelude
           vadd1)
  (only-in "../../RpR/frame/series.rkt"
@@ -40,8 +41,8 @@
 (: mutual-information (CSeries CSeries -> MutualInformation))
 (define (mutual-information cs1 cs2)
   
-  (define d1 (CSeries-data cs1)) 
-  (define d2 (CSeries-data cs2))  
+  (define: d1 : (Vectorof Index) (CSeries-data cs1)) 
+  (define: d2 : (Vectorof Index) (CSeries-data cs2))  
   
   (define: d1-nom-cnt : Index (assert (vector-length (CSeries-nominals cs1)) index?)) 
   (define: d2-nom-cnt : Index (assert (vector-length (CSeries-nominals cs2)) index?))
@@ -49,8 +50,8 @@
   (define: stride : Index d1-nom-cnt)
   (define: len : Index (vector-length d1))
   
-  (define: d1-counts : (Vectorof Natural) (make-vector d1-nom-cnt 0))    
-  (define: d2-counts : (Vectorof Natural) (make-vector d2-nom-cnt 0))
+  (define: d1-counts : (Vectorof Fixnum) (make-vector d1-nom-cnt 0))    
+  (define: d2-counts : (Vectorof Fixnum) (make-vector d2-nom-cnt 0))
   
   (define: xtab-counts : (Vectorof Integer) (make-vector (* d1-nom-cnt d2-nom-cnt) 0))
   
@@ -58,13 +59,13 @@
   (define (assignment-to-index a b)
     (+ a (* b stride)))
   
-  (: partition ((Vectorof Natural) -> Float))
+  (: partition ((Vectorof Fixnum) -> Float))
   (define (partition counts)
     (define len (vector-length counts))
-    (define: p : Natural 0)
+    (define: p : Fixnum 0)
     (do ([i 0 (add1 i)])
       ([>= i len] (exact->inexact p))
-      (set! p (+ p (vector-ref counts i)))))
+      (set! p (fx+ p (vector-ref counts i)))))
   
   ;; Really UGLY for performance.
   (: phi (-> Float))
@@ -82,7 +83,8 @@
                  (> PXiXj 0.0)
                  (> PXi 0.0)                
                  (> PXj 0.0))
-            (let ((result (assert (* PXiXj (/ (log (/ PXiXj (* PXi PXj))) (log 2))) flonum?)))
+            (let ((result (assert (* PXiXj (/ (log (/ PXiXj (* PXi PXj))) 
+					      (log 2))) flonum?)))
               (set! minfo (+ minfo result)))))))
     minfo)
   
@@ -107,21 +109,36 @@
            (d2-val (vector-ref d2 idx))
            (j (assignment-to-index d1-val d2-val)))
       (bump xtab-counts j)      
-      (vadd1 d1-counts d1-val)
-      (vadd1 d2-counts d2-val))))
+      (vector-set! d1-counts d1-val 
+		  (fx+ (vector-ref d1-counts d1-val) 1))
+      (vector-set! d2-counts d2-val
+		   (fx+ (vector-ref d2-counts d2-val) 1)))))
 
 
-(: test (-> MutualInformation))
-(define (test)
-  (define cs1 
-    (CSeries #f
-             ;; '#(1 0 0)
-             '#(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 2 2 2 2 3 3 3 3)
-             '#[A1 A2 A3 A4]))
-  (define cs2
-    (CSeries #f
-             ;;'#(0 1 0 0 1 0 0 1 0 0)
-             ;; '#(1 0 1)                                              
-             '#(0 0 0 0 1 1 2 2 3 3 3 3 3 3 3 3 0 0 1 1 1 1 2 2 0 1 2 2 0 1 2 2)
-             '#(B1 B2 B3 B4)))
-  (mutual-information cs1 cs2))
+;; (: test (-> MutualInformation))
+;; (define (test)
+;;   (define cs1 
+;;     (CSeries #f
+;;              ;; '#(1 0 0)
+;;              '#(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 2 2 2 2 3 3 3 3)
+;;              '#[A1 A2 A3 A4]))
+;;   (define cs2
+;;     (CSeries #f
+;;              ;;'#(0 1 0 0 1 0 0 1 0 0)
+;;              ;; '#(1 0 1)                                              
+;;              '#(0 0 0 0 1 1 2 2 3 3 3 3 3 3 3 3 0 0 1 1 1 1 2 2 0 1 2 2 0 1 2 2)
+;;              '#(B1 B2 B3 B4)))
+;;   (mutual-information cs1 cs2))
+
+
+;; (: test2 (-> MutualInformation))
+;; (define (test2)
+;;   (define cs1
+;;     (CSeries #f
+;; 	     '#(0 1 1 0 1 1 1 1 1 1 1 1 0)
+;; 	     '#(A0 A1)))
+;;   (define cs2
+;;     (CSeries #f
+;; 	     '#(0 0 1 0 1 1 1 1 1 1 1 1 1)
+;; 	     '#(B0 B1)))
+;;   (mutual-information cs1 cs2))
