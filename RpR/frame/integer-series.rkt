@@ -5,10 +5,10 @@
 
 (provide:
  [new-ISeries ((Vectorof Fixnum) (Option (U (Listof Label) SIndex)) -> ISeries)]
- [iseries-count (ISeries -> Natural)])
+ [iseries-count (ISeries -> Index)])
 
 (require 
- (only-in "series.rkt"
+ (only-in "indexed-series.rkt"
 	  build-index-from-labels
 	  Label SIndex LabelIndex))
 
@@ -35,6 +35,6 @@
 	    (ISeries index data))
 	  (ISeries #f data))))
 
-(: iseries-count (ISeries -> Natural))
+(: iseries-count (ISeries -> Index))
 (define (iseries-count series)
   (vector-length (ISeries-data series)))

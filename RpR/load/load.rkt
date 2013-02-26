@@ -13,14 +13,14 @@
  (only-in prelude/type/list
           zip)
  (only-in "series-builder.rkt"
-          SeriesBuilderTypes)
+          SeriesBuilder)
  (only-in "numeric-series-builder.rkt"
-          mkNSeriesBuilder
+          new-NSeriesBuilder
           NSeriesBuilder 
           NSeriesBuilder?
           complete-NSeriesBuilder)
  (only-in "categorical-series-builder.rkt"
-          mkCSeriesBuilder
+          new-CSeriesBuilder
           CSeriesBuilder
           CSeriesBuilder?
           complete-CSeriesBuilder
@@ -34,28 +34,28 @@
           Frame 
           new-frame))
 
-(: mkFrameBuilder-from-Schema (Schema -> FrameBuilder))
-(define (mkFrameBuilder-from-Schema schema)
+(: new-FrameBuilder-from-Schema (Schema -> FrameBuilder))
+(define (new-FrameBuilder-from-Schema schema)
   
-  (: determine-SeriesBuilder (SeriesTypes -> SeriesBuilderTypes))
+  (: determine-SeriesBuilder (SeriesTypes -> SeriesBuilder))
   (define (determine-SeriesBuilder stypes)    
     (match stypes
-      ['CATEGORICAL (mkCSeriesBuilder)]
-      ['NUMERIC     (mkNSeriesBuilder)]))
+	   ['CATEGORICAL (new-CSeriesBuilder)]
+	   ['NUMERIC     (new-NSeriesBuilder)]))
   
-  (FrameBuilder ((inst map SeriesBuilderTypes SeriesTypes) 
+  (FrameBuilder ((inst map SeriesBuilder SeriesTypes) 
                  determine-SeriesBuilder 
                  (Schema-SeriesTypes schema))))
 
 (: complete-SeriesBuilders (FrameBuilder -> (Listof Series)))
 (define (complete-SeriesBuilders frame-builder)
-  (map (λ: ((builder : SeriesBuilderTypes))
-         (cond
-           [(CSeriesBuilder? builder)
-            (complete-CSeriesBuilder builder)]
-           [(NSeriesBuilder? builder)
-            (complete-NSeriesBuilder builder)]
-           [else (error "Inconsistent FrameBuilder")]))
+  (map (λ: ((builder : SeriesBuilder))
+	   (cond
+	    [(CSeriesBuilder? builder)
+	     (complete-CSeriesBuilder builder)]
+	    [(NSeriesBuilder? builder)
+	     (complete-NSeriesBuilder builder)]
+	    [else (error "Inconsistent FrameBuilder")]))
        (FrameBuilder-builders frame-builder)))
 
 (: anon-headers (Integer -> (Listof Symbol)))
@@ -76,5 +76,5 @@
   (let ((schema (if schema schema (sample-tab-delimited-file fpath SAMPLE-SIZE))))
     (let ((builder (read-tab-delimited-file fpath 
                                             (Schema-has-headers schema) 
-                                            (mkFrameBuilder-from-Schema schema))))
+                                            (new-FrameBuilder-from-Schema schema))))
       (make-frame schema builder))))

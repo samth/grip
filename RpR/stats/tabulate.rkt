@@ -12,7 +12,7 @@
  [frame-cseries-tabulate (Frame Symbol -> Frame)])
 
 (require 
- (only-in "../frame/series.rkt"
+ (only-in "../frame/indexed-series.rkt"
           Label)
  (only-in "../frame/categorical-series.rkt"
 	  new-CSeries)
@@ -53,8 +53,6 @@
  (only-in "../stats/statistics.rkt"
           summary
           Summary Summary-count Summary-max Summary-min)
- (only-in "../frame/series.rkt"
-          Labeling)
  (only-in "../frame/categorical-series.rkt"
           CSeries
           CSeries-data
@@ -72,7 +70,7 @@
                      [counts : (Vectorof Fixnum)]) #:transparent)
 
 (struct: Binning ([breaks : FlVector]
-                  [nominals : Labeling]) #:transparent)
+                  [nominals : (Vectorof Label)]) #:transparent)
 
 (: frame-cseries-tabulate  (Frame Symbol -> Frame))
 (define (frame-cseries-tabulate frame symbol)

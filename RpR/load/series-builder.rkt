@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide
- SeriesBuilderTypes)
+ SeriesBuilder)
 
 (require
  (only-in "numeric-series-builder.rkt"
@@ -9,5 +9,5 @@
  (only-in "categorical-series-builder.rkt"
           CSeriesBuilder))
 
-(define-type SeriesBuilderTypes (U CSeriesBuilder NSeriesBuilder))
+(define-type SeriesBuilder (U CSeriesBuilder NSeriesBuilder))
 

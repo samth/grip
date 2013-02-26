@@ -1,13 +1,14 @@
 #lang typed/racket/base
 
 (provide:
- [nseries-count (NSeries -> Nonnegative-Integer)])
+ [nseries-ref (NSeries Index -> Float)]
+ [nseries-label-ref (NSeries Label -> Float)]
+ [nseries-count (NSeries -> Index)])
 
 (provide
  flvector-print
  (struct-out NSeries)
  mkNSeries map/NSeries
- NSeries-ref NSeries-iref
  map/series->NSeries map/NSeries->series)
 
 (require 
@@ -16,7 +17,7 @@
           Settings-decimals
           Settings-max-output
           settings)
- (only-in "series.rkt"  
+ (only-in "indexed-series.rkt"  
           label-index label->idx
           build-index-from-labels
           Label SIndex
@@ -73,15 +74,15 @@
 	  (NSeries index data))
 	(NSeries #f data))))
 
-(: NSeries-iref (NSeries Index -> Float))
-(define (NSeries-iref series idx)
+(: nseries-ref (NSeries Index -> Float))
+(define (nseries-ref series idx)
   (flvector-ref (NSeries-data series) idx))
 
-(: NSeries-ref (NSeries Label -> Float))
-(define (NSeries-ref series label)
-  (NSeries-iref series (label->idx series label)))
+(: nseries-label-ref (NSeries Label -> Float))
+(define (nseries-label-ref series label)
+  (nseries-ref series (label->idx series label)))
 
-(: nseries-count (NSeries -> Nonnegative-Integer))
+(: nseries-count (NSeries -> Index))
 (define (nseries-count nseries)
   (flvector-length (NSeries-data nseries)))
 

@@ -3,7 +3,7 @@
 (provide
  CSeriesBuilder
  CSeriesBuilder?
- mkCSeriesBuilder
+ new-CSeriesBuilder
  append-CSeriesBuilder
  complete-CSeriesBuilder)
 
@@ -12,15 +12,17 @@
           CSeries))
 
 (struct: CSeriesBuilder ([index : Index]
-                                   [ord : Index]
-                                   [data : (Vectorof Index)]
-                                   [nominals : (HashTable Symbol Index)]) #:mutable #:transparent)
+			 [ord : Index]
+			 [data : (Vectorof Index)]
+			 [nominals : (HashTable Symbol Index)]) #:mutable #:transparent)
+
+(define default-cseries-size 512)
 
 ;; Make a SeriesBuilder for a CSeries
-(: mkCSeriesBuilder (-> CSeriesBuilder))
-(define (mkCSeriesBuilder)
-  (define default-size 32)
-  (CSeriesBuilder 0 0 (make-vector default-size 0) (make-hasheqv)))
+(: new-CSeriesBuilder (case-> (-> CSeriesBuilder)
+			      (Index -> CSeriesBuilder)))
+(define (new-CSeriesBuilder [size default-cseries-size])
+  (CSeriesBuilder 0 0 (make-vector size 0) (make-hasheqv)))
 
 ;; Have builder construct and return a CSeries
 (: complete-CSeriesBuilder (CSeriesBuilder -> CSeries))
@@ -31,8 +33,8 @@
     (let* ((data (CSeriesBuilder-data builder))
            (len (CSeriesBuilder-index builder)))
       (let: ((new-data : (Vectorof Index) (make-vector len 0)))
-        ((inst vector-copy! Index) new-data 0 data 0 len)
-        new-data)))
+	    ((inst vector-copy! Index) new-data 0 data 0 len)
+	    new-data)))
   
   (: nominals (Vectorof Symbol))
   (define nominals
@@ -40,14 +42,14 @@
            (len (hash-count nom-map))
            (noms (make-vector len 'NA)))
       (hash-for-each nom-map (λ: ((n : Symbol) (i : Index))
-                               (vector-set! noms i n)))
+				 (vector-set! noms i n)))
       noms))
   
   (CSeries #f compacted-data nominals))
 
 ;; Extend a builder with next data element
-(: append-CSeriesBuilder (CSeriesBuilder String -> Void))
-(define (append-CSeriesBuilder builder str)
+(: append-CSeriesBuilder (CSeriesBuilder (U Symbol String) -> Void))
+(define (append-CSeriesBuilder builder nominal)
   
   (: nominalizer (String -> Symbol))
   (define (nominalizer str)
@@ -78,14 +80,16 @@
            (curr-len (vector-length data))
            (new-len (assert (inexact->exact (round (* 2.0 curr-len))) exact-integer?)))
       (let: ((new-data : (Vectorof Index) (make-vector new-len 0)))
-        ((inst vector-copy! Index) new-data 0 data)
-        (set-CSeriesBuilder-data! builder new-data))))
+	    ((inst vector-copy! Index) new-data 0 data)
+	    (set-CSeriesBuilder-data! builder new-data))))
   
   (if (< (CSeriesBuilder-index builder) 
          (vector-length (CSeriesBuilder-data builder)))      
       (vector-set! (CSeriesBuilder-data builder)
                    (bump-index)
-                   (nominal-ordinal (nominalizer str)))
+                   (nominal-ordinal (if (string? nominal)
+					(nominalizer nominal)
+					nominal)))
       (begin
         (extend-data)
-        (append-CSeriesBuilder builder str))))
+        (append-CSeriesBuilder builder nominal))))

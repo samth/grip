@@ -30,7 +30,7 @@
                   NSeriesBuilder?
                   append-NSeriesBuilder)
          (only-in "series-builder.rkt"
-                  SeriesBuilderTypes)                  
+                  SeriesBuilder)                  
          (only-in "frame-builder.rkt"
                   append-data-fields
                   FrameBuilder
@@ -40,7 +40,7 @@
 (define (tab-record-iteratee frame-builder)
   
   (: appenders (Listof (String -> Void)))
-  (define appenders (map (λ: ((builder : SeriesBuilderTypes))
+  (define appenders (map (λ: ((builder : SeriesBuilder))
                            (cond
                              [(CSeriesBuilder? builder)
                               (λ: ((str : String))

@@ -4,8 +4,8 @@
  (struct-out NSeriesBuilder))
 
 (provide:
- [mkNSeriesBuilder        (-> NSeriesBuilder)]
- [append-NSeriesBuilder   (NSeriesBuilder String -> Void)]
+ [new-NSeriesBuilder        (-> NSeriesBuilder)]
+ [append-NSeriesBuilder   (NSeriesBuilder (U Float String) -> Void)]
  [complete-NSeriesBuilder (NSeriesBuilder -> NSeries)])
 
 (require
@@ -13,15 +13,15 @@
  (only-in "../frame/numeric-series.rkt"
           NSeries))
 (struct: NSeriesBuilder ([index  : Index]
-                               [data : FlVector]) #:mutable #:transparent)
+			 [data : FlVector]) #:mutable #:transparent)
 
-(: mkNSeriesBuilder (-> NSeriesBuilder))
-(define (mkNSeriesBuilder)
+(: new-NSeriesBuilder (-> NSeriesBuilder))
+(define (new-NSeriesBuilder)
   (define base-len 32)
   (NSeriesBuilder 0 (make-flvector base-len +nan.0)))
 
-(: append-NSeriesBuilder (NSeriesBuilder String -> Void))
-(define (append-NSeriesBuilder builder str)
+(: append-NSeriesBuilder (NSeriesBuilder (U Float String) -> Void))
+(define (append-NSeriesBuilder builder flo/str-value)
   
   (define-syntax bump
     (syntax-rules ()
@@ -36,23 +36,25 @@
   (: extend-data (-> Void))
   (define (extend-data)
     (let* ((data (NSeriesBuilder-data builder))
-	 (curr-len (flvector-length data))
-	 (new-len  (assert (inexact->exact (round (* 1.5 curr-len))) exact-integer?)))
+	   (curr-len (flvector-length data))
+	   (new-len  (assert (inexact->exact (round (* 1.5 curr-len))) exact-integer?)))
       (let: ((new-data : FlVector (make-flvector new-len +nan.0)))
-        (do ([idx 0 (add1 idx)])  ;; RACKET REQUEST FOR RUNTIME SUPPORT FOR COPY
-	    ([>= idx curr-len] (set-NSeriesBuilder-data! builder new-data))
-          (flvector-set! new-data idx (flvector-ref data idx))))))
+	    (do ([idx 0 (add1 idx)])  ;; RACKET REQUEST FOR RUNTIME SUPPORT FOR COPY
+		([>= idx curr-len] (set-NSeriesBuilder-data! builder new-data))
+	      (flvector-set! new-data idx (flvector-ref data idx))))))
   
   (if (< (NSeriesBuilder-index builder)         
          (flvector-length (NSeriesBuilder-data builder)))
-      (let ((num (let ((num (string->number str)))
-                   (if num (assert (exact->inexact num) flonum?) +nan.0))))        
+      (let ((num (if (string? flo/str-value)
+		     (let ((num (string->number flo/str-value)))
+		       (if num (assert (exact->inexact num) flonum?) +nan.0))
+		     flo/str-value)))
         (flvector-set! (NSeriesBuilder-data builder)
                        (bump-index)
                        num))
       (begin
         (extend-data)       
-        (append-NSeriesBuilder builder str))))
+        (append-NSeriesBuilder builder flo/str-value))))
 
 (: complete-NSeriesBuilder (NSeriesBuilder -> NSeries))
 (define (complete-NSeriesBuilder builder)  
