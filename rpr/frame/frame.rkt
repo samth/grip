@@ -191,10 +191,10 @@
 		       project)))
 
 (: frame-append (Frame (U Column Columns Frame) -> Frame))
-(define (frame-append frame cols)  
+(define (frame-append frame cols)
   (cond 
    ((Frame? cols)
-    (new-frame (append (frame-explode frame) (frame-explode frame))))
+    (new-frame (append (frame-explode frame) (frame-explode cols))))
    ((list? cols)
     (new-frame (append (frame-explode frame) cols)))
    (else

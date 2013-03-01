@@ -5,7 +5,7 @@
  append-data-fields)
 
 (require 
- (only-in "series-builder.rkt"
+ (only-in "../frame/series-builder.rkt"
           SeriesBuilder))
 
 (struct: FrameBuilder ([builders : (Listof SeriesBuilder)]) #:transparent)
@@ -17,8 +17,8 @@
 (: append-data-fields ((Listof (String -> Void)) (Listof String) -> Boolean))
 (define (append-data-fields appenders fields)
   (if (or (null? appenders)
-	(null? fields))      
-     (check-all-data-processed appenders fields)
-     (begin 
-       ((car appenders) (car fields))
-       (append-data-fields (cdr appenders) (cdr fields)))))
+	  (null? fields))      
+      (check-all-data-processed appenders fields)
+      (begin 
+	((car appenders) (car fields))
+	(append-data-fields (cdr appenders) (cdr fields)))))

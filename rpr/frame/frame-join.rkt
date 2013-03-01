@@ -31,17 +31,17 @@
  (only-in "categorical-series.rkt"
 	  cseries-referencer cseries-count cseries-ref
 	  CSeries CSeries?)
- (only-in "../load/series-builder.rkt"
+ (only-in "series-builder.rkt"
 	  SeriesBuilder)
- (only-in "../load/integer-series-builder.rkt"
+ (only-in "integer-series-builder.rkt"
 	  ISeriesBuilder ISeriesBuilder?
 	  append-ISeriesBuilder complete-ISeriesBuilder
 	  new-ISeriesBuilder)
- (only-in "../load/categorical-series-builder.rkt"
+ (only-in "categorical-series-builder.rkt"
 	  CSeriesBuilder CSeriesBuilder?
 	  append-CSeriesBuilder complete-CSeriesBuilder
 	  new-CSeriesBuilder)
- (only-in "../load/numeric-series-builder.rkt"
+ (only-in "numeric-series-builder.rkt"
 	  NSeriesBuilder NSeriesBuilder?
 	  append-NSeriesBuilder complete-NSeriesBuilder
 	  new-NSeriesBuilder))

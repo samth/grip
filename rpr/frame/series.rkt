@@ -6,15 +6,15 @@
 (require
  (only-in "series-description.rkt"
 	  Series)
- (only-in "../load/series-builder.rkt"
+ (only-in "series-builder.rkt"
 	  SeriesBuilder)
- (only-in "../load/categorical-series-builder.rkt"
+ (only-in "categorical-series-builder.rkt"
 	  CSeriesBuilder CSeriesBuilder?
 	  complete-CSeriesBuilder)
- (only-in "../load/numeric-series-builder.rkt"
+ (only-in "numeric-series-builder.rkt"
 	  NSeriesBuilder NSeriesBuilder?
 	  complete-NSeriesBuilder)
- (only-in "../load/integer-series-builder.rkt"
+ (only-in "integer-series-builder.rkt"
 	  ISeriesBuilder ISeriesBuilder?
 	  complete-ISeriesBuilder))
 
@@ -28,4 +28,5 @@
     (complete-CSeriesBuilder builder))
    ((ISeriesBuilder? builder)
     (complete-ISeriesBuilder builder))))
+
 

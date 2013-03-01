@@ -9,30 +9,31 @@
           generate-anon-series-names
           Schema SeriesTypes Schema-has-headers 
           Schema-SeriesTypes Schema-headers)
- "frame-builder.rkt"
  (only-in prelude/type/list
           zip)
- (only-in "series-builder.rkt"
+ (only-in "../frame/series-builder.rkt"
           SeriesBuilder)
- (only-in "numeric-series-builder.rkt"
+ (only-in "../frame/numeric-series-builder.rkt"
           new-NSeriesBuilder
           NSeriesBuilder 
           NSeriesBuilder?
           complete-NSeriesBuilder)
- (only-in "categorical-series-builder.rkt"
+ (only-in "../frame/categorical-series-builder.rkt"
           new-CSeriesBuilder
           CSeriesBuilder
           CSeriesBuilder?
           complete-CSeriesBuilder
           append-CSeriesBuilder)
- (only-in "tab-delimited.rkt"
-          read-tab-delimited-file
-          sample-tab-delimited-file)
  (only-in "../frame/series-description.rkt"
           Series)
  (only-in "../frame/frame.rkt"
           Frame 
-          new-frame))
+          new-frame)
+ "frame-builder.rkt"
+ (only-in "tab-delimited.rkt"
+          read-tab-delimited-file
+          sample-tab-delimited-file))
+
 
 (: new-FrameBuilder-from-Schema (Schema -> FrameBuilder))
 (define (new-FrameBuilder-from-Schema schema)
