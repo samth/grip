@@ -1,11 +1,15 @@
 #lang typed/racket/base
 
 (provide:
- [frame-explode (Frame [#:project LabelProjection] -> (Listof (Pair Label Series)))]
- [frame-description (Frame [#:project LabelProjection] -> FrameDescription)])
+ [column-heading (Column -> Label)]
+ [column-series (Column -> Series)]
+ [frame-explode (Frame [#:project LabelProjection] -> Columns)]
+ [frame-append  (Frame (U Column Columns Frame) -> Frame)]
+ [frame-description (Frame [#:project LabelProjection] -> FrameDescription)]
+ [show-frame-description (FrameDescription -> Void)])
 
 (provide
- Frame
+ Frame Column Columns
  (struct-out FrameDescription)
  frame-series
  frame-names frame-dim 
@@ -42,14 +46,25 @@
 	  ISeries-data
 	  new-ISeries))
 
+(define-type Column  (Pair Label Series))
+(define-type Columns (Listof Column))
+
 ;; A frame is map of series.
-(struct: Frame LabelIndex ([series : (Vectorof Series)]))
+(struct: Frame LabelIndex ([series : (Vectorof Series)]) #:transparent)
 
 (struct: FrameDescription ([dimensions : Dim]
                            [series : (Listof SeriesDescription)]) #:transparent)
 
 
-(: new-frame ((Listof (Pair Symbol Series)) -> Frame))
+(: column-heading (Column -> Label))
+(define (column-heading col)
+  (car col))
+
+(: column-series (Column -> Series))
+(define (column-series col)
+  (cdr col))
+
+(: new-frame (Columns -> Frame))
 (define (new-frame cols)
   
 
@@ -162,7 +177,7 @@
     (displayln (format "Frame::(Cols: ~a, Rows: ~a)" (Dim-cols dim) (Dim-rows dim)))
     (for-each print-series-description (FrameDescription-series fdesc))))
 
-(: frame-explode (Frame [#:project LabelProjection] -> (Listof (Pair Label Series))))
+(: frame-explode (Frame [#:project LabelProjection] -> Columns))
 (define (frame-explode frame #:project [project '()])
   
   (let ((labeling (label-sort-positional frame))
@@ -174,4 +189,15 @@
 		       (λ: ((l-s : (Pair Label Series))) ;; need to assist TR here.
 			   (car l-s))
 		       project)))
+
+(: frame-append (Frame (U Column Columns Frame) -> Frame))
+(define (frame-append frame cols)  
+  (cond 
+   ((Frame? cols)
+    (new-frame (append (frame-explode frame) (frame-explode frame))))
+   ((list? cols)
+    (new-frame (append (frame-explode frame) cols)))
+   (else
+    (new-frame (append (frame-explode frame) (list cols))))))
+
 

@@ -6,7 +6,9 @@
  (all-from-out "load/load.rkt")
  (all-from-out "load/tab-delimited.rkt")
  (all-from-out "load/schema.rkt")
+ (all-from-out "frame/series-description.rkt")
  (all-from-out "frame/frame.rkt")
+ (all-from-out "frame/frame-print.rkt")
  (all-from-out "frame/frame-join.rkt")
  (all-from-out "stats/tabulate.rkt")
  (all-from-out "stats/statistics.rkt")
@@ -22,7 +24,9 @@
           load-tab-delimited-file)
  "frame/types.rkt"
  "frame/frame.rkt"
+ "frame/frame-print.rkt"
  "frame/frame-join.rkt"
+ "frame/series-description.rkt"
  "frame/integer-series.rkt"
  "frame/numeric-series.rkt"
  "frame/categorical-series.rkt"

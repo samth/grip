@@ -13,7 +13,11 @@
 	  complete-CSeriesBuilder)
  (only-in "../load/numeric-series-builder.rkt"
 	  NSeriesBuilder NSeriesBuilder?
-	  complete-NSeriesBuilder))
+	  complete-NSeriesBuilder)
+ (only-in "../load/integer-series-builder.rkt"
+	  ISeriesBuilder ISeriesBuilder?
+	  complete-ISeriesBuilder))
+
 
 (: series-complete (SeriesBuilder -> Series))
 (define (series-complete builder)
@@ -22,4 +26,6 @@
     (complete-NSeriesBuilder builder))
    ((CSeriesBuilder? builder)
     (complete-CSeriesBuilder builder))
-   (error 'series-complete "Cannot complete unknown series builder: ~s" builder)))
+   ((ISeriesBuilder? builder)
+    (complete-ISeriesBuilder builder))))
+

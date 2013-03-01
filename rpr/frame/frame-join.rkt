@@ -4,6 +4,7 @@
  [frame-merge (Frame Frame [#:on (Listof Symbol)] -> Frame)])
 
 (require 
+ racket/pretty
  racket/unsafe/ops
  (only-in racket/set
 	  set 
@@ -25,11 +26,17 @@
 	  FrameDescription FrameDescription-series frame-description)
  (only-in "numeric-series.rkt"
 	  NSeries NSeries? nseries-ref)
+ (only-in "integer-series.rkt"
+	  ISeries ISeries? iseries-ref)
  (only-in "categorical-series.rkt"
 	  cseries-referencer cseries-count cseries-ref
 	  CSeries CSeries?)
  (only-in "../load/series-builder.rkt"
 	  SeriesBuilder)
+ (only-in "../load/integer-series-builder.rkt"
+	  ISeriesBuilder ISeriesBuilder?
+	  append-ISeriesBuilder complete-ISeriesBuilder
+	  new-ISeriesBuilder)
  (only-in "../load/categorical-series-builder.rkt"
 	  CSeriesBuilder CSeriesBuilder?
 	  append-CSeriesBuilder complete-CSeriesBuilder
@@ -55,6 +62,8 @@
 	     ([series (FrameDescription-series frame-description)])
 	     (case (SeriesDescription-type series)
 	       ((CategoricalSeries) (new-CSeriesBuilder len))
+	       ((NumericSeries)     (new-NSeriesBuilder len))
+	       ((IntegerSeries)     (new-ISeriesBuilder len))
 	       (else (error 'dest-mapping-series-builders 
 			    "Unknown series type ~a."
 			    (SeriesDescription-type series))))))
@@ -69,9 +78,8 @@
 
 (: key-cols-cseries ((Listof Column) -> (Listof CSeries)))
 (define (key-cols-cseries cols)
-  (map (λ: ((col : Column))
-	   (assert (cdr col) CSeries?))
-       cols))
+  (filter (λ: ((s : Series)) (CSeries? s))
+	  (map column-series cols)))
 
 ;; Build key string from the columns of a frame and a given set of col labels to use.
 ;; Insert a tab char between each key value, e.g., k1 + \t + k2 + \t + ...
@@ -123,6 +131,8 @@
 
 (: copy-column-row ((Vectorof Series) (Vectorof SeriesBuilder) Index -> Void))
 (define (copy-column-row src-series dest-builders row-id)
+;;  (when (zero? (modulo row-id 10000))
+;;	(displayln (format "Copy row: ~a" row-id)))
   (for ([col (in-range (vector-length src-series))])
        (let ((series (vector-ref src-series col))
 	     (builder (vector-ref dest-builders col)))
@@ -137,8 +147,12 @@
 		 (if (CSeriesBuilder? builder)
 		     (append-CSeriesBuilder builder  nom)
 		     (copy-column-row-error series col))))
-	  (else 
-	   (error 'frame-merge "Unknow series type: ~s" series))))))
+	  ((ISeries? series)
+	   (let: ((num : Fixnum (iseries-ref series row-id)))
+		 (if (ISeriesBuilder? builder)
+		     (append-ISeriesBuilder builder num)
+		     (copy-column-row-error series col))))))))
+
 
 (: do-join-build ((Vectorof Series) (Vectorof Series) 
 		  (Vectorof SeriesBuilder) (Vectorof SeriesBuilder) 
@@ -148,12 +162,13 @@
   (define: a-col-cnt : Fixnum (vector-length a-cols))
   (define: b-col-cnt : Fixnum (vector-length b-cols))
   (define: fa-len    : Fixnum (series-count (vector-ref a-cols #{0 : Index} )))
-  
-  (for ([fa-row (in-range fa-len)])
+
+  (for ((fa-row (in-range fa-len)))
        (let*: ((fa-row : Index (assert fa-row index?))
 	       (fa-key : Key (fa-key-fn fa-row)))
 	      (let ((fb-rows (hash-ref join-hash fa-key (λ () '()))))
-		(for ([fb-row fb-rows])
+		;; (displayln (format "Hash join: ~s ~s, ~s" fa-row fa-key fb-rows))
+		(for ([fb-row fb-rows])  
 		     (copy-column-row a-cols a-builders fa-row)
 		     (copy-column-row b-cols b-builders (assert fb-row index?)))))))
 
@@ -173,7 +188,10 @@
   
   (define: cols-a    : (Setof Label) (list->set (frame-names fa)))
   (define: cols-b    : (Setof Label) (list->set (frame-names fb)))
-  (define: join-cols : (Setof Label) (set-intersect cols-a cols-b))
+  (define: join-cols : (Setof Label) (if (null? cols)
+					 (set-intersect cols-a cols-b)
+					 (set-intersect (list->set cols)
+							(set-intersect cols-a cols-b))))
 
   (when (null? join-cols)
 	(error "No common columns between frames to join on."))

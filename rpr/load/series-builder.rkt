@@ -7,7 +7,9 @@
  (only-in "numeric-series-builder.rkt"
           NSeriesBuilder)
  (only-in "categorical-series-builder.rkt"
-          CSeriesBuilder))
+          CSeriesBuilder)
+ (only-in "integer-series-builder.rkt"
+	  ISeriesBuilder))
 
-(define-type SeriesBuilder (U CSeriesBuilder NSeriesBuilder))
+(define-type SeriesBuilder (U ISeriesBuilder CSeriesBuilder NSeriesBuilder))
 

@@ -4,7 +4,9 @@
  (struct-out NSeriesBuilder))
 
 (provide:
- [new-NSeriesBuilder        (-> NSeriesBuilder)]
+ [new-NSeriesBuilder (case->
+		      (-> NSeriesBuilder)
+		      (Index -> NSeriesBuilder))]
  [append-NSeriesBuilder   (NSeriesBuilder (U Float String) -> Void)]
  [complete-NSeriesBuilder (NSeriesBuilder -> NSeries)])
 
@@ -15,10 +17,13 @@
 (struct: NSeriesBuilder ([index  : Index]
 			 [data : FlVector]) #:mutable #:transparent)
 
-(: new-NSeriesBuilder (-> NSeriesBuilder))
-(define (new-NSeriesBuilder)
-  (define base-len 32)
-  (NSeriesBuilder 0 (make-flvector base-len +nan.0)))
+(define base-len 512)
+
+(: new-NSeriesBuilder (case->
+		       (-> NSeriesBuilder)
+		       (Index -> NSeriesBuilder)))
+(define (new-NSeriesBuilder [len base-len])
+  (NSeriesBuilder 0 (make-flvector len +nan.0)))
 
 (: append-NSeriesBuilder (NSeriesBuilder (U Float String) -> Void))
 (define (append-NSeriesBuilder builder flo/str-value)

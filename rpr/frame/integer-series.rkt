@@ -5,6 +5,7 @@
 
 (provide:
  [new-ISeries ((Vectorof Fixnum) (Option (U (Listof Label) SIndex)) -> ISeries)]
+ [iseries-ref (ISeries Index -> Fixnum)]
  [iseries-count (ISeries -> Index)])
 
 (require 
@@ -34,6 +35,10 @@
 	    (check-mismatch index)
 	    (ISeries index data))
 	  (ISeries #f data))))
+
+(: iseries-ref (ISeries Index -> Fixnum))
+(define (iseries-ref series idx)
+  (vector-ref (ISeries-data series) idx))
 
 (: iseries-count (ISeries -> Index))
 (define (iseries-count series)
