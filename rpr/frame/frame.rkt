@@ -3,6 +3,8 @@
 (provide:
  [column-heading (Column -> Label)]
  [column-series (Column -> Series)]
+ [frame-rename (Frame Label Label -> Frame)]
+ [frame-drop (Frame Label -> Frame)]
  [frame-explode (Frame [#:project LabelProjection] -> Columns)]
  [frame-append  (Frame (U Column Columns Frame) -> Frame)]
  [frame-description (Frame [#:project LabelProjection] -> FrameDescription)]
@@ -18,6 +20,8 @@
  new-frame)
 
 (require 
+ (only-in racket/vector
+	  vector-copy)
  (only-in racket/set
 	  set-empty? set-member?
 	  list->set)
@@ -26,7 +30,7 @@
  (only-in "indexed-series.rkt"
 	  label-sort-positional
           Label LabelProjection LabelIndex LabelIndex-index
-          GSeries 
+          GSeries SIndex
           build-index-from-labels label-index)
  (only-in "series-description.rkt"
           series-count
@@ -67,7 +71,6 @@
 (: new-frame (Columns -> Frame))
 (define (new-frame cols)
   
-
   (define (check-equal-length)
     (when  (pair? cols)
 	   (let ((len (if (null? cols) 
@@ -79,10 +82,29 @@
 		     (error 'new-frame "Frame must have equal length series.")))))
   
   (check-equal-length)
-  (let ((index (build-index-from-labels ((inst map Label (Pair Label Series)) 
-                                         (inst car Label Series) cols)))        
-        (data (apply vector ((inst map Series (Pair Label Series)) cdr cols))))
+  (let ((index (build-index-from-labels ((inst map Label Column)
+                                         (inst car Label Series) cols)))
+        (data (apply vector ((inst map Series Column) cdr cols))))
     (Frame index data)))
+
+(: frame-rename (Frame Label Label -> Frame))
+(define (frame-rename frame from to)
+  (let ((index (LabelIndex-index frame)))
+    (if index
+	(let: ((col-idx : (Option Index) (hash-ref index from (λ () #f))))
+	      (if col-idx
+		  (let ((new-index (hash-copy index)))
+		    (hash-remove! new-index from)
+		    (hash-set! new-index to col-idx)
+		    (Frame new-index (vector-copy (Frame-series frame))))
+		  frame))
+	frame)))
+
+(: frame-drop (Frame Label -> Frame))
+(define (frame-drop frame label)
+  (new-frame (filter (λ: ((col : Column))
+			 (not (eq? (car col) label)))
+		     (frame-explode frame))))
 
 (: frame-series (Frame Symbol -> Series))
 (define (frame-series frame col)
@@ -182,11 +204,11 @@
   
   (let ((labeling (label-sort-positional frame))
 	(series (Frame-series frame)))
-    (projection-filter (for/list: : (Listof (Pair Label Series))
+    (projection-filter (for/list: : Columns
 				  ([label labeling])
 				  (cons (car label)
 					(vector-ref series (cdr label))))
-		       (λ: ((l-s : (Pair Label Series))) ;; need to assist TR here.
+		       (λ: ((l-s : Column)) ;; need to assist TR here.
 			   (car l-s))
 		       project)))
 
@@ -199,5 +221,3 @@
     (new-frame (append (frame-explode frame) cols)))
    (else
     (new-frame (append (frame-explode frame) (list cols))))))
-
-
