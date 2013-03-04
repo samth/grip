@@ -9,6 +9,6 @@
                    (Dim-rows dim)
                    (Dim-cols dim)) port))
 
-(struct: Dim ([rows : Integer]
-              [cols : Integer])
+(struct: Dim ([rows : Index]
+              [cols : Index])
 	 #:methods gen:custom-write [(define write-proc writer-Dim)])
