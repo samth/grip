@@ -7,7 +7,7 @@
  racket/pretty
  racket/unsafe/ops
  (only-in racket/set
-	  set 
+	  set set-member?
 	  list->set set->list 
 	  set-intersect set-subtract)	  
  (only-in prelude/type/symbol
@@ -55,6 +55,13 @@
 (: column-series (Column -> Series))
 (define (column-series scol)
   (cdr scol))
+
+(: join-column-name (Column (Setof Label) String -> Symbol))
+(define (join-column-name column common-cols prefix) 
+  (let ((colname (car column)))
+    (if (set-member? common-cols colname)
+	(symbol-prefix colname "fa-")
+	colname)))
 
 (: dest-mapping-series-builders (FrameDescription Index -> (Listof SeriesBuilder)))
 (define (dest-mapping-series-builders frame-description len)
@@ -193,6 +200,8 @@
 					 (set-intersect (list->set cols)
 							(set-intersect cols-a cols-b))))
 
+  (define: non-key-common : (Setof Label) (set-subtract (set-intersect cols-a cols-b) join-cols))
+
   (when (null? join-cols)
 	(error "No common columns between frames to join on."))
 
@@ -219,33 +228,17 @@
   (do-join-build (src-series fa-cols) (src-series fb-cols) 
 		 dest-builders-a dest-builders-b 
 		 fa-keyfn fb-index)
-  
+   
   (define: new-a-series : (Listof Column)
     (for/list ([builder (in-vector dest-builders-a)]
 	       [col     (in-list fa-cols)])
-	      (cons (symbol-prefix (car col) "fa-")
+	      (cons (join-column-name col non-key-common "fa-") 
 		    (series-complete builder))))
   
   (define: new-b-series : (Listof Column)
     (for/list ([builder (in-vector dest-builders-b)]
 	       [col     (in-list fb-cols)])
-	      (cons (symbol-prefix (car col) "fb-")
+	      (cons (join-column-name col non-key-common "fb-")
 		    (series-complete builder))))
   
   (new-frame (append new-a-series new-b-series)))
-
-
-;; (require 
-;;  racket/pretty
-;;  "frame.rkt"
-;;  "categorical-series.rkt")
-
-;; (define (test)
-
-;;   (define f1 (new-frame (list (cons 'sku    (new-CSeries '#(z a b d e)))
-;; 			      (cons 'family (new-CSeries '#(Ray Eve Cory Fish Bird))))))
-
-;;   (define f2 (new-frame (list (cons 'sku    (new-CSeries '#(a a w b x c z)))
-;; 			      (cons 'work   (new-CSeries '#(Dave Mike Laura Neil Andy Herve David))))))
-
-;;   (frame-merge f1 f2))
