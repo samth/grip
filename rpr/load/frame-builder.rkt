@@ -8,7 +8,7 @@
  (only-in "../frame/series-builder.rkt"
           SeriesBuilder))
 
-(struct: FrameBuilder ([builders : (Listof SeriesBuilder)]) #:transparent)
+(struct: FrameBuilder ([builders : (Listof SeriesBuilder)]))
 
 (: check-all-data-processed ((Listof Any) (Listof Any) -> Boolean))
 (define (check-all-data-processed l1 l2)

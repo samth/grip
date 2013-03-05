@@ -27,7 +27,7 @@
 
 (struct: SeriesDescription ([name : Label]
                             [type : SeriesType]
-                            [count : Integer]) #:transparent)
+                            [count : Integer]))
 
 (: series-type (Series -> SeriesType))
 (define (series-type series)

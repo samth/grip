@@ -30,8 +30,8 @@
       (displayln  (vector-ref nominals (vector-ref data i))))))
 
 (struct: CSeries LabelIndex ([data     : (Vectorof Index)] 
-			     [nominals : (Vectorof Label)])
-	 #:transparent)
+			     [nominals : (Vectorof Label)]))
+
 ;; #:methods gen:custom-write [(define write-proc writer-CSeries)])
 
 (: new-CSeries ((Vectorof Label) -> CSeries))

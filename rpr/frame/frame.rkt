@@ -54,10 +54,10 @@
 (define-type Columns (Listof Column))
 
 ;; A frame is map of series.
-(struct: Frame LabelIndex ([series : (Vectorof Series)]) #:transparent)
+(struct: Frame LabelIndex ([series : (Vectorof Series)]))
 
 (struct: FrameDescription ([dimensions : Dim]
-                           [series : (Listof SeriesDescription)]) #:transparent)
+                           [series : (Listof SeriesDescription)]))
 
 
 (: column-heading (Column -> Label))

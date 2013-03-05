@@ -22,7 +22,7 @@
                   [min : Float]
                   [max : Float]
                   [count : Natural]
-                  [nans : Natural]) #:transparent)
+                  [nans : Natural]))
 
 ;; See Knuth TAOCP vol 2, 3rd edition, page 232
 ;; For mean and variance.

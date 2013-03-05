@@ -93,7 +93,7 @@
                          (bindings (build-parser-let-bindings pfields))
                          (args (build-ctor-args pfields)))             
              #`(begin
-                 (struct: parser-struct fields #:transparent)
+                 (struct: parser-struct fields)
                  (define:  parser-name : (String -> parser-struct)
                    (λ: ((line : String))
                      (let: bindings

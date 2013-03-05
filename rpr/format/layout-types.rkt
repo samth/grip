@@ -7,7 +7,7 @@
 (struct: Field ([name : Symbol]
                 [type : Symbol]
                 [offset : Natural]
-                [length : Natural]) #:transparent)
+                [length : Natural]))
 
 (struct: Layout ([name : Symbol]
-                 [fields : (Listof Field)]) #:transparent)
+                 [fields : (Listof Field)]))

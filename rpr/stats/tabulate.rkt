@@ -67,10 +67,10 @@
   [vector-copy (All (A) ((Vectorof A) -> (Vectorof A)))])
 
 (struct: Tabulation ([nominals : (Vectorof Symbol)]
-                     [counts : (Vectorof Fixnum)]) #:transparent)
+                     [counts : (Vectorof Fixnum)]))
 
 (struct: Binning ([breaks : FlVector]
-                  [nominals : (Vectorof Label)]) #:transparent)
+                  [nominals : (Vectorof Label)]))
 
 (: frame-cseries-tabulate  (Frame Symbol -> Frame))
 (define (frame-cseries-tabulate frame symbol)
@@ -99,7 +99,7 @@
 
 (struct: NTabulation ([start  : Float]
                       [width  : Float]
-                      [counts : (Vectorof Fixnum)]) #:transparent)
+                      [counts : (Vectorof Fixnum)]))
 
 (define-type Binning-Algo
   (U 'Fixed 'Struges 'Doane 'Scott 'Sqr 'Freedman-Diaconis))

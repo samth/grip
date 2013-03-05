@@ -15,7 +15,7 @@
  (only-in "../frame/numeric-series.rkt"
           NSeries))
 (struct: NSeriesBuilder ([index  : Index]
-			 [data : FlVector]) #:mutable #:transparent)
+			 [data : FlVector]) #:mutable)
 
 (define base-len 512)
 

@@ -96,7 +96,7 @@
                          (bindings (build-parser-let-bindings pfields))
                          (args (build-ctor-args pfields)))             
              #`(begin
-                 (struct: parser-struct fields #:transparent)
+                 (struct: parser-struct fields)
                  (define:  parser-name : (String -> parser-struct)
                    (λ: ((inp : (U String Input-Port)))
 		       (let: ((inp : Input-Port (if (string? inp) 

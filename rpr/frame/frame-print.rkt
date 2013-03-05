@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide:
- [ frame-write-tab (Frame Output-Port [#:heading Boolean] -> Void)]
+ [frame-write-tab (Frame Output-Port [#:heading Boolean] -> Void)]
  [frame-head (case-> (Frame -> Void)
 		     (Frame (Option Index) -> Void))])
 

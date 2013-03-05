@@ -14,7 +14,7 @@
 (struct: CSeriesBuilder ([index : Index]
 			 [ord : Index]
 			 [data : (Vectorof Index)]
-			 [nominals : (HashTable Symbol Index)]) #:mutable #:transparent)
+			 [nominals : (HashTable Symbol Index)]) #:mutable)
 
 (define default-cseries-size 512)
 

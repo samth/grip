@@ -25,10 +25,10 @@
 (define-type SeriesTypes (U 'CATEGORICAL 'NUMERIC))
 
 (struct: ColumnInfo ([name : Symbol]
-                     [type : SeriesTypes]) #:transparent)
+                     [type : SeriesTypes]))
 
 (struct: Schema ([has-headers : Boolean]
-                 [meta : (Listof ColumnInfo)]) #:transparent)
+                 [meta : (Listof ColumnInfo)]))
 
 (: Schema-headers (Schema -> (Listof Symbol)))
 (define (Schema-headers schema)
