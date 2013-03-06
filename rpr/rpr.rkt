@@ -1,3 +1,21 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's Data Munger Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket/base
 
 (provide
@@ -18,6 +36,7 @@
  (all-from-out "frame/integer-series.rkt")
  (all-from-out "frame/numeric-series.rkt")
  (all-from-out "frame/categorical-series.rkt")
+ (all-from-out "frame/categorical-series-ops.rkt")
  (all-from-out "frame/gen-nseries.rkt"))
                
 (require 
@@ -33,16 +52,17 @@
  "frame/integer-series.rkt"
  "frame/numeric-series.rkt"
  "frame/categorical-series.rkt"
+ "frame/categorical-series-ops.rkt" 
  "frame/series-iter.rkt"
  "stats/tabulate.rkt"
- ;"plot/plot.rkt"
+ ;; "plot/plot.rkt"
  "stats/tabulate.rkt"
  "stats/statistics.rkt"
  (only-in "load/tab-delimited.rkt"
-          sample-tab-delimited-file)
+	  sample-tab-delimited-file)
  (only-in "load/schema.rkt"
-          ColumnInfo
-          alter-schema-columns
-          alter-schema-no-headers)
+	  ColumnInfo
+	  alter-schema-columns
+	  alter-schema-no-headers)
  (only-in "frame/gen-nseries.rkt"
-          generate-NSeries))
+	  generate-NSeries))
