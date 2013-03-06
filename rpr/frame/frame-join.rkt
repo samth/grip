@@ -1,6 +1,25 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ray Racine's Data Munger Library
+;; Copyright (C) 2007-2013  Raymond Paul Racine
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #lang typed/racket/base
 
 (provide: 
+ [frame-append (Frame Frame [#:col (Listof Symbol)] -> Frame)]
  [frame-merge (Frame Frame [#:on (Listof Symbol)] -> Frame)])
 
 (require 
@@ -41,6 +60,8 @@
 	  CSeriesBuilder CSeriesBuilder?
 	  append-CSeriesBuilder complete-CSeriesBuilder
 	  new-CSeriesBuilder)
+ (only-in "categorical-series-ops.rkt"
+	  cseries-append)
  (only-in "numeric-series-builder.rkt"
 	  NSeriesBuilder NSeriesBuilder?
 	  append-NSeriesBuilder complete-NSeriesBuilder
@@ -242,3 +263,21 @@
 		    (series-complete builder))))
   
   (new-frame (append new-a-series new-b-series)))
+
+
+;; Append common columns
+(: frame-append (Frame Frame [#:col (Listof Symbol)] -> Frame))
+(define (frame-append fa fb #:cols [cols '()])
+
+  (define: cols-a    : (Setof Label) (list->set (frame-names fa)))
+  (define: cols-b    : (Setof Label) (list->set (frame-names fb)))
+  (define: append-cols : (Setof Label) (if (null? cols)
+					   (set-intersect cols-a cols-b)
+					   (set-intersect (list->set cols)
+							  (set-intersect cols-a cols-b))))
+  (new-frame (map (λ: ((name : Label))
+		      (cons name (cseries-append (frame-cseries fa name)
+						 (frame-cseries fb name))))
+		  (filter (λ: ((name : Label))
+			      (set-member? append-cols name))
+			  (frame-names fa)))))
