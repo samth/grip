@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Ray Racine's Amazon API Library
+;; Ray Racine's Munger Library
 ;; Copyright (C) 2007-2013  Raymond Paul Racine
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -18,26 +18,28 @@
 
 #lang typed/racket/base
 
-#| Helpers for S3 URI's, extracting buckets etc.|#
-
 (provide:
- [new-s3-uri (String String -> Uri)]
- [s3-uri-path->prefix (String -> String)])
+ [rdd-text (case-> (Path -> (RDD Text))
+		   (Path Natural -> (RDD Text)))])
 
-(require 
- (only-in httpclient/uri
-          Uri Uri-scheme Uri-path make-uri)
- (only-in httpclient/uri/path
-          uri-path-split uri-build-path))
+(require
+ (only-in httpclient/uri/filescheme
+	  local-path->uri)
+ (only-in "../config.rkt"
+	  DEFAULT-BLOCK-SIZE)
+ (only-in "../types.rkt"
+	  Text RDD BlockSet)
+(only-in "split.rkt"
+	 n-block))
 
-(: new-s3-uri (String String -> Uri))
-(define (new-s3-uri bucket prefix)
-  (make-uri "s3" #f bucket #f (string-append "/" prefix) #f #f))
+;; Build RDD from an input path
+(: rdd-text (case-> (Path -> (RDD Text))
+		    (Path Natural -> (RDD Text))))
+(define (rdd-text base-dir-path [block-size DEFAULT-BLOCK-SIZE])
+  (RDD (list (BlockSet (local-path->uri base-dir-path)
+		       (apply append (map (λ: ((file-name : Path)) 
+					      (let ((full-path (path->complete-path file-name base-dir-path)))
+						(n-block (path->string file-name) (file-size full-path) block-size)))
+					  (directory-list base-dir-path)))))))
 
-(: s3-uri-path->prefix (String -> String))
-(define (s3-uri-path->prefix path)
-  (if (string=? path "")
-      ""
-      (if (string=? (substring path 0 1) "/")
-          (substring path 1)
-          path)))
+
