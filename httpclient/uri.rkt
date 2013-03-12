@@ -77,7 +77,7 @@
      (with-syntax ([ch (datum->syntax stx 'ch )])
        #'(read-valid ip (λ: ((ch : Char)) until-block) op))]))
 
-(: make-uri (String (Option String) String Natural String (Option String) (Option String) ->  Uri))
+(: make-uri (String (Option String) String (Option Natural) String (Option String) (Option String) ->  Uri))
 (define (make-uri scheme user host port path query fragment)
   (let ((authority (Authority user host port)))
     (Uri scheme authority
