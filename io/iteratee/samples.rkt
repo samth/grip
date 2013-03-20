@@ -57,12 +57,6 @@
     ;           (icomplete (lenum hd))))
     (icomplete (lenum (iseq d2 (λ (x) (iseq d3 (λ (x) hd))))))))
 
-(: upit (-> String))
-(define (upit)
-  ((inst icomplete String String) 
-   (((inst enumerator/list String String) '("Hello" "World"))
-    (iseq (upcase) (λ: ((s : String)) (write s)(rev s))))))
-
 ;; Enumerator which is a producer of String integers values from a list.
 ;; Interstitial Enumeratee converting String ints to Integers.
 ;; Iteratee which sums a given sequence of Integers.
@@ -73,7 +67,7 @@
          (converter : (Enumeratee String Integer Integer) 
                     (enumeratee-map (λ: ((elem : String)) (assert (string->number elem) exact-integer?))))
          (consumer  : (Iteratee Integer Integer) 
-                   (sum)))       
+                   (sum-i)))       
     (icomplete (icomplete (producer (converter consumer))))))
 
 (: showit-twice (-> IOResult))

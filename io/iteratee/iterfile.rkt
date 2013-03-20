@@ -42,7 +42,7 @@ Of course this puts an obligation on the library user to properly establish the 
 (define OK (IOSuccess "OK"))
 
 (: iter-text-port (Output-Port -> TextPortIteratee))
-(define (iter-text-port pout)
+(define (iter-text-port outp)
   
   (: step ((Stream String) -> (Iteratee String IOResult)))
   (define step
@@ -51,10 +51,10 @@ Of course this puts an obligation on the library user to properly establish the 
 	 ([eq? s 'Nothing] 
 	  (Continue step))
 	 ([eq? s 'EOS]
-	  (flush-output pout)
+	  (flush-output outp)
 	  (Done 'EOS  OK))
 	 (else (begin
-		 (displayln s)
+		 (displayln s outp)
 		 (Continue step))))))
   
   (Continue step))
@@ -62,7 +62,7 @@ Of course this puts an obligation on the library user to properly establish the 
 (: iter-text-file (Path -> TextFileIteratee))
 (define (iter-text-file path)
   
-  (define: pout : Output-Port (open-output-file path))      
+  (define: outp : Output-Port (open-output-file path))      
   
   (: step ((Stream String) -> (Iteratee String IOResult)))
   (define step
@@ -71,10 +71,10 @@ Of course this puts an obligation on the library user to properly establish the 
 	 ([eq? s 'Nothing] 
 	  (Continue step))
 	 ([eq? s 'EOS]
-	  (close-output-port pout)
+	  (close-output-port outp)
 	  (Done 'EOS  OK))
 	 (else (begin
-		 (displayln s pout)
+		 (displayln s outp)
 		 (Continue step))))))
   
   (Continue step))

@@ -24,7 +24,7 @@
  (struct-out Continue)
  (struct-out Done)
  Enumerator eseq
- Enumeratee)
+ Enumeratee EnumerateeC)
 
 (require racket/match)
 
@@ -57,3 +57,5 @@
   (λ (iter) (e2 (e1 iter))))
 
 (define-type (Enumeratee O I A) ((Iteratee I A) -> (Iteratee O (Iteratee I A))))
+
+(define-type (EnumerateeC O I A) ((Iteratee I A) -> (Iteratee O A)))

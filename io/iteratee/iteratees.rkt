@@ -18,17 +18,26 @@
 
 #lang typed/racket/base
 
-(provide
- lister
- counter drop 
- head head-n
- sum 
- print
- rev upcase
- and-iteratee)
+(provide:
+ [vector-sink  (All (D) ((Vectorof D) -> (Iteratee D (Vectorof D))))]
+ [print        (All (D) (Output-Port -> (Iteratee D Void)))]
+ [head         (All (D) (-> (Iteratee D (Option D))))]
+ [head-n       (All (D) (Integer -> (Iteratee D (Listof D))))]
+ [drop         (All (D) Integer -> (Iteratee D Void))]
+ [counter      (All (D) (-> (Iteratee D Integer)))]
+ [sum          (-> (Iteratee Number Number))]
+ [sum-i        (-> (Iteratee Integer Integer))]
+ [sum1-i       (-> (Iteratee Integer Integer))] 
+ [dev/null     (All (D) (-> (Iteratee D Void)))]
+ [and-iteratee (All (D) ((D -> Boolean) -> (Iteratee D Boolean)))]
+ [list-sink    (All (D) (-> (Iteratee D (Listof D))))]
+ [hash-sink    (All (K V) (-> (Iteratee (Pair K V) (HashTable K V))))]
+ [set-sink     (All (D) (-> (Iteratee D (Setof D))))])
 
 (require  
  racket/match
+ (only-in racket/set
+	  set set-add)
  (only-in "iteratee.rkt"
 	  Iteratee Stream Continue Done))
 
@@ -38,9 +47,9 @@
   (define (step n)
     (λ: ((str : (Stream D)))
 	(match str
-	  ['Nothing  (Continue (step n))]
-	  ['EOS      (Done 'EOS n)]
-	  [_         (Continue (step (add1 n)))])))
+	       ['Nothing  (Continue (step n))]
+	       ['EOS      (Done 'EOS n)]
+	       [_         (Continue (step (add1 n)))])))
   (Continue (step 0)))
 
 (: drop (All (D) Integer -> (Iteratee D Void)))
@@ -49,9 +58,9 @@
   (define (step) 
     (λ: ((str : (Stream D)))
 	(match str
-	  ['Nothing  (Continue (step))]
-	  ['EOS      (Done 'EOS (void))]
-	  [_         (drop (sub1 n))])))
+	       ['Nothing  (Continue (step))]
+	       ['EOS      (Done 'EOS (void))]
+	       [_         (drop (sub1 n))])))
   (if (zero? n)
       (Done 'Nothing (void))
       (Continue (step))))
@@ -87,8 +96,23 @@
   
   (head-n-accum n '()))
 
-(: lister (All (D) (-> (Iteratee D (Listof D)))))
-(define (lister)
+(: set-sink (All (D) (-> (Iteratee D (Setof D)))))
+(define (set-sink)
+  
+  (: step ((Setof D) -> ((Stream D) -> (Iteratee D (Setof D)))))
+  (define (step the-set)
+    (λ: ((datum : (Stream D)))
+	(cond 
+	 [(eq? datum 'Nothing)
+	  (Continue (step the-set))]
+	 [(eq? datum 'EOS)
+	  (Done 'EOS the-set)]
+	 [else (Continue (step (set-add the-set datum)))])))
+  
+  (Continue (step (set))))
+
+(: list-sink (All (D) (-> (Iteratee D (Listof D)))))
+(define (list-sink)
   
   (: step ((Listof D) -> ((Stream D) -> (Iteratee D (Listof D)))))
   (define (step lst)
@@ -101,6 +125,48 @@
 	 [else (Continue (step (cons s lst)))])))
   
   (Continue (step '())))
+
+(: hash-sink (All (K V) (-> (Iteratee (Pair K V) (HashTable K V)))))
+(define (hash-sink)
+  
+  (define: hmap : (HashTable K V) (make-hash))
+  
+  (: step ((Stream (Pair K V)) -> (Iteratee (Pair K V) (HashTable K V))))
+  (define step
+    (λ: ((s : (Stream (Pair K V))))
+	(cond
+	 [(eq? s 'Nothing)
+	  (Continue step)]
+	 [(eq? s 'EOS)
+	  (Done 'EOS hmap)]
+	 [else (begin
+		 (hash-set! hmap (car s) (cdr s))
+		 (Continue step ))])))
+  
+  (Continue step))
+
+
+(: vector-sink (All (D) ((Vectorof D) -> (Iteratee D (Vectorof D)))))
+(define (vector-sink vect)
+
+  (define: vect-len : Index (vector-length vect))
+
+  (: step (Index -> ((Stream D) -> (Iteratee D (Vectorof D)))))
+  (define (step idx)
+    (λ: ((s : (Stream D)))
+	(cond
+	 [(eq? s 'Nothing)
+	  (Continue (step idx))]
+	 [(eq? s 'EOS)
+	  (Done 'EOS vect)]
+	 (else 
+	  (if (>= idx vect-len)
+	      (Done s vect)
+	      (begin
+		(vector-set! vect idx s)		 
+		(Continue (step (assert (add1 idx) index?)))))))))
+
+  (Continue (step 0)))
 
 ;; Predicate Iteratees
 
@@ -117,8 +183,19 @@
   
   (Continue step))
 
-(: sum (-> (Iteratee Integer Integer)))
+(: sum (-> (Iteratee Number Number)))
 (define (sum)
+  (: step (Number -> ((Stream Number) -> (Iteratee Number Number))))
+  (define (step total)
+    (λ: ((str : (Stream Number)))
+	(cond
+	 ([number? str] (Continue (step (+ str total))))
+	 [(eq? str 'Nothing) (Continue (step total))]
+	 [(eq? str 'EOS)     (Done 'EOS total)])))
+  (Continue (step 0)))
+
+(: sum-i (-> (Iteratee Integer Integer)))
+(define (sum-i)
   (: step (Integer -> ((Stream Integer) -> (Iteratee Integer Integer))))
   (define (step total)
     (λ: ((str : (Stream Integer)))
@@ -128,43 +205,44 @@
 	 [(eq? str 'EOS)     (Done 'EOS total)])))
   (Continue (step 0)))
 
+;; Summing 1 million Ints, 424ms sum, 248ms sum1
+(: sum1-i (-> (Iteratee Integer Integer)))
+(define (sum1-i)
+  
+  (: total Integer)
+  (define total 0)
+  
+  (: step ((Stream Integer) -> 
+	   (Iteratee Integer Integer)))
+  (define (step str)
+    (cond
+     ([number? str] 
+      (set! total (+ str total))
+      (Continue step))
+     [(eq? str 'Nothing) (Continue step)]
+     [(eq? str 'EOS) (Done 'EOS total)]))
+  
+  (Continue step))
+
+(: dev/null (All (D) (-> (Iteratee D Void))))
+(define (dev/null)
+  (: step ((Stream D) -> (Iteratee D Void)))
+  (define step
+    (λ: ((str : (Stream D)))
+	(if (eq? str 'EOS)
+	    (Done 'EOS (void))
+	    (Continue step))))
+  (Continue step))
+
 (: print (All (D) (Output-Port -> (Iteratee D Void))))
 (define (print outp)
   (: step ((Stream D) -> (Iteratee D Void)))
   (define step
     (λ: ((str : (Stream D)))
 	(match str
-	  ('Nothing (Continue step))
-	  ('EOS     (Done 'EOS (void)))
-	  (s        (begin
-		      (write s outp)
-		      (Continue step))))))
+	       ('Nothing (Continue step))
+	       ('EOS     (Done 'EOS (void)))
+	       (s        (begin
+			   (write s outp)
+			   (Continue step))))))
   (Continue step))
-
-;; silly example
-(: upcase (-> (Iteratee String String)))
-(define (upcase)
-  (: step (String -> ((Stream String) -> (Iteratee String String))))
-  (define (step str)   
-    (λ: ((elem : (Stream String)))
-	(cond
-	 ((eq? elem 'Nothing) 
-	  (Continue (step str)))
-	 ((eq? elem 'EOS)     
-	  (Done 'EOS (string-upcase str)))
-	 (else (Continue (step (string-append " " elem str)))))))
-  (Continue (step "")))
-
-;; silly example
-(: rev (String -> (Iteratee String String)))
-(define (rev str)
-  (: step (String -> ((Stream String) -> (Iteratee String String))))
-  (define (step str)
-    (λ: ((elem : (Stream String)))
-	(cond
-	 ((eq? elem 'Nothing) 
-	  (Continue (step str)))
-	 ((eq? elem 'EOS)
-	  (Done 'EOS (list->string (reverse (string->list str)))))
-	 (else       (Continue (step (string-append elem str)))))))
-  (Continue (step str)))
