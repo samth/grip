@@ -18,8 +18,9 @@
 
 #lang typed/racket/base
 
-(provide:
+(provide: 
  [string-field  (Input-Port -> String)]
+ [number-field  (Input-Port -> Number)]
  [integer-field (Input-Port -> Integer)]
  [float-field   (Input-Port -> Float)])
 
@@ -35,6 +36,13 @@
 	      (display ch outp)
 	      (loop (read-char inp)))))))
   
+(: number-field (Input-Port -> Number))
+(define (number-field inp)
+  (let ((n (read inp)))
+    (if (number? n)
+	n
+	(error "Expected Number value: ~s" n))))
+
 (: integer-field (Input-Port -> Integer))
 (define (integer-field inp)
   (let ((v (read inp)))

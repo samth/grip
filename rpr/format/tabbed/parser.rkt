@@ -25,6 +25,7 @@
 
 (require
  (only-in "reader.rkt"
+	  number-field
 	  integer-field
 	  float-field
 	  string-field)
@@ -69,6 +70,7 @@
 	  ((String)  #`(#,name : #,type (string-field inp)))
 	  ((Integer) #`(#,name : #,type (integer-field inp)))
 	  ((Float)   #`(#,name : #,type (float-field inp)))
+	  ((Number)  #`(#,name : #,type (number-field inp)))
 	  ((Symbol)  #`(#,name : #,type (string->symbol (string-field inp))))	  
 	  (else #`(#,name : #,type (string-field inp)))))))
   
@@ -96,7 +98,7 @@
                          (bindings (build-parser-let-bindings pfields))
                          (args (build-ctor-args pfields)))             
              #`(begin
-                 (struct: parser-struct fields)
+                 (struct: parser-struct fields #:transparent)
                  (define:  parser-name : (String -> parser-struct)
                    (λ: ((inp : (U String Input-Port)))
 		       (let: ((inp : Input-Port (if (string? inp) 
