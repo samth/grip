@@ -26,6 +26,7 @@
  [drop         (All (D) Integer -> (Iteratee D Void))]
  [counter      (All (D) (-> (Iteratee D Integer)))]
  [sum          (-> (Iteratee Number Number))]
+ [sum-r        (-> (Iteratee Real Real))]
  [sum-i        (-> (Iteratee Integer Integer))]
  [sum1-i       (-> (Iteratee Integer Integer))] 
  [dev/null     (All (D) (-> (Iteratee D Void)))]
@@ -204,6 +205,18 @@
 	 [(eq? str 'Nothing) (Continue (step total))]
 	 [(eq? str 'EOS)     (Done 'EOS total)])))
   (Continue (step 0)))
+
+(: sum-r (-> (Iteratee Real Real)))
+(define (sum-r)
+  (: step (Real -> ((Stream Real) -> (Iteratee Real Real))))
+  (define (step total)
+    (λ: ((str : (Stream Real)))
+	(cond
+	 ([real? str] (Continue (step (+ str total))))
+	 [(eq? str 'Nothing) (Continue (step total))]
+	 [(eq? str 'EOS)     (Done 'EOS total)])))
+  (Continue (step 0.0)))
+
 
 ;; Summing 1 million Ints, 424ms sum, 248ms sum1
 (: sum1-i (-> (Iteratee Integer Integer)))
