@@ -24,6 +24,7 @@
  [frame-rename (Frame Label Label -> Frame)]
  [frame-drop (Frame Label -> Frame)]
  [frame-explode (Frame [#:project LabelProjection] -> Columns)]
+ [frame-replace (Frame Column -> Frame)]
  [frame-extend  (Frame (U Column Columns Frame) -> Frame)]
  [frame-description (Frame [#:project LabelProjection] -> FrameDescription)]
  [show-frame-description (FrameDescription -> Void)])
@@ -229,6 +230,14 @@
 		       (λ: ((l-s : Column)) ;; need to assist TR here.
 			   (car l-s))
 		       project)))
+
+(: frame-replace (Frame Column -> Frame))
+(define (frame-replace frame new-col)
+  (define name (column-heading new-col))
+  (new-frame (for/list ([col (frame-explode frame)])
+		       (if (eq? name (column-heading col))
+			   new-col
+			   col))))
 
 (: frame-extend (Frame (U Column Columns Frame) -> Frame))
 (define (frame-extend frame cols)
