@@ -18,14 +18,17 @@
 
 #lang typed/racket/base
 
-(provide
- enumerator/eos
- enumerator/list
- enumerator/text-input-port
- enumerator/select-from-n-lists)
+(provide:
+ [enumerator/eos    (All (D A) (Enumerator D A))]
+ [enumerator/list   (All (D A) (Listof D) -> (Enumerator D A))]
+ [enumerator/vector (All (D A) (Vectorof D) -> (Enumerator D A))]
+ [enumerator/text-input-port     (All (A) (Input-Port -> (Enumerator String A)))]
+ [enumerator/select-from-n-lists (All (D A) (Listof (Listof D)) (D D -> Boolean) -> (Enumerator D A))])
 
 (require
  racket/match
+ (only-in racket/unsafe/ops
+	  unsafe-vector-ref)
  (only-in "iteratee.rkt"
           Done Continue Iteratee Enumerator))
 
@@ -52,6 +55,20 @@
         [(cons '() i)           i]
         [(cons _ (Done _ _))    iter]
         [(cons (list-rest x xs) (Continue k)) (loop xs (k x))]))))
+
+(: enumerator/vector (All (D A) (Vectorof D) -> (Enumerator D A)))
+(define (enumerator/vector vect)
+  (define: len : Index (vector-length vect))
+  (λ: ((iter : (Iteratee D A)))
+      (let: loop : (Iteratee D A) 
+	    ((idx : Natural 0)
+	     (iter : (Iteratee D A) iter))
+	    (if (>= idx len)
+		iter
+		(match iter
+		       [(Done _ _) iter]
+		       [(Continue k) (loop (add1 idx) 
+					   (k (unsafe-vector-ref vect idx)))])))))
 
 (: enumerator/text-input-port (All (A) (Input-Port -> (Enumerator String A))))
 (define (enumerator/text-input-port inp)
