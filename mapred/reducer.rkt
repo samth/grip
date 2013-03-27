@@ -30,16 +30,13 @@
           log-mr-info log-mr-error)
  (only-in aws/s3/invoke
           S3Response)
- (only-in io/iteratee/iteratee
+ (only-in iteratee
           icomplete
-          Iteratee Enumerator Enumeratee)
- (only-in io/iteratee/enumeratees
-          enumeratee-groupby
-          enumeratee-flatmap)
- (only-in io/iteratee/enumerators          
-          enumerator/select-from-n-lists)
- (only-in io/iteratee/iteratees
-	  lister)
+          Iteratee Enumerator Enumeratee
+	  enumeratee-groupby
+	  enumeratee-flatmap
+	  enumerator/select-from-n-lists
+	  list-sink)
  (only-in httpclient/uri
           parse-uri)
  (only-in "configuration.rkt"
@@ -103,7 +100,7 @@
   (: in-mem-parse-sort-partition-text (All (D) (Text (TextParse D) (Sort D) -> (Listof D))))
   (define (in-mem-parse-sort-partition-text text parser sorter)
     (define: enum-text : (Enumerator D (Listof D)) (enum/text text parser))
-    (define: iter-list : (Iteratee D (Listof D)) (lister))
+    (define: iter-list : (Iteratee D (Listof D)) (list-sink))
     (sort (icomplete (enum-text iter-list)) sorter))
   
   (: fetch-sorted-text-blocks (All (D) S3Partition (TextParse D) (Sort D) -> (Listof (Listof D))))

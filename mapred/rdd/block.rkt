@@ -29,7 +29,7 @@
  racket/match
  (only-in prelude/std/opt
           opt-map)
- (only-in io/iteratee/iteratee
+ (only-in iteratee
           Enumerator Iteratee
           Done Continue)
  (only-in "../types.rkt"

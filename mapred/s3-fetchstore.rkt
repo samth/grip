@@ -33,7 +33,7 @@
  (only-in "logging.rkt"
           log-mr-error
           log-mr-info)
- (only-in io/iteratee/iteratee
+ (only-in iteratee
 	  Iteratee Stream Continue Done)
  (only-in prelude/std/opt
           opt-map)
@@ -46,9 +46,8 @@
  (only-in aws/s3/types
 	  Key Key-key Keys-truncated?
 	  Keys Keys-objects)
- (only-in aws/s3/uri
-          s3-path->prefix
-          s3-uri-bucket-and-path)
+ (only-in aws/s3/s3-uri
+          s3-uri-path->prefix)
  (only-in aws/s3/invoke
           S3Response)
  (only-in aws/s3/objects

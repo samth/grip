@@ -26,7 +26,7 @@
 	  Uri)
  (only-in httpclient/uri/filescheme
 	  local-path->uri)
- (only-in io/iteratee/iteratee
+ (only-in iteratee
 	  icomplete Iteratee Continue Done Stream)
  (only-in "types.rkt" 
 	  Range Block BlockSet Write))

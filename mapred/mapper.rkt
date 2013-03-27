@@ -40,7 +40,7 @@
           Write TextParse Partition GroupCompare
           BlockSet BlockSet-blocks BlockSet-uri
           Map)
- (only-in io/iteratee/iteratee
+ (only-in iteratee
           icomplete
           Enumerator Iteratee)
  (only-in "blockset.rkt"

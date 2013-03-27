@@ -10,23 +10,19 @@
 (require
  (only-in "../types.rkt"
 	  RDD)
- (only-in "../../io/iteratee/iteratee.rkt"
+ (only-in iteratee
           Enumerator
-          Enumeratee)
- (only-in "../../io/iteratee/iterfile.rkt"
-          IOResult)
- (only-in "../../io/iteratee/enumeratees.rkt"
-          enumeratee-filter
-          enumeratee-map)
- (only-in "../../io/iteratee/enumerators.rkt"
-          enumerator/list)
- (only-in "../../io/iteratee/iterfile.rkt"
-          TextPortIteratee
-          iter-text-port)
+          Enumeratee
+	  IOResult
+	  enumeratee-filter
+	  enumeratee-map
+	  enumerator/list
+	  TextPortIteratee
+	  iter-text-port)
  (only-in "rdd.rkt" 
-          RDDPrint
-          RDDList RDDList-xs
-          RDDMap RDDMap-cvt))          
+	  RDDPrint
+	  RDDList RDDList-xs
+	  RDDMap RDDMap-cvt))          
 
 (define-type RDDResult IOResult)
 

@@ -22,7 +22,7 @@
  [partition-iteratee (All (D) (Write D) (Partition D) (BlockSet D) -> (Iteratee D (BlockSet D)))])
 
 (require 
- (only-in io/iteratee/iteratee
+ (only-in iteratee
           Iteratee Stream Continue Done)
  (only-in httpclient/uri
           parse-uri)

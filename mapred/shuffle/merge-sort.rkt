@@ -31,12 +31,10 @@
           Uri)
  (only-in httpclient/uri/filescheme
           local-file-uri->path)
- (only-in io/iteratee/iteratee          
-          Iteratee Enumerator icomplete)
- (only-in io/iteratee/enumerators          
-          enumerator/select-from-n-lists) 
- (only-in io/iteratee/iteratees
-          lister)
+ (only-in iteratee          
+          Iteratee Enumerator icomplete
+	  enumerator/select-from-n-lists 
+	  list-sink)
  (only-in "../types.rkt"  
           TextParse
           BlockSet BlockSet-uri BlockSet-blocks 

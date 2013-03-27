@@ -32,7 +32,7 @@
 
 (require 
  racket/match
- (only-in io/iteratee/iteratee
+ (only-in iteratee
           Iteratee Stream Continue Done)
  (only-in "types.rkt"          
           Text Record Record-key Record-value

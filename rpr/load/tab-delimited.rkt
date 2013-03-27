@@ -8,12 +8,10 @@
  "../frame/frame.rkt"
  racket/match
  racket/pretty
- (only-in "../../io/iteratee/enumerators.rkt"
-	  enumerator/text-input-port)
- (only-in "../../io/iteratee/iteratee.rkt"
+ (only-in iteratee
+	  enumerator/text-input-port
 	  Iteratee Stream Continue Done
-	  icomplete)
- (only-in "../../io/iteratee/iteratees.rkt"
+	  icomplete
 	  head-n)
  (only-in "../frame/categorical-series-builder.rkt"
 	  CSeriesBuilder
