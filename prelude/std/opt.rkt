@@ -74,7 +74,7 @@
 (define (opt-reject opt pred)
    (opt-filter opt (lambda: ((x : a)) (not (pred x)))))
 
-(: opt-foreach (All (a) (Option a) (a -> Void) -> Void))
+(: opt-foreach (All (T) (Option T) (T -> Void)  -> Void))
 (define (opt-foreach opt proc)
   (when opt (proc opt)))
 
