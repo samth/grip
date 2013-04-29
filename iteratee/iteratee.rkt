@@ -19,7 +19,7 @@
 #lang typed/racket/base
 
 (provide
- iseq icomplete 
+ iseq icomplete irun
  Iteratee Stream
  (struct-out Continue)
  (struct-out Done)
@@ -42,6 +42,9 @@
   (match iter
     [(Done _ accum)  accum]
     [(Continue step) (icomplete (step 'EOS))]))
+
+(: irun (All (D A) (Iteratee D A) -> A))
+(define irun icomplete)
 
 (: iseq (All (D A B) ((Iteratee D A) (A -> (Iteratee D B)) -> (Iteratee D B))))
 (define (iseq iter fn)

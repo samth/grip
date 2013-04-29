@@ -3,6 +3,8 @@
 (provide 
  iter-text-file
  iter-text-port
+ text-file-writer
+ FileIteratee
  TextFileIteratee
  TextPortIteratee
  OK
@@ -30,8 +32,10 @@ on for example to wrestle with IO exceptions is in any of the file iteratees bel
 Of course this puts an obligation on the library user to properly establish the resource barrier.
 |#
 
-(define-type TextFileIteratee (Iteratee String IOResult))
-(define-type TextPortIteratee (Iteratee String IOResult))
+(define-type (FileIteratee D) (Iteratee D IOResult))
+
+(define-type TextFileIteratee (FileIteratee String))
+(define-type TextPortIteratee (FileIteratee String))
 
 (define-type OutputFilePortIteratee (Iteratee String IOResult))
 
@@ -56,6 +60,24 @@ Of course this puts an obligation on the library user to properly establish the 
 	 (else (begin
 		 (displayln s outp)
 		 (Continue step))))))
+  
+  (Continue step))
+
+(: text-file-writer (Output-Port -> (FileIteratee Any)))
+(define (text-file-writer outp)
+  
+  (: step ((Stream Any) -> (Iteratee Any IOResult)))
+  (define step
+    (λ: ((s : (Stream Any)))
+      (cond
+        ([eq? s 'Nothing]
+         (Continue step))
+        ([eq? s 'EOS]
+         (close-output-port outp)
+         (Done 'EOS OK))
+        (else (begin
+                (write s outp)
+                (Continue step))))))
   
   (Continue step))
 

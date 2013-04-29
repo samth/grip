@@ -28,13 +28,14 @@
 
 (require racket/match)
 
-;;(define-type (Stream D) (U D 'Nothing 'EOS))
-
-;;(define-type (Iteratee D A) (U (Done D A) ((Stream D) -> (Iteratee D A))))
-
-
-;; (struct: (D A) Done ([stream : (Stream D)]
-;;                      [accum : A]))
+;(define-type (Stream D) (U D 'Nothing 'EOS))
+;
+;(define-type (IContinue D A) ((Stream D) -> (Iteratee D A)))
+;
+;(define-type (Iteratee D A) (U (Done D A) (IContinue D A)))
+;
+;(struct: (D A) Done ([stream : (Stream D)]
+;                     [accum : A]))
 
 ;; (struct: (D A) Continue ([step : ((Stream D) -> (Iteratee D A))]))	 
 
