@@ -10,7 +10,8 @@
  [make-Extension    (String -> Extension)]
  [make-RelFilePath  (String -> RelFilePath)]
  [make-AbsFilePath  (String -> AbsFilePath)]
- [filepath->string  (FilePath -> String)]
+ [FileName->FilePath (FileName -> FilePath)]
+ [FilePath->string  (FilePath -> String)]
  [as-directory-path (FilePath -> FilePath)]
  [split-search-path (String -> (Listof FilePath))]
  ;; Extensions
@@ -26,27 +27,27 @@
  [split-filename    (FilePath -> (Pair FilePath FileName))]
  [path-filename     (FilePath -> FileName)]
  [drop-filename     (FilePath -> FilePath)]
- [filepath-file-base-name (FilePath -> FileName)]
- [filename-base-name      (FileName -> FileName)]
+ [base-name         (FilePath -> FileName)]
+ [file-base-name    (FileName -> FileName)]
  [replace-base-name (FilePath FileName -> FilePath)]
  [up-from-directory (FilePath -> FilePath)]
  [replace-directory-path (FilePath FilePath -> FilePath)]
  [append-extension  (FileName Extension -> FileName)]
- [build-filepath    (FilePath RelFilePath -> FilePath)]
- [build-filepaths   (FilePath (Listof RelFilePath) -> FilePath)]
- [join-filepaths    ((Pair FilePath (Listof RelFilePath)) -> FilePath)]
- [split-path        (FilePath -> (Pair FilePath (Listof RelFilePath)))]
- [filepath-segments (FilePath -> (Listof String))]
+ [build             (FilePath RelFilePath -> FilePath)]
+ [build*            (FilePath (Listof RelFilePath) -> FilePath)]
+ [join              ((Pair FilePath (Listof RelFilePath)) -> FilePath)]
+ [split             (FilePath -> (Pair FilePath (Listof RelFilePath)))]
+ [segments (FilePath -> (Listof String))]
  ;; Trailing path separator
  [trailing-path-separator?       (FilePath -> Boolean)]
  [append-trailing-path-separator (FilePath -> FilePath)]
  [drop-trailing-separator        (FilePath -> FilePath)]
  ;; Normalize paths and comparison
- [filepath-normalize (FilePath -> FilePath)]
- [identical-structured-filepaths (FilePath FilePath -> Boolean)]
- [filepath-normalize (FilePath -> FilePath)]
- [filepath-make-relative (FilePath FilePath -> RelFilePath)]
- [filepath-relative? (FilePath RelFilePath -> Boolean)])
+ [normalize (FilePath -> FilePath)]
+ [identically-structured? (FilePath FilePath -> Boolean)]
+ [normalize (FilePath -> FilePath)]
+ [make-relative (FilePath FilePath -> RelFilePath)]
+ [relative? (FilePath RelFilePath -> Boolean)])
 
 (require
  racket/pretty
@@ -123,8 +124,8 @@
               (RelFilePath s)
               (RelFilePath (string-append "./" s))))))
 
-(: filepath->string (FilePath -> String))
-(define (filepath->string fp)
+(: FilePath->string (FilePath -> String))
+(define (FilePath->string fp)
   (FilePath-p fp))
 
 (: as-directory-path (FilePath -> FilePath))
@@ -163,6 +164,10 @@
       (if (starts-with-char? s path-sep-ch)
           (AbsFilePath s)
           (AbsFilePath (string-append path-separator s)))))
+
+(: FileName->FilePath (FileName -> FilePath))
+(define (FileName->FilePath fn)
+  (make-RelFilePath (FileName-fn fn)))
 
 (: split-search-path (String -> (Listof FilePath)))
 (define (split-search-path s)
@@ -258,12 +263,12 @@
 (define (drop-filename fp)
   (car (split-filename fp)))
 
-(: filepath-file-base-name (FilePath -> FileName))
-(define (filepath-file-base-name fp)
-  (filename-base-name (cdr (split-filename fp))))
+(: base-name (FilePath -> FileName))
+(define (base-name fp)
+  (file-base-name (cdr (split-filename fp))))
 
-(: filename-base-name (FileName -> FileName))
-(define (filename-base-name fn)
+(: file-base-name (FileName -> FileName))
+(define (file-base-name fn)
   (make-FileName (drop-extension (make-FilePath (FileName-fn fn)))))
 
 (: replace-base-name (FilePath FileName -> FilePath))
@@ -271,7 +276,7 @@
   (match (split-filename fp)
     ((cons path file)     
      (let ((ext (path-extension (make-FilePath (FileName-fn file)))))       
-       (build-filepath path (RelFilePath (FileName-fn (append-extension fn ext))))))))
+       (build path (RelFilePath (FileName-fn (append-extension fn ext))))))))
 
 (: up-from-directory (FilePath -> FilePath))
 (define (up-from-directory fp)
@@ -289,8 +294,8 @@
 (: replace-directory-path (FilePath FilePath -> FilePath))
 (define (replace-directory-path fp1 fp2)
   (let ((fp1 (split-filename fp1)))        
-    (build-filepath (as-directory-path fp2)
-                    (make-RelFilePath (FileName-fn (cdr fp1))))))              
+    (build (as-directory-path fp2)
+           (make-RelFilePath (FileName-fn (cdr fp1))))))              
 
 (: clean-local-relative-path (RelFilePath -> String))
 (define (clean-local-relative-path rfp)
@@ -310,8 +315,8 @@
 (define (append-extension fn ext)
   (make-FileName (make-FilePath (string-append (FileName-fn fn) extension-separator (Extension-x ext)))))
 
-(: build-filepath (FilePath RelFilePath -> FilePath))
-(define (build-filepath fp1 fp2)    
+(: build (FilePath RelFilePath -> FilePath))
+(define (build fp1 fp2)    
   (: ends-with-path-sep (String -> Boolean))
   (define (ends-with-path-sep s)
     (path-separator? (string-ref s (sub1 (string-length s)))))
@@ -320,19 +325,19 @@
   (define: maybe-inter-sep : String (if (ends-with-path-sep sfp1) "" path-separator))
   (make-FilePath (string-append sfp1 maybe-inter-sep sfp2)))
 
-(: build-filepaths (FilePath (Listof RelFilePath) -> FilePath))
-(define (build-filepaths file-path rel-paths)
+(: build* (FilePath (Listof RelFilePath) -> FilePath))
+(define (build* file-path rel-paths)
   (let loop ((fp file-path) (rel-paths rel-paths))
     (if (null? rel-paths)
         fp
-        (loop (build-filepath fp (car rel-paths)) (cdr rel-paths)))))
+        (loop (build fp (car rel-paths)) (cdr rel-paths)))))
 
-(: join-filepaths ((Pair FilePath (Listof RelFilePath)) -> FilePath))
-(define (join-filepaths fps)
-  (build-filepaths (car fps) (cdr fps)))
+(: join ((Pair FilePath (Listof RelFilePath)) -> FilePath))
+(define (join fps)
+  (build* (car fps) (cdr fps)))
 
-(: split-path (FilePath -> (Pair FilePath (Listof RelFilePath))))
-(define (split-path fp)
+(: split (FilePath -> (Pair FilePath (Listof RelFilePath))))
+(define (split fp)
   (let ((sfp (FilePath-p fp)))
     (let: ((segs : (Listof String)
                  (filter (λ: ((seg : String))
@@ -345,8 +350,8 @@
               (map make-RelFilePath segs)
               (list (RelFilePath ".")))))))
 
-(: filepath-segments (FilePath -> (Listof String)))
-(define (filepath-segments fp) 
+(: segments (FilePath -> (Listof String)))
+(define (segments fp) 
   (filter (λ: ((seg : String))
             (not (or (string=? (string relative-dir-ch) seg)
                      (string=? seg ""))))
@@ -369,26 +374,26 @@
         (make-FilePath (substring sfp 0 (sub1 (string-length sfp)))))
       fp))
 
-(: identical-structured-filepaths (FilePath FilePath -> Boolean))
-(define (identical-structured-filepaths fp1 fp2)
+(: identically-structured? (FilePath FilePath -> Boolean))
+(define (identically-structured? fp1 fp2)
   (string=? (FilePath-p fp1) (FilePath-p fp2)))
 
-(: filepath-normalize (FilePath -> FilePath))
-(define (filepath-normalize fp)
-  (let ((fps (split-path fp)))
+(: normalize (FilePath -> FilePath))
+(define (normalize fp)
+  (let ((fps (split fp)))
     (if (pair? fps)
-        (join-filepaths (cons (car fps) 
-                              (filter (λ: ((fp : RelFilePath))
-                                        (not (string=? (FilePath-p fp) (string relative-dir-ch))))
-                                      (cdr fps))))
-        (join-filepaths (split-path fp)))))
+        (join (cons (car fps) 
+                    (filter (λ: ((fp : RelFilePath))
+                              (not (string=? (FilePath-p fp) (string relative-dir-ch))))
+                            (cdr fps))))
+        (join (split fp)))))
 
-(: filepath-make-relative (FilePath FilePath -> RelFilePath))
-(define (filepath-make-relative fp-base fp)
+(: make-relative (FilePath FilePath -> RelFilePath))
+(define (make-relative fp-base fp)
   (make-RelFilePath (string-relative-to-prefix (FilePath-p fp-base) (FilePath-p fp))))
 
-(: filepath-relative? (FilePath RelFilePath -> Boolean))
-(define (filepath-relative? fp-base fp)
- (error'filepath-relative? "Not implemented"))
+(: relative? (FilePath RelFilePath -> Boolean))
+(define (relative? fp-base fp)
+ (error 'filepath-relative? "Not implemented"))
 
 
