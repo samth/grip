@@ -33,9 +33,7 @@
  [parse-params (String -> Params)] ;;encode-param-string 
  [empty-params (-> Params)]
  [add-param (Param Params -> Params)] 
- [params->query (Params -> String)]
-
-)
+ [params->query (Params -> String)])
 
 (require 
  (only-in typed/srfi/14
