@@ -17,15 +17,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #lang typed/racket
+(provide
+ (struct-out Uri)
+ (struct-out Authority))
 
-(provide make-uri
-         (struct-out Uri)
-         (struct-out Authority)         
-         parse-uri parse-authority 
-	 uri->string uri-up-to-path
-         parse-http-path uri->start-line-path-string
-         http-path-path http-path-query http-path-fragment
-         extend-path)
+(provide: 
+ [make-uri (String (Option String) String (Option Natural) String (Option String) (Option String) ->  Uri)]
+ [make-uri* (String (Option Authority) String (Option String) (Option String) -> Uri)]
+ [parse-uri (String -> (Option Uri))]
+ [parse-authority (String String -> (Option Authority))]
+ [uri->string (Uri -> String)]
+ [uri-up-to-path (Uri -> String)]
+ [parse-http-path (String -> (Listof (Option String)))]
+ [uri->start-line-path-string (Uri -> String)]
+ [http-path-path ((Listof String) -> String)]
+ [http-path-query ((Listof String) -> String)]
+ [http-path-fragment ((Listof String) -> String)]
+ [extend-path (Uri String -> Uri)])
 
 (require  
  (only-in "../prelude/std/opt.rkt"
@@ -76,13 +84,18 @@
      (with-syntax ([ch (datum->syntax stx 'ch )])
        #'(read-valid ip (λ: ((ch : Char)) until-block) op))]))
 
+
 (: make-uri (String (Option String) String (Option Natural) String (Option String) (Option String) ->  Uri))
 (define (make-uri scheme user host port path query fragment)
   (let ((authority (Authority user host port)))
+    (make-uri* scheme authority path query fragment)))
+
+(: make-uri* (String (Option Authority) String (Option String) (Option String) -> Uri))
+(define (make-uri* scheme authority path query fragment)
     (Uri scheme authority
          (opt-string path "/")
          (opt-string query)
-         (opt-string fragment))))
+         (opt-string fragment)))
 
 (: maybe ((Option String) String -> String))
 (define (maybe field prefix)
