@@ -18,10 +18,24 @@
 
 #lang typed/racket/base
 
-(provide 
- parse-params encode-param encode-param-string 
- params->query
- param Param Param? Params)
+(provide Param Params)
+
+(provide:
+
+ ;; Param
+ [param (String String -> Param)]
+ [param-key (Param -> String)]
+ [param-val (Param -> String)] 
+ [param-keyval (Param -> (Values String String))]
+ [encode-param (Param Boolean -> Param)]
+
+ ;; Params
+ [parse-params (String -> Params)] ;;encode-param-string 
+ [empty-params (-> Params)]
+ [add-param (Param Params -> Params)] 
+ [params->query (Params -> String)]
+
+)
 
 (require 
  (only-in typed/srfi/14
@@ -42,8 +56,26 @@
 
 (define-predicate Param? Param)
 
+(: empty-params (-> Params))
+(define (empty-params)
+  '())
+
+(: add-param (Param Params -> Params))
+(define (add-param p ps)
+  (cons p ps))
+
 (: param (String String -> Param))
-(define param cons)
+(define param (inst cons String String))
+
+(: param-key (Param -> String))
+(define param-key car)
+
+(: param-val (Param -> String))
+(define param-val cdr)
+
+(: param-keyval (Param -> (Values String String)))
+(define (param-keyval p)
+  (values (car p) (cdr p)))
 
 (: param-reserved-char? (Char -> Boolean))
 (define (param-reserved-char? ch)
@@ -85,7 +117,7 @@
 (: encode-param (Param Boolean -> Param))
 (define (encode-param param space-as-plus)
   (let ((key   (car param))
-      (value (cdr param)))
+	(value (cdr param)))
     (cons (encode-param-string key space-as-plus)
 	  (encode-param-string value space-as-plus))))
 
@@ -101,12 +133,12 @@
 (define param-delim-char-set
   (char-set-complement (string->char-set "=&")))
 
-(: parse-params (String -> (Listof Param)))
+(: parse-params (String -> Params))
 (define (parse-params param-str)
   (let ((kvs (string-tokenize param-str param-delim-char-set)))
-    (let: loop : (Listof (Pair String String)) ((kvs : (Listof String) kvs) (params : (Listof (Pair String String)) '()))
-	(if (null? kvs)
-	   params
+    (let: loop : Params ((kvs : (Listof String) kvs) (params : Params '()))
+	  (if (null? kvs)
+	      params
 	   (let ((key (car kvs)))
 	     (if (null? (cdr kvs))
 		params ;; odd number of KVs which is wrong.  Return what we got.
