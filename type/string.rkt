@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide: 
+ [null-string? (String -> Boolean)]
  [starts-with-char? (String Char -> Boolean)]
  [ends-with-char? (String Char -> Boolean)]
  [starts-with? (String String -> Boolean)]
@@ -9,8 +10,14 @@
  [string-relative-to-prefix  (String String -> String)])
 
 (require 
- (only-in prelude/std/opt
+ (only-in "opt.rkt"
           opt-apply-orelse))
+
+(: null-string? (String -> Boolean))
+(define (null-string? s)  
+  (if (string? s)
+      (zero? (string-length s))
+      #f))
 
 (: starts-with-char? (String Char -> Boolean))
 (define (starts-with-char? s ch)
@@ -59,7 +66,4 @@
   (substring s (string-common-prefix-length prefix s)))
 
 ;  (opt-apply-orelse (string-common-prefix-index prefix s) (λ: ((i : Index)) (substring s i)) s))
-
-
-
 

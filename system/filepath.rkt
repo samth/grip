@@ -50,9 +50,8 @@
  [relative? (FilePath RelFilePath -> Boolean)])
 
 (require
- racket/pretty
  racket/match
- (only-in prelude/type/string
+ (only-in type/string
           starts-with?
           starts-with-char?
           ends-with-char?
@@ -343,7 +342,6 @@
                  (filter (λ: ((seg : String))
                            (not (string=? seg "")))
                          (regexp-split (regexp path-separator) sfp))))
-      (pretty-print segs)
       (if (starts-with-char? sfp path-sep-ch)
           (cons (AbsFilePath "/") (map make-RelFilePath segs))
           (if (pair? segs)

@@ -1,15 +1,11 @@
 #lang typed/racket/base
 
 #| Sorta kinda compliant GUID/UUID generator.  
-   A Version 1 generator based off of RFC4122 
-   This module is Racket thread safe. |#
+A Version 1 generator based off of RFC4122 
+This module is Racket thread safe. |#
 
 (provide:
- [guid (-> String)]
- [determine-mac-address (-> String)])
-
-(require 
- racket/pretty)
+ [uuid (-> String)])
 
 (require/typed racket/format 
                [~a (Any
@@ -17,43 +13,13 @@
                     [#:left-pad-string String]
                     [#:width Integer] -> String)])
 
-#| Constrains us to a standard Linux. 
-   MAC addresses found at:
-   "/sys/class/net/eth0/address")
-   "/sys/class/net/wlan0/address"
-    etc. |#
+(require 
+ system/mac)
 
-;; Determine MAC Address segment of the GUID
-
-(define base-path-to-mac (string->path "/sys/class/net"))
-
-(define (find-nic-card)
-  (let ((nics (filter (λ: ((nic : String)) (not (string=? nic "lo")))
-                      (map path->string (directory-list base-path-to-mac)))))
-    (if (pair? nics)
-        (car nics)
-        (error "Cannot find a NIC card for a GUID MAC address."))))
-
-(: path-to-mac (String -> Path))
-(define (path-to-mac nic)
-  (build-path base-path-to-mac nic "address"))
-
-(: filter-colons (String -> String))
-(define (filter-colons mac)
-  (regexp-replace* #rx":" mac ""))
-
-(: determine-mac-address (-> String))
-(define (determine-mac-address)
-  (let* ((mac-path (path-to-mac (find-nic-card)))
-         (mac-addr (with-input-from-file mac-path
-                     read-line
-                     #:mode 'text)))
-    (if (string? mac-addr)
-        (filter-colons mac-addr)
-        (error "Failed to read MAC address from ~s." mac-path))))
+(define default-interface "eth0")
 
 (: node String)
-(define node (determine-mac-address))
+(define node (interface-mac-address default-interface))
 
 ;; Determine the Timestamp segment of the GUID
 
@@ -112,11 +78,10 @@
 (define (time-high timestamp-version)
   (substring timestamp-version 0 4))
 
-(: guid (-> String))
-(define (guid)
+(: uuid (-> String))
+(define (uuid)
   (let ((ts-v (timestamp-version))
-        (cs-v (clock-sequence-and-variant))
-        (node (determine-mac-address)))
+        (cs-v (clock-sequence-and-variant)))
     (format "~a-~a-~a-~a-~a" 
             (time-low ts-v)
             (time-mid ts-v)

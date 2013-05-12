@@ -8,16 +8,14 @@
  opt-getorelse-value
  opt-orelse
  opt-map
+ opt-map-orelse
+ opt-map-orelse-value
  opt-flatmap
  opt-filter
  opt-reject
  opt-foreach
  opt-apply-orelse
  opt-car)
-
-
-(require 
- "partialfn.rkt")
 
 (: opt-car (All (A) ((Listof A) -> (Option A))))
 (define (opt-car lst)
@@ -58,6 +56,14 @@
 (: opt-map (All (a b) (Option a) (a -> b) -> (Option b)))
 (define (opt-map opt proc)
   (if opt (proc opt) #f))
+
+(: opt-map-orelse-value (All (a b) (Option a) (a -> b) b -> b ))
+(define (opt-map-orelse-value opt proc val)
+  (if opt (proc opt) val))
+
+(: opt-map-orelse (All (a b) (Option a) (a -> b) (-> b) -> b ))
+(define (opt-map-orelse opt proc def)
+  (if opt (proc opt) (def)))
 
 ;; interesting opt-map <-> opt-flatmap
 (: opt-flatmap (All (a b) (Option a) (a -> (Option b)) -> (Option b)))
