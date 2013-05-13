@@ -26,8 +26,8 @@
 	 http-proxy-port)
 
 (require
- (only-in "../uri.rkt"
-	  Uri
+ (only-in net/uri/url/url
+	  Url
 	  Authority))
 
 (: proxy-host (Option String))
@@ -38,7 +38,7 @@
 ;; alistof (symbol? . authority? * uri? -> boolean?)
 ;; We pass that authority as its already been
 ;; parsed in http-invoke.
-(: proxy-escape (Listof (Pairof Symbol (Authority Uri -> Boolean))))
+(: proxy-escape (Listof (Pairof Symbol (Authority Url -> Boolean))))
 (define proxy-escape '())
 
 (: http-proxy-host (-> (Option String)))
@@ -57,26 +57,26 @@
     (set! proxy-host host)
     (set! proxy-port port)))
 
-(: add-proxy-proc! (Symbol (Authority Uri -> Boolean) -> Void))
+(: add-proxy-proc! (Symbol (Authority Url -> Boolean) -> Void))
 (define (add-proxy-proc! symbol proc)
   (set! proxy-escape (cons (cons symbol proc) 
-			proxy-escape)))
+			   proxy-escape)))
 
 (: remove-proxy-proc! (Symbol -> Void))
 (define (remove-proxy-proc! symbol)
-  (set! proxy-escape (filter (lambda: ((esc : (Pairof Symbol (Authority Uri -> Boolean))))
-			    (not (eq? symbol (car esc))))
-			  proxy-escape)))
+  (set! proxy-escape (filter (lambda: ((esc : (Pairof Symbol (Authority Url -> Boolean))))
+				      (not (eq? symbol (car esc))))
+			     proxy-escape)))
 
 ;; Determine if a http request should use the proxy or not.
 (define http-proxy? 
   (lambda (authority uri)
     #f))
-  ;; (lambda (authority uri)
-  ;;   (let loop ((escapes proxy-escape))
-  ;;     (if (null? escapes)
-  ;; 	 #f
-  ;; 	 (if ((cdr (car escapes)) authority uri)
-  ;; 	    #t
-  ;; 	    (loop (cdr escapes)))))))
+;; (lambda (authority uri)
+;;   (let loop ((escapes proxy-escape))
+;;     (if (null? escapes)
+;; 	 #f
+;; 	 (if ((cdr (car escapes)) authority uri)
+;; 	    #t
+;; 	    (loop (cdr escapes)))))))
 
