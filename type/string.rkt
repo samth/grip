@@ -2,6 +2,7 @@
 
 (provide: 
  [null-string? (String -> Boolean)]
+ [default-string (String String -> String)]
  [starts-with-char? (String Char -> Boolean)]
  [ends-with-char? (String Char -> Boolean)]
  [starts-with? (String String -> Boolean)]
@@ -18,6 +19,11 @@
   (if (string? s)
       (zero? (string-length s))
       #f))
+
+(define (default-string str default)
+  (if (null-string? str)
+      default
+      str))
 
 (: starts-with-char? (String Char -> Boolean))
 (define (starts-with-char? s ch)
