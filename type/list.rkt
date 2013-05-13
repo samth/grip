@@ -33,7 +33,7 @@
  (find (All (a) (a -> Boolean) (Listof a) -> (Option a))))
 
 (require 
- (only-in "../std/control.rkt"
+ (only-in "control.rkt"
 	  aif))
 
 ;;  (primitives assoc-string every? any? list-copy))
