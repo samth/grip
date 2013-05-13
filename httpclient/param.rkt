@@ -28,8 +28,14 @@
  [param-val (Param -> String)] 
  [param-keyval (Param -> (Values String String))]
  [encode-param (Param Boolean -> Param)]
+ [param->query-kv (Param -> String)]
+ [param->encoded-query-kv (case-> (Param -> String)
+				  (Param Boolean -> String))]
+ [encode-param-string (case-> (String Boolean -> String)
+			      (String -> String))]
 
  ;; Params
+ [make-params (Param * -> Params)]
  [parse-params (String -> Params)] ;;encode-param-string 
  [empty-params (-> Params)]
  [add-param (Param Params -> Params)] 
@@ -41,7 +47,7 @@
 	  string->char-set
 	  char-set-complement)
  (only-in "../../../prelude/text/util.rkt"
-          weave-string-separator)
+	  weave-string-separator)
  "../uricharset.rkt")
 
 (require/typed 
@@ -53,6 +59,10 @@
 (define-type Params (Listof Param))
 
 (define-predicate Param? Param)
+
+(: make-params (Param * -> Params))
+(define make-params
+  (λ ps ps))
 
 (: empty-params (-> Params))
 (define (empty-params)
@@ -81,20 +91,21 @@
     ((#\& #\=) #t)
     (else #f)))
 
-(: encode-param-string (String Boolean -> String))
-(define (encode-param-string str space-as-plus)
+(: encode-param-string (case-> (String Boolean -> String)
+			       (String -> String)))
+(define (encode-param-string str [space-as-plus #f])
   (let ((op (open-output-string))
-      (ip (open-input-string str)))
+	(ip (open-input-string str)))
     (let loop ((ch (read-char ip)))
       (cond 
        ((eof-object? ch) (get-output-string op))
        ((char=? ch #\space) 
 	(if space-as-plus	   
-	   (write-char #\+ op)
-	   (write-string "%20" op))
+	    (write-char #\+ op)
+	    (write-string "%20" op))
 	(loop (read-char ip)))
        ((or (unsafe-char? ch)
-	   (param-reserved-char? ch))
+	    (param-reserved-char? ch))
 	(write-string (encode-char ch) op)
 	;;(write-char ch op)
 	(loop (read-char ip)))
@@ -119,12 +130,26 @@
     (cons (encode-param-string key space-as-plus)
 	  (encode-param-string value space-as-plus))))
 
+(: param->query-kv (Param -> String))
+(define (param->query-kv p)
+  (string-append (param-key p) "=" (param-val p)))
+
+(: param->encoded-query-kv (case-> (Param -> String)
+				 (Param Boolean -> String)))
+(define (param->encoded-query-kv p [quote-value? #f])
+  (string-append (encode-param-string (param-key p) #f)
+		 "="
+		 (let ((e-val (encode-param-string (param-val p) #f)))
+		   (if quote-value?
+		       (string-append "\"" e-val "\"")
+		       e-val))))
+
 (: params->query (Params -> String))
 (define (params->query parms)
-  (weave-string-separator "&" (map (lambda:  ((kv : (Pair String String)))
-				     (string-append (encode-param-string (car kv) #f)
-						    "=" 
-						    (encode-param-string (cdr kv) #f)))
+  (weave-string-separator "&" (map (λ: ((kv : (Pair String String)))
+				       (string-append (encode-param-string (car kv) #f)
+						      "=" 
+						      (encode-param-string (cdr kv) #f)))
 				   parms)))
 
 (: param-delim-char-set Char-Set)
@@ -137,7 +162,7 @@
     (let: loop : Params ((kvs : (Listof String) kvs) (params : Params '()))
 	  (if (null? kvs)
 	      params
-	   (let ((key (car kvs)))
-	     (if (null? (cdr kvs))
-		params ;; odd number of KVs which is wrong.  Return what we got.
-		(loop (cddr kvs) (cons (cons key (cadr kvs)) params))))))))
+	      (let ((key (car kvs)))
+		(if (null? (cdr kvs))
+		    params ;; odd number of KVs which is wrong.  Return what we got.
+		    (loop (cddr kvs) (cons (cons key (cadr kvs)) params))))))))

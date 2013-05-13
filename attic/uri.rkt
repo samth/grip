@@ -27,7 +27,6 @@
  [parse-uri (String -> (Option Uri))]
  [parse-authority (String String -> (Option Authority))]
  [uri->string (Uri -> String)]
- [uri-up-to-path (Uri -> String)]
  [parse-http-path (String -> (Listof (Option String)))]
  [uri->start-line-path-string (Uri -> String)]
  [http-path-path ((Listof String) -> String)]
@@ -51,13 +50,13 @@
 
 (struct: Authority ([user : (Option String)]
                     [host : String]
-                    [port : (Option Natural)]))
+                    [port : (Option Natural)]) #:transparent)
 
 (struct: Uri ([scheme : String]
               [authority : (Option Authority)]
               [path : String]
               [query : (Option String)]
-              [fragment : (Option String)]))
+              [fragment : (Option String)]) #:transparent)
 
 (: null-string? (String -> Boolean))
 (define (null-string? s)  
@@ -136,17 +135,6 @@
    (Uri-path uri)
    (maybe (Uri-query uri) "?")
    (maybe (Uri-fragment uri) "#")))
-
-(: uri-up-to-path (Uri -> String))
-(define (uri-up-to-path uri)
-  (string-append
-   (Uri-scheme uri)
-   ":"
-   (let ((auth (authority->string (Uri-authority uri))))
-     (if auth
-         (string-append "//" auth)
-         ""))
-   (Uri-path uri)))
 
 (: authority->string ((Option Authority) -> (Option String)))
 (define (authority->string authority)
