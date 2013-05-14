@@ -18,46 +18,43 @@
 
 #lang typed/racket/base
 
-(provide 
+(provide
  (struct-out OAuth))
 
 (provide:
- [oauth-authorization-header (OAuth Method Uri -> Param)])
+ [oauth-authorization-header (OAuth Method Url -> Param)])
 
-(require 
+(require
  racket/pretty
- (only-in prelude/text/util
-          weave-string-separator)
- (only-in prelude/std/opt
+ (only-in type/text
+	  weave-string-separator)
+ (only-in type/opt
 	  opt-map-orelse-value
- 	  opt-map-orelse)
+	  opt-map-orelse)
  (only-in crypto/hmac
 	  hmac-sha1)
  (only-in crypto/base64
 	  base64-encode)
- (only-in httpclient/uri
+ (only-in net/uri/url/url
+	  scheme->string
 	  Authority-host
-	  Uri Uri-scheme Uri-authority Uri-path Uri-query Uri-fragment
-	  make-uri*)
- (only-in httpclient/uri/url/url
-	  url-query-params)
- (only-in httpclient/uri/url/param
-	  Param Params 
+	  QParam QParams QParam-name QParam-value
+	  Uri Url Uri-scheme Url-authority Url-path Url-query Url-fragment)
+ (only-in httpclient/param
+	  Param Params  param->noencode-string
 	  param make-params empty-params
-	  param-keyval
-	  param->encoded-query-kv
-	  params->query add-param)
- (only-in httpclient/uri/url/encode	  
-	  url-encode-string)
- (only-in httpclient/http/http11
-	  Method http-method->string))
+	  param-keyval params->query add-param)
+ (only-in httpclient/http11
+	  Method http-method->string)
+ (only-in "encode.rkt"
+	  encode))
 
 (define oauth-version-key	   "oauth_version")
 (define oauth-nonce-key		   "oauth_nonce")
 (define oauth-timestamp-key	   "oauth_timestamp")
 (define oauth-consumer-key-key	   "oauth_consumer_key")
 (define oauth-signature-method-key "oauth_signature_method")
-(define oauth-signature-key	    "oauth_signature")
+(define oauth-signature-key	   "oauth_signature")
 
 (define oauth-version-val "1.0")
 
@@ -91,51 +88,71 @@
 	  (string<? p1k p2k))))
   (sort params key-lexical))
 
-(: build-base-params (OAuth String String -> Params))
-(define (build-base-params oauth nonce ts)
-  (make-params
-   (param oauth-consumer-key-key     (OAuth-consumer-key oauth))
-   (param oauth-signature-method-key (signature-method->string (OAuth-signature-method oauth)))
-   (param oauth-timestamp-key ts)
-   (param oauth-nonce-key nonce)
-   (param oauth-version-key oauth-version-val)))
+;; Potentially the consumer key may require encoding.
+(: build-base-encoded-params (OAuth String String -> Params))
+(define (build-base-encoded-params oauth nonce ts)
+  (let ((sig-method (signature-method->string (OAuth-signature-method oauth))))
+    (make-params
+     (param oauth-consumer-key-key (encode (OAuth-consumer-key oauth)))
+     (param oauth-signature-method-key sig-method)
+     (param oauth-timestamp-key ts)
+     (param oauth-nonce-key nonce)
+     (param oauth-version-key oauth-version-val))))
 
-(: build-oauth-params (OAuth Uri String String -> Params))
-(define (build-oauth-params oauth url nonce ts)
-  (let ((url-query-params (url-query-params url))
-	(oauth-base-params (build-base-params oauth nonce ts)))
-    (canonicalize-param-order (append url-query-params oauth-base-params))))
+(: quote-params-value (Params -> Params))
+(define (quote-params-value params)
+  (map (λ: ((p : Param))
+	   (let-values (((k v) (param-keyval p)))
+	     (param k (format "~s" v))))
+       params))
 
-(: build-signee (Method Uri Params -> String))
-(define (build-signee method url base-params)   
-  (weave-string-separator "&" (list (http-method->string method)
-				    (url-encode-string (string-append
-							(Uri-scheme url)
-							"://"
-							(let ((auth (Uri-authority url)))
-							  (opt-map-orelse-value auth Authority-host ""))
-							(Uri-path url)) 
-						       #f)
-				    (url-encode-string (params->query base-params) #f))))
+(: params->encoded-params (Params -> Params))
+(define (params->encoded-params ps)
+  (map (λ: ((p : Param))
+	   (let-values (((k v) (param-keyval p)))
+	     (param (encode k) (encode v))))
+       ps))
+
+(: qparam->encoded-parm (QParams -> Params))
+(define (qparam->encoded-parm qps)
+  (map (λ: ((qp : QParam))
+	   (param (encode (QParam-name qp)) (encode (QParam-value qp))))
+       qps))
+
+(: build-oauth-signing-params (Params Url -> Params))
+(define (build-oauth-signing-params base-params url)
+  (let ((url-query-params (Url-query url)))
+    (canonicalize-param-order (append (qparam->encoded-parm url-query-params)
+				      base-params))))
+
+(: build-signee (Method Url Params -> String))
+(define (build-signee method url oauth-params)
+  (let ((method (http-method->string method))
+	(path (encode (string-append (scheme->string (Uri-scheme url))
+				     "://"
+				     (opt-map-orelse-value (Url-authority url)
+						      Authority-host "")
+				     (Url-path url))))
+	(qparams (encode (params->query oauth-params))))
+    (weave-string-separator "&" (list method path qparams))))
 
 (: signor (String String -> String))
 (define (signor signee key)
-  (displayln (format "Signing: ~s" signee))
   (base64-encode (hmac-sha1 (string-append key "&") signee)))
 
-(: build-oauth-signature-params (OAuth Method Uri -> Params))
+(: build-oauth-signature-params (OAuth Method Url -> Params))
 (define (build-oauth-signature-params oauth method url)
-  (let ((nonce (generate-nonce))
-	(ts    (current-timestamp)))
-    (let ((oauth-params (build-oauth-params oauth url nonce ts)))
-      (canonicalize-param-order
-       (add-param (param oauth-signature-key (signor (build-signee method url oauth-params)
-						     (OAuth-consumer-secret oauth)))
-		  oauth-params)))))
+  (let* ((nonce (generate-nonce))
+	 (ts    (current-timestamp))
+	 (base-params (build-base-encoded-params oauth nonce ts))
+	 (signee-params (build-oauth-signing-params base-params url))
+	 (signee (build-signee method url signee-params))
+	 (sig-param (param oauth-signature-key (signor signee (OAuth-consumer-secret oauth)))))
+    (quote-params-value (add-param sig-param base-params))))
 
-(: oauth-authorization-header (OAuth Method Uri -> Param))
+(: oauth-authorization-header (OAuth Method Url -> Param))
 (define (oauth-authorization-header oauth method url)
-  (let ((auth-str (weave-string-separator "," (map (λ: ((p : Param)) 
-						       (param->encoded-query-kv p #t))
-						   (build-oauth-signature-params oauth method url)))))
+  (let* ((auth-param-strs (map param->noencode-string 
+			       (build-oauth-signature-params oauth method url)))
+	 (auth-str (weave-string-separator "," auth-param-strs)))
     (param "Authorization" (string-append "OAuth " auth-str))))
