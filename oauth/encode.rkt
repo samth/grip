@@ -14,7 +14,7 @@
 (: clear-sym-char? (Char -> Boolean))
 (define (clear-sym-char? ch)
   (case ch
-    ((#\- #\, #\. #\_ #\~) #t)
+    ((#\- #\. #\_ #\~) #t)
     (else #f)))
 
 (: clear-char? (Char -> Boolean))
