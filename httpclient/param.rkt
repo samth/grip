@@ -26,6 +26,7 @@
  [param (String String -> Param)]
  [param-key (Param -> String)]
  [param-val (Param -> String)] 
+ [param->noencode-string (Param -> String)]
  [param-keyval (Param -> (Values String String))]
  [encode-param (Param Boolean -> Param)]
  [param->query-kv (Param -> String)]
@@ -46,9 +47,11 @@
 	  Char-Set
 	  string->char-set
 	  char-set-complement)
- (only-in "../../../prelude/text/util.rkt"
+ (only-in type/text
 	  weave-string-separator)
- "../uricharset.rkt")
+ (only-in net/uri/url/urlchar
+	  encode-char
+	  unsafe-char?))
 
 (require/typed 
  srfi/13
@@ -84,6 +87,11 @@
 (: param-keyval (Param -> (Values String String)))
 (define (param-keyval p)
   (values (car p) (cdr p)))
+
+(: param->noencode-string (Param -> String))
+(define (param->noencode-string param)
+  (let-values (((k v) (param-keyval param)))
+    (string-append k "=" v)))
 
 (: param-reserved-char? (Char -> Boolean))
 (define (param-reserved-char? ch)

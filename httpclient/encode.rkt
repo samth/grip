@@ -24,7 +24,7 @@
  url-decode-from-input-port)
 
 (require
- (only-in "../uricharset.rkt"
+ (only-in net/uri/url/urlchar
 	  hex-char?
 	  encode-char
 	  unreserved-char?))
