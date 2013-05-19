@@ -69,5 +69,3 @@ Focus on 3 Storage Options.
 			    (append new-blocks blocks) 
 			    name))
 		    (loop (cdr keys) blocks name)))))))
-
-

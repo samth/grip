@@ -44,6 +44,32 @@ Each found S3 object is split into splits of @racket[max-split-size] until at le
 FIXME: Consider making @racket[min-splits] @racket[(Option Natural)] where @racket[#f] indicates to split all objects in the S3 bucket prefix.
 }
 
+@section{Internals}
 
+@subsection{Messages}
+@defmodule["messages.rkt"]
 
-		
+@defstruct*[TaskMsg () #:prefab]{
+The parent structure of all master <-> worker messages.
+}
+
+@defstruct*[(S3SplitMsgReq TaskMsg) ([bucket String] 
+				     [prefix String]
+				     [marker String]
+				     [min-splits Natural]
+				     [max-split-size Natural])
+	    #:prefab]{
+A map/reduce task message which instructs the reciever to split S3 objects at the designated @racket[bucket] and @racket[prefix] (path) starting at @racket[marker].  The task receiver will stop splitting when at least @racket[min-splits] have been determined or all S3 objects have been split.  
+
+A @racket[marker] value of an empty string indicates to start at the beginning of the S3 listing.  @racket[max-split-size] indicates the max size in bytes of a split.
+
+An S3 object is split atomically, i.e. an S3 object is never partially split.  Therefore very large S3 object (files) may result in an extensive list of splits.  Currently the SWF message size constrains the maximum number of splits from a single task.
+
+By repeatedly scheduling this task message with a new marker a set of S3 objects is plit in stages of S3 objects at a time.
+}
+
+@defstruct*[(S3SplitMsgResp TaskMsg) ([blockset BlockSet]
+				      [marker String])
+	    #:prefab]{
+The response to a @racket[S3SplitMsgReq].  The @racket[blockset] contains a the set of split blocks.  @racket[marker] denotes the last S3 object split.  If @racket[marker] is provided in a subsequent @racket[S3SplitMsgReq] splitting resumes from the @racket[marker] value.
+}
