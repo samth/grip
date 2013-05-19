@@ -19,7 +19,7 @@
 #lang typed/racket/base
 
 (provide:
- [vector-sink  (All (D) ((Vectorof D) -> (Iteratee D (Vectorof D))))]
+ [show         (All (D) (Output-Port -> (Iteratee D Void)))]
  [print        (All (D) (Output-Port -> (Iteratee D Void)))]
  [head         (All (D) (-> (Iteratee D (Option D))))]
  [head-n       (All (D) (Integer -> (Iteratee D (Listof D))))]
@@ -31,9 +31,10 @@
  [sum1-i       (-> (Iteratee Integer Integer))] 
  [dev/null     (All (D) (-> (Iteratee D Void)))]
  [and-iteratee (All (D) ((D -> Boolean) -> (Iteratee D Boolean)))]
+ [set-sink     (All (D) (-> (Iteratee D (Setof D))))]
  [list-sink    (All (D) (-> (Iteratee D (Listof D))))]
- [hash-sink    (All (K V) (-> (Iteratee (Pair K V) (HashTable K V))))]
- [set-sink     (All (D) (-> (Iteratee D (Setof D))))])
+ [vector-sink  (All (D) ((Vectorof D) -> (Iteratee D (Vectorof D))))]
+ [hash-sink    (All (K V) (-> (Iteratee (Pair K V) (HashTable K V))))])
 
 (require  
  racket/match
@@ -245,6 +246,19 @@
 	(if (eq? str 'EOS)
 	    (Done 'EOS (void))
 	    (Continue step))))
+  (Continue step))
+
+(: show (All (D) (Output-Port -> (Iteratee D Void))))
+(define (show outp)
+  (: step ((Stream D) -> (Iteratee D Void)))
+  (define step
+    (λ: ((str : (Stream D)))
+	(match str
+	       ('Nothing (Continue step))
+	       ('EOS     (Done 'EOS (void)))
+	       (s        (begin
+			   (display s outp)
+			   (Continue step))))))
   (Continue step))
 
 (: print (All (D) (Output-Port -> (Iteratee D Void))))

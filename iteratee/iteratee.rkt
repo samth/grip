@@ -16,10 +16,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#lang typed/racket/base
+#lang typed/racket ;; Fixme RPR - no typed/racket/base as syntax-case
 
 (provide
- iseq icomplete irun
+ i~ irun irun~ 
+ iseq icomplete 
  Iteratee Stream
  (struct-out Continue)
  (struct-out Done)
@@ -45,6 +46,18 @@
 
 (: irun (All (D A) (Iteratee D A) -> A))
 (define irun icomplete)
+
+(define-syntax (i~ stx)
+  (syntax-case stx ()
+    ((i~ e1 e2)
+     #'(e1 e2))    
+    ((i~ e1 e2 ...)
+     #'(e1 (i~ e2 ...)))))
+
+(define-syntax (irun~ stx)
+(syntax-case stx ()
+  ((irun~ e1 ...)
+   #'(irun (i~ e1 ...)))))
 
 (: iseq (All (D A B) ((Iteratee D A) (A -> (Iteratee D B)) -> (Iteratee D B))))
 (define (iseq iter fn)

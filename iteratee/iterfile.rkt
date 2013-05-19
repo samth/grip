@@ -51,15 +51,15 @@ Of course this puts an obligation on the library user to properly establish the 
   (: step ((Stream String) -> (Iteratee String IOResult)))
   (define step
     (λ: ((s : (Stream String)))
-	(cond
-	 ([eq? s 'Nothing] 
-	  (Continue step))
-	 ([eq? s 'EOS]
-	  (flush-output outp)
-	  (Done 'EOS  OK))
-	 (else (begin
-		 (displayln s outp)
-		 (Continue step))))))
+      (cond
+        ([eq? s 'Nothing] 
+         (Continue step))
+        ([eq? s 'EOS]
+         (flush-output outp)
+         (Done 'EOS  OK))
+        (else (begin
+                (displayln s outp)
+                (Continue step))))))
   
   (Continue step))
 
@@ -89,15 +89,15 @@ Of course this puts an obligation on the library user to properly establish the 
   (: step ((Stream String) -> (Iteratee String IOResult)))
   (define step
     (λ: ((s : (Stream String)))
-	(cond
-	 ([eq? s 'Nothing] 
-	  (Continue step))
-	 ([eq? s 'EOS]
-	  (close-output-port outp)
-	  (Done 'EOS  OK))
-	 (else (begin
-		 (displayln s outp)
-		 (Continue step))))))
+      (cond
+        ([eq? s 'Nothing] 
+         (Continue step))
+        ([eq? s 'EOS]
+         (close-output-port outp)
+         (Done 'EOS  OK))
+        (else (begin
+                (displayln s outp)
+                (Continue step))))))
   
   (Continue step))
 
