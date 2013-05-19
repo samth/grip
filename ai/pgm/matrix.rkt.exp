@@ -1,0 +1,557 @@
+(module matrix typed/racket
+  (#%module-begin
+   (begin-for-syntax
+    (module*
+     #%type-decl
+     #f
+     (#%module-begin
+      (#%require typed-racket/types/numeric-tower)
+      (#%require typed-racket/env/type-name-env)
+      (#%require typed-racket/env/global-env)
+      (#%require typed-racket/env/type-alias-env)
+      (#%require typed-racket/types/type-table)
+      (#%app
+       call-with-values
+       (lambda () (#%app register-type (quote-syntax A) -FlVector))
+       print-values)
+      (#%app
+       call-with-values
+       (lambda ()
+         (#%app
+          register-type
+          (quote-syntax matrix*)
+          (#%app
+           make-Function
+           (#%app
+            list
+            (#%app
+             make-arr
+             (#%app
+              list
+              -FlVector
+              -FlVector
+              (#%app
+               make-Union
+               (let-values (((procedure) sort9)
+                            ((temp1)
+                             (#%app
+                              list
+                              (#%app make-Value '0)
+                              (#%app make-Value '1)
+                              -Byte>1
+                              -PosIndexNotByte))
+                            ((<2) <)
+                            ((Type-seq3) Type-seq))
+                 (if (#%app
+                      variable-reference-constant?
+                      (#%variable-reference sort9))
+                   (#%app sort7 '#f '#f Type-seq3 '#t temp1 <2)
+                   (#%app
+                    (#%app
+                     checked-procedure-check-and-extract
+                     struct:keyword-procedure
+                     procedure
+                     keyword-procedure-extract
+                     '(#:key)
+                     '4)
+                    '(#:key)
+                    (#%app list Type-seq3)
+                    temp1
+                    <2))))
+              (#%app
+               make-Union
+               (let-values (((procedure) sort9)
+                            ((temp4)
+                             (#%app
+                              list
+                              (#%app make-Value '0)
+                              (#%app make-Value '1)
+                              -Byte>1
+                              -PosIndexNotByte))
+                            ((<5) <)
+                            ((Type-seq6) Type-seq))
+                 (if (#%app
+                      variable-reference-constant?
+                      (#%variable-reference sort9))
+                   (#%app sort7 '#f '#f Type-seq6 '#t temp4 <5)
+                   (#%app
+                    (#%app
+                     checked-procedure-check-and-extract
+                     struct:keyword-procedure
+                     procedure
+                     keyword-procedure-extract
+                     '(#:key)
+                     '4)
+                    '(#:key)
+                    (#%app list Type-seq6)
+                    temp4
+                    <5))))
+              (#%app
+               make-Union
+               (let-values (((procedure) sort9)
+                            ((temp7)
+                             (#%app
+                              list
+                              (#%app make-Value '0)
+                              (#%app make-Value '1)
+                              -Byte>1
+                              -PosIndexNotByte))
+                            ((<8) <)
+                            ((Type-seq9) Type-seq))
+                 (if (#%app
+                      variable-reference-constant?
+                      (#%variable-reference sort9))
+                   (#%app sort7 '#f '#f Type-seq9 '#t temp7 <8)
+                   (#%app
+                    (#%app
+                     checked-procedure-check-and-extract
+                     struct:keyword-procedure
+                     procedure
+                     keyword-procedure-extract
+                     '(#:key)
+                     '4)
+                    '(#:key)
+                    (#%app list Type-seq9)
+                    temp7
+                    <8)))))
+             (#%app
+              make-Values
+              (#%app
+               list
+               (#%app
+                make-Result
+                -FlVector
+                (#%app make-FilterSet (#%app make-Top) (#%app make-Top))
+                (#%app make-Empty))))
+             '#f
+             '#f
+             '())))))
+       print-values)
+      (#%app
+       call-with-values
+       (lambda ()
+         (#%app
+          register-type
+          (quote-syntax mkFlVector)
+          (#%app
+           make-Function
+           (#%app
+            list
+            (#%app
+             make-arr
+             (#%app
+              list
+              (#%app
+               make-Union
+               (let-values (((procedure) sort9)
+                            ((temp10)
+                             (#%app
+                              list
+                              (#%app make-Value '0)
+                              (#%app make-Value '1)
+                              -Byte>1
+                              -PosIndexNotByte
+                              -PosFixnumNotIndex
+                              -NegFixnum))
+                            ((<11) <)
+                            ((Type-seq12) Type-seq))
+                 (if (#%app
+                      variable-reference-constant?
+                      (#%variable-reference sort9))
+                   (#%app sort7 '#f '#f Type-seq12 '#t temp10 <11)
+                   (#%app
+                    (#%app
+                     checked-procedure-check-and-extract
+                     struct:keyword-procedure
+                     procedure
+                     keyword-procedure-extract
+                     '(#:key)
+                     '4)
+                    '(#:key)
+                    (#%app list Type-seq12)
+                    temp10
+                    <11))))
+              (#%app
+               make-Function
+               (#%app
+                list
+                (#%app
+                 make-arr
+                 '()
+                 (#%app
+                  make-Values
+                  (#%app
+                   list
+                   (#%app
+                    make-Result
+                    (#%app
+                     make-Union
+                     (let-values (((procedure) sort9)
+                                  ((temp13)
+                                   (#%app
+                                    list
+                                    -FlonumNan
+                                    -FlonumPosZero
+                                    -FlonumNegZero
+                                    -PosFlonumNoNan
+                                    -NegFlonumNoNan))
+                                  ((<14) <)
+                                  ((Type-seq15) Type-seq))
+                       (if (#%app
+                            variable-reference-constant?
+                            (#%variable-reference sort9))
+                         (#%app sort7 '#f '#f Type-seq15 '#t temp13 <14)
+                         (#%app
+                          (#%app
+                           checked-procedure-check-and-extract
+                           struct:keyword-procedure
+                           procedure
+                           keyword-procedure-extract
+                           '(#:key)
+                           '4)
+                          '(#:key)
+                          (#%app list Type-seq15)
+                          temp13
+                          <14))))
+                    (#%app make-FilterSet (#%app make-Top) (#%app make-Top))
+                    (#%app make-Empty))))
+                 '#f
+                 '#f
+                 '()))))
+             (#%app
+              make-Values
+              (#%app
+               list
+               (#%app
+                make-Result
+                -FlVector
+                (#%app make-FilterSet (#%app make-Top) (#%app make-Top))
+                (#%app make-Empty))))
+             '#f
+             '#f
+             '())))))
+       print-values)
+      (#%app
+       call-with-values
+       (lambda ()
+         (#%app
+          register-type
+          (quote-syntax dim)
+          (#%app
+           make-Union
+           (let-values (((procedure) sort9)
+                        ((temp16)
+                         (#%app
+                          list
+                          (#%app make-Value '0)
+                          (#%app make-Value '1)
+                          -Byte>1
+                          -PosIndexNotByte))
+                        ((<17) <)
+                        ((Type-seq18) Type-seq))
+             (if (#%app
+                  variable-reference-constant?
+                  (#%variable-reference sort9))
+               (#%app sort7 '#f '#f Type-seq18 '#t temp16 <17)
+               (#%app
+                (#%app
+                 checked-procedure-check-and-extract
+                 struct:keyword-procedure
+                 procedure
+                 keyword-procedure-extract
+                 '(#:key)
+                 '4)
+                '(#:key)
+                (#%app list Type-seq18)
+                temp16
+                <17))))))
+       print-values)
+      (#%app
+       call-with-values
+       (lambda () (#%app register-type (quote-syntax B) -FlVector))
+       print-values)
+      (#%app
+       call-with-values
+       (lambda ()
+         (#%app
+          register-type
+          (quote-syntax main)
+          (#%app
+           make-Function
+           (#%app
+            list
+            (#%app
+             make-arr
+             '()
+             (#%app
+              make-Values
+              (#%app
+               list
+               (#%app
+                make-Result
+                -Void
+                (#%app make-FilterSet (#%app make-Top) (#%app make-Top))
+                (#%app make-Empty))))
+             '#f
+             '#f
+             '())))))
+       print-values)
+      (#%app
+       call-with-values
+       (lambda ()
+         (#%app
+          register-resolved-type-alias
+          (quote-syntax NF)
+          (#%app
+           make-Union
+           (let-values (((procedure) sort9)
+                        ((temp19)
+                         (#%app
+                          list
+                          (#%app make-Value '0)
+                          (#%app make-Value '1)
+                          -Byte>1
+                          -PosIndexNotByte
+                          -PosFixnumNotIndex))
+                        ((<20) <)
+                        ((Type-seq21) Type-seq))
+             (if (#%app
+                  variable-reference-constant?
+                  (#%variable-reference sort9))
+               (#%app sort7 '#f '#f Type-seq21 '#t temp19 <20)
+               (#%app
+                (#%app
+                 checked-procedure-check-and-extract
+                 struct:keyword-procedure
+                 procedure
+                 keyword-procedure-extract
+                 '(#:key)
+                 '4)
+                '(#:key)
+                (#%app list Type-seq21)
+                temp19
+                <20))))))
+       print-values))))
+   (begin-for-syntax
+    (#%app
+     add-mod!
+     (#%app
+      module-path-fixup
+      (#%app variable-reference->module-source/submod (#%variable-reference))
+      (#%app list))))
+   (#%require racket/unsafe/ops)
+   (#%require racket/fixnum)
+   (#%require racket/flonum)
+   (define-syntaxes
+    (NF)
+    (lambda (stx)
+      (#%app
+       raise-syntax-error
+       'type-check
+       '"type name used out of context"
+       stx)))
+   (define-values
+    ()
+    (begin
+      (quote-syntax (define-type-alias-internal NF Nonnegative-Fixnum))
+      (#%plain-app values)))
+   (define-values
+    ()
+    (begin
+      (quote-syntax
+       (:-internal matrix* (FlVector FlVector Index Index Index -> FlVector)))
+      (#%plain-app values)))
+   (define-values
+    (matrix*)
+    (lambda (A B m p n)
+      (let-values (((size) (#%app fx* m n)))
+        (let-values (((v) (#%app make-flvector size)))
+          (let-values (((index) '0))
+            (let-values ((()
+                          (begin
+                            (quote-syntax (:-internal loop-j (NF NF -> Void)))
+                            (#%plain-app values))))
+              (letrec-values (((loop-j)
+                               (lambda (i j)
+                                 (if (#%app unsafe-fx< j n)
+                                   (let-values ()
+                                     (#%app loop-k i j '0 '0.0)
+                                     (set! index (#%app fx+ index '1))
+                                     (#%app loop-j i (#%app unsafe-fx+ j '1)))
+                                   (#%app void))))
+                              (()
+                               (begin
+                                 (quote-syntax
+                                  (:-internal
+                                   loop-k
+                                   (NF NF NF Flonum -> Void)))
+                                 (#%plain-app values)))
+                              ((loop-k)
+                               (lambda (i j k sum)
+                                 (let-values (((i*p) (#%app fx* i p)))
+                                   (let-values (((k*n) (#%app fx* k n)))
+                                     (if (#%app unsafe-fx< k p)
+                                       (#%app
+                                        loop-k
+                                        i
+                                        j
+                                        (#%app unsafe-fx+ k '1)
+                                        (#%app
+                                         unsafe-fl+
+                                         sum
+                                         (#%app
+                                          unsafe-fl*
+                                          (#%app
+                                           unsafe-flvector-ref
+                                           A
+                                           (#%app fx+ i*p k))
+                                          (#%app
+                                           unsafe-flvector-ref
+                                           B
+                                           (#%app fx+ k*n j)))))
+                                       (#%app
+                                        unsafe-flvector-set!
+                                        v
+                                        index
+                                        sum)))))))
+                (#%app
+                 (letrec-values (((loop-i)
+                                  (lambda (i)
+                                    (if (#%app unsafe-fx< i m)
+                                      (begin
+                                        (#%app loop-j i '0)
+                                        (#%app loop-i (#%app unsafe-fx+ i '1)))
+                                      v))))
+                   loop-i)
+                 '0))))))))
+   (define-values
+    ()
+    (begin
+      (quote-syntax (:-internal mkFlVector (Fixnum (-> Flonum) -> FlVector)))
+      (#%plain-app values)))
+   (define-values
+    (mkFlVector)
+    (lambda (sz init)
+      (let-values (((v) (#%app make-flvector sz)))
+        (#%app
+         (letrec-values (((doloop)
+                          (lambda (i)
+                            (if (#%app >= i sz)
+                              (begin (#%app void) v)
+                              (begin
+                                (#%app unsafe-flvector-set! v i (#%app init))
+                                (#%app doloop (#%app + i '1)))))))
+           doloop)
+         '0))))
+   (define-values (dim) '100)
+   (define-values (A) (#%app mkFlVector (#%app fx* dim dim) random))
+   (define-values (B) (#%app mkFlVector (#%app fx* dim dim) random))
+   (define-values
+    ()
+    (begin (quote-syntax (:-internal main (-> Void))) (#%plain-app values)))
+   (define-values
+    (main)
+    (lambda ()
+      (#%app collect-garbage)
+      (#%app collect-garbage)
+      (let-values (((v cpu user gc)
+                    (#%app
+                     time-apply
+                     (lambda ()
+                       (#%app
+                        (letrec-values (((doloop)
+                                         (lambda (i)
+                                           (if (#%app fx>= i '1000)
+                                             (begin (#%app void) (#%app void))
+                                             (begin
+                                               (#%app matrix* A B dim dim dim)
+                                               (#%app
+                                                doloop
+                                                (#%app fx+ i '1)))))))
+                          doloop)
+                        '1)
+                       (#%app void))
+                     null)))
+        (#%app printf '"cpu time: ~s real time: ~s gc time: ~s\n" cpu user gc)
+        (#%app apply values v))))
+   (define-values
+    (blame1)
+    (#%app
+     module-name-fixup
+     (#%app variable-reference->module-source/submod (#%variable-reference))
+     (#%app list)))
+   (define-values
+    (generated-contract4)
+    (let-values ()
+      (let-values ()
+        (#%app
+         build-->
+         '->
+         '#f
+         '#f
+         (#%app list)
+         '()
+         '#f
+         (#%app list)
+         '()
+         '()
+         '()
+         (#%app
+          list
+          (#%app
+           flat-named-contract
+           'Void
+           (#%app flat-contract-predicate void?)))
+         '#f
+         '#f
+         '#f
+         (lambda (blame val temp6)
+           (let-values (((rng-checker116)
+                         (#%app
+                          values
+                          (case-lambda
+                           ((temp68) (#%app temp6 temp68))
+                           (args
+                            (#%app
+                             bad-number-of-results
+                             blame
+                             val
+                             '1
+                             args))))))
+             (let-values (((basic-lambda117)
+                           (lambda ()
+                             (#%app
+                              call-with-immediate-continuation-mark
+                              contract-key
+                              (lambda (m)
+                                (if (#%app tail-marks-match? m temp6)
+                                  (let-values () (#%app values))
+                                  (let-values ()
+                                    (#%app values rng-checker116))))))))
+               (#%app
+                arity-checking-wrapper
+                val
+                blame
+                basic-lambda117
+                void
+                '0
+                '0
+                '0
+                '0
+                '()
+                '()))))))))
+   (define-syntaxes
+    (main3)
+    (#%app
+     make-provide/contract-transformer
+     (quote-syntax generated-contract4)
+     (quote-syntax main)
+     (quote-syntax main2)
+     (quote-syntax blame1)))
+   (define-syntaxes
+    (main2)
+    (if (#%app unbox typed-context?)
+      (#%app renamer (quote-syntax main) (quote-syntax main3))
+      (#%app renamer (quote-syntax main3))))
+   (#%provide (rename main2 main))
+   (#%app void)))
