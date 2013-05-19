@@ -52,7 +52,8 @@
 ;; An NSeries is an optimized Series for computation over vectors of Float
 ;; i.e., NSeries should be faster then (Series Float)
 (struct: NSeries LabelIndex ([data : FlVector])
-  #:methods gen:custom-write [(define write-proc writer-NSeries)])
+;;  #:methods gen:custom-write [(define write-proc writer-NSeries)]
+	 )
 
 (: mkNSeries (FlVector (Option (U (Listof Label) SIndex)) -> NSeries))
 (define (mkNSeries data labels)

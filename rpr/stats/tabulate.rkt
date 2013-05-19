@@ -44,7 +44,7 @@
 (require
  racket/pretty
  racket/match
- (only-in prelude/std/prelude
+ (only-in type/prelude
           vadd1)
  (only-in racket/flonum
           make-flvector

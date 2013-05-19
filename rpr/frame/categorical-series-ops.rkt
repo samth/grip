@@ -24,7 +24,7 @@
  [cseries-append (CSeries CSeries -> CSeries)])
 
 (require 
- (only-in prelude/type/format
+ (only-in type/format
 	  ~a)
  (only-in racket/vector
 	  vector-copy)

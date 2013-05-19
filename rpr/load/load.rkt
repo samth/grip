@@ -9,7 +9,7 @@
           generate-anon-series-names
           Schema SeriesTypes Schema-has-headers 
           Schema-SeriesTypes Schema-headers)
- (only-in prelude/type/list
+ (only-in type/list
           zip)
  (only-in "../frame/series-builder.rkt"
           SeriesBuilder)

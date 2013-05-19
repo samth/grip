@@ -6,7 +6,7 @@
 		     (Frame (Option Index) -> Void))])
 
 (require
- (only-in prelude/type/format
+ (only-in type/format
 	  ~a ~r)
  (only-in "types.rkt"
           Dim Dim-rows)
