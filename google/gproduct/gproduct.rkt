@@ -27,15 +27,16 @@
 
 (require
  racket/pretty
- (only-in "../../httpclient/http/header.rkt"
+ (only-in httpclient/header
           make-header Headers)
- (only-in "../../httpclient/uri.rkt"
-          Uri make-uri parse-uri uri->string)
- (only-in "../../httpclient/uri/url/param.rkt"
+ (only-in net/uri/url/url
+	  Authority QParam QParams
+          Url parse-url url->string)
+ (only-in httpclient/param
           params->query encode-param-string Param Params)
- (only-in "../../httpclient/http/http11.rkt"
+ (only-in httpclient/http11
           HTTPConnection-in http-successful? http-close-connection http-invoke)
- (only-in "../../format/xml/sxml.rkt"
+ (only-in format/xml/sxml
           Sxml SXPath sxpath html->sxml xml->sxml extract-text extract-integer)
  (only-in "access.rkt"
           load-key)
@@ -52,7 +53,7 @@
 		       [gid     : String]
 		       [link    : String]
 		       [brand   : String]
-		       [price   : String]) #:prefab)
+		       [price   : String]))
 
 ;; HTTP Stuff
 (: search-request-headers Headers)
@@ -73,10 +74,13 @@
 (: access-key-param Param)
 (define access-key-param (cons "key" key)) 
 
-(: make-query-uri ((Listof Param) -> Uri))
-(define (make-query-uri queries)
-  (make-uri "https" #f gproduct-host 443 gproduct-path 
-	    (params->query (append queries std-query-params)) ""))
+(: make-query-uri (QParams -> Url))
+(define (make-query-uri qparams)
+  ;; (make-uri "https" #f gproduct-host 443 gproduct-path 
+  ;; 	    (params->query (append queries std-query-params)) "")
+  (Url 'HTTPS (Authority #f gproduct-host 443) 
+       gproduct-path 
+       (append qparams std-query-params) #f))
 
 (: gns (Listof (Pairof Symbol String)))
 (define gns `((g . ,gproduct-nss) 
@@ -123,7 +127,7 @@
 	(SearchResult name account title gtin gid link brand price)
 	#f)))
 
-(: product-search (String Params -> (Listof SearchResult)))
+(: product-search (String QParams -> (Listof SearchResult)))
 (define (product-search query restrictions)
   (let ((url (make-query-uri (append (list (query-q-param query) access-key-param)
 				     restrictions))))

@@ -3,6 +3,10 @@
 (provide
  gproduct-host gproduct-path std-query-params gproduct-nss)
 
+(require
+ (only-in net/uri/url/url
+	  QParams QParam))
+
 (: gproduct-nss String)
 (define gproduct-nss "http://www.google.com/shopping/api/schemas/2010")
 
@@ -12,12 +16,12 @@
 (: gproduct-path String)
 (define gproduct-path "/shopping/search/v1/public/products")
 
-(: std-query-params (Listof (Pairof String String)))
+(: std-query-params QParams)
 (define std-query-params   
-  (list (cons "country" "US")
+  (list (QParam "country" "US")
 	;;(cons "brand "")
-	(cons "alt" "atom")
-	(cons "maxResults" "1000")))
+	(QParam "alt" "atom")
+	(QParam "maxResults" "1000")))
 
 ;; "&restrictBy=condition=new,accountId=10048|7933&alt=atom"))
 
