@@ -21,12 +21,14 @@
 #| Evaluate the accuracy of a binary classifier |#
 
 (provide
+ BinaryResult
  ConfusionMatrix)
 
 (provide:
+ [new-BinaryResult (Boolean Boolean -> BinaryResult)]
  [new-ConfusionMatrix (case-> (Natural Natural Natural Natural -> ConfusionMatrix)
 			      (-> ConfusionMatrix))]
- [record-outcome     (ConfusionMatrix Boolean Boolean -> Void)]
+ [record-outcome     (ConfusionMatrix (Pair Boolean Boolean) -> Void)]
  [hit                (ConfusionMatrix -> Natural)]
  [reject             (ConfusionMatrix -> Natural)]
  [false-alarm        (ConfusionMatrix -> Natural)]
@@ -49,6 +51,8 @@
 (require 
  racket/match)
 
+(define-type BinaryResult (Pair Boolean Boolean))
+
 ;; Structure to track the true positive, false positive, true negative, false negative.
 (struct: ConfusionMatrix ([tp : Natural]
 			  [fp : Natural]
@@ -57,14 +61,18 @@
 	 #:mutable
 	 #:transparent)
 
+(: new-BinaryResult (Boolean Boolean -> BinaryResult))
+(define (new-BinaryResult actual predicted)
+  (cons actual predicted))
+
 (: new-ConfusionMatrix (case-> (Natural Natural Natural Natural -> ConfusionMatrix)
 			       (-> ConfusionMatrix)))
 (define (new-ConfusionMatrix [tp 0] [fp 0] [tn 0] [fn 0])
   (ConfusionMatrix tp fp tn fn))
 
-(: record-outcome (ConfusionMatrix Boolean Boolean -> Void))
-(define (record-outcome cm actual predicted)
-  (match (cons actual predicted)
+(: record-outcome (ConfusionMatrix BinaryResult -> Void))
+(define (record-outcome cm actual-predicted)
+  (match actual-predicted
 	 ([cons #t #t]
 	  (set-ConfusionMatrix-tp! cm (add1 (ConfusionMatrix-tp cm))))
 	 [(cons #f #f)
