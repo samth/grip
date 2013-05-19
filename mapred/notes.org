@@ -1,0 +1,19 @@
+
+* Decision Thoughts
+** Request in reverse order.
+** Parse events out the filtered page.
+** Filter out any Decision Events.
+** Do this all the way back until the "Last Decision Task" Id.
+
+* Map Phase
+** There are only 2 types of Tasks.
+*** Map an RDDSet.
+*** Task to create the next RDDSet to be Mapped.
+
+* Design Rules
+** Process atomically the from the last Open Decision.
+** Once a Decision has been processed, it is closed.
+** If the Open Decision has a WFStart event.
+*** Start a SplitTask
+
+
