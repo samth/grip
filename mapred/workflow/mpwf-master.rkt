@@ -24,7 +24,7 @@
  [map-to-partition-decider (String -> Void)]
  [mapreduce-start (String MapReduceStart -> WorkflowExecution)]
  [start-mapwf-execution (String WorkflowType String -> WorkflowExecution)]
- [terminate-mapwf-execution (String WorkflowExecution [#:reason String] [#:details String]  -> Void)])
+ [terminate-mapwf-execution (String WorkflowExecution [#:reason String] [#:details String] -> Void)])
 
 (require
  racket/pretty
@@ -55,7 +55,7 @@
 	  fail-workflow-execution-decision
 	  schedule-activity-task-decision
 	  respond-decision-task-completed)
- (only-in mapred/rdd/rdd
+ (only-in mapred/input/text-split
           rdd-text)
  (only-in aws/dynamodb/parse
           attr-value-jsobject attr-value-jslist
@@ -65,7 +65,7 @@
  (only-in "../types.rkt"
 	  BlockSet
 	  RDD RDD-blocksets)
- (only-in "../rdd/rdd.rkt"
+ (only-in "../input/split.rkt"
 	  n-rdd)
  (only-in "../messages.rkt"
 	  MapReduceStart MapReduceStart-path MapReduceStart-split-size MapReduceStart-task-size
@@ -77,11 +77,11 @@
 (: mapreduce-start (String MapReduceStart -> WorkflowExecution))
 (define (mapreduce-start domain start-msg)  
   (match start-msg
-    ((MapReduceStart input-path split-size task-size)
-     (log-mr-info "Starting new mapreduce workflow ~s" MR-MAP-WORKFLOW-TYPE)
-     (if (local-file-uri? input-path)
-	 (start-mapwf-execution domain MR-MAP-WORKFLOW-TYPE (serialize-MapReduceStart-msg start-msg))
-	 (error "S3 input directories not supported yet")))))
+	 ((MapReduceStart input-path split-size task-size)
+	  (log-mr-info "Starting new mapreduce workflow ~s" MR-MAP-WORKFLOW-TYPE)
+	  (if (local-file-uri? input-path)
+	      (start-mapwf-execution domain MR-MAP-WORKFLOW-TYPE (serialize-MapReduceStart-msg start-msg))
+	      (error "S3 input directories not supported yet")))))
 
 (: start-mapwf-execution (String WorkflowType String -> WorkflowExecution))
 (define (start-mapwf-execution domain workflow-type input)
@@ -125,16 +125,16 @@
       (let* ((attrs (HistoryEvent-attributes event))
 	     (input (attr-value-string attrs 'input)))
 	(match (read-mapreduce-start-message input)
-	  [(and msg (MapReduceStart path split-size task-size))
-	   (let ((local-path (local-file-uri->path path)))
-	     (log-mr-info "Splitting ~s into blocks." local-path)
-	     (let ((rdd (n-rdd (rdd-text local-path split-size) task-size)))
-	       (pretty-print rdd)
-	       (respond-decision-task-completed (DecisionTask-task-token decision)
-						"context here"
-						(map (λ: ((blockset : BlockSet)) 
-							 (schedule-map-to-partition-activity-decision blockset))
-						     (RDD-blocksets rdd)))))]))))
+	       [(and msg (MapReduceStart path split-size task-size))
+		(let ((local-path (local-file-uri->path path)))
+		  (log-mr-info "Splitting ~s into blocks." local-path)
+		  (let ((rdd (n-rdd (rdd-text local-path split-size) task-size)))
+		    (pretty-print rdd)
+		    (respond-decision-task-completed (DecisionTask-task-token decision)
+						     "context here"
+						     (map (λ: ((blockset : BlockSet)) 
+							      (schedule-map-to-partition-activity-decision blockset))
+							  (RDD-blocksets rdd)))))]))))
 
 (: map-to-partition-decider (String -> Void))
 (define (map-to-partition-decider domain)
@@ -146,13 +146,13 @@
     (displayln "=============================================")
     (displayln "=============================================")
     (match task
-      ((and decision-task (DecisionTask task-token events next-page-token started-event-id previous-started-event-id workflow-execution workflow-type))
-       (let ((history (list->vector events)))
-	 (if (zero? previous-started-event-id)
-	     (begin
-	       (log-mr-info "Processing ExecutionStarted")
-	       (decision-for-started-event decision-task (vector-ref history 0)))	  
-	     (log-mr-info "FIX ME Not handling decision task beyond started event."))))
-      (else (if task
-		(log-mr-error "Decision Task was not handled.")
-		(log-mr-info "No pending decision activity - timeout"))))))
+	   ((and decision-task (DecisionTask task-token events next-page-token started-event-id previous-started-event-id workflow-execution workflow-type))
+	    (let ((history (list->vector events)))
+	      (if (zero? previous-started-event-id)
+		  (begin
+		    (log-mr-info "Processing ExecutionStarted")
+		    (decision-for-started-event decision-task (vector-ref history 0)))	  
+		  (log-mr-info "FIX ME Not handling decision task beyond started event."))))
+	   (else (if task
+		     (log-mr-error "Decision Task was not handled.")
+		     (log-mr-info "No pending decision activity - timeout"))))))

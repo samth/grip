@@ -43,7 +43,7 @@
     (log-mr-info "Received activity task.  Worker: ~s" identity)
     (match task
       ((ActivityTask id type input started-event token workflow)
-       (log-mr-info "Processging Activity task ~s ~s task with input: ~s" id type input)
+       (log-mr-info "Processing Activity task ~s ~s task with input: ~s" id type input)
        (respond-activity-task-completed token "Oky Doky"))
       (else (if task
 		(begin

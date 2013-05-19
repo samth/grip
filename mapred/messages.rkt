@@ -34,6 +34,17 @@
 
 (struct: TaskMsg () #:prefab)
 
+(struct: S3SplitMsgReq TaskMsg ([bucket : String] ;; S3 bucket
+				[prefix : String] ;; prefix for S3 object listing
+				[marker : String] ;; marker to commence S3 listing from
+				[min-splits : Natural] ;; min number of splits to create if suffient S3 objects
+				[max-split-size : Natural]) ; Max size in bytes of a split
+	 #:prefab)
+
+(struct: S3SplitMsgResp TaskMsg ([blockset : BlockSet] ;; Splits of S3 objects as a BlockSet
+				 [marker : String])    ;; marker of last S3 object split
+	 #:prefab)
+
 (struct: MapTaskReqResp TaskMsg ([loc : String]
                                  [sod : Natural]
                                  [eod : Natural]) #:prefab)
