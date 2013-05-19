@@ -22,13 +22,13 @@
  racket/fixnum
  (only-in prelude/std/prelude
           vadd1)
- (only-in "../../RpR/frame/series.rkt"
+ (only-in rpr/frame/indexed-series
           SIndex)
- (only-in "../../RpR/frame/categorical-series.rkt"
+ (only-in rpr/frame/categorical-series
           CSeries
           CSeries-nominals
           CSeries-data)          
- (only-in "../../RpR/stats/tabulate.rkt"
+ (only-in rpr/stats/tabulate
           Tabulation)
  (only-in "../pgm/xtab.rkt"
           CrossTabulation))
@@ -36,7 +36,7 @@
 (struct: MutualInformation ([phi : Float]
                             [nom1 : Tabulation]
                             [nom2 : Tabulation]
-                            [xtab : CrossTabulation]) #:transparent)
+                            [xtab : CrossTabulation]))
 
 (: mutual-information (CSeries CSeries -> MutualInformation))
 (define (mutual-information cs1 cs2)
