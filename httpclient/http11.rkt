@@ -66,7 +66,7 @@
           current-date-string-rfc-2822)
  (only-in net/uri/url/url
 	  scheme->string
-	  Uri Uri-scheme
+	  Uri Uri-scheme Url-path Url-query Url-fragment
 	  Authority-port
 	  Authority-host
 	  Url Url-authority)

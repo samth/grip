@@ -25,7 +25,7 @@
  (only-in srfi/14
 	  char-set-complement
 	  list->char-set)
- (only-in "../uri/url/encode.rkt"
+ (only-in httpclient/encode
 	  url-decode-from-input-port))
 
 (: key-delim Char)
