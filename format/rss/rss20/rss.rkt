@@ -10,17 +10,17 @@
 
  (require
   racket/pretty
- (only-in "../../../httpclient/uri.rkt"
-          Uri-authority Authority-host
-          Uri make-uri uri->string) 
- (only-in "../../../httpclient/http/http11.rkt"
+ (only-in net/uri/url/url
+          Url-authority Authority-host
+          Url url->string) 
+ (only-in httpclient/http11
           http-invoke http-close-connection
           HTTPConnection-in)
- (only-in "../../../httpclient/http/header.rkt"
+ (only-in httpclient/header
           make-header
           agent-header
           host-header)
- (only-in "../../../format/xml/sxml.rkt"
+ (only-in format/xml/sxml
           Sxml SXPath 
           sxpath xml->sxml select-single-node-text))
 
@@ -93,7 +93,7 @@
 
  ;; fetch RSS2.0 content and parse to SXML
  ;; on parse error returns a '()
-(: fetch-rss (Uri -> (Listof Any)))
+(: fetch-rss (Url -> (Listof Any)))
 (define (fetch-rss uri)
   (let ((headers  `(,(agent-header "curl/7.16.4 (x86_64-redhat-linux-gnu) libcurl/7.16.4 OpenSSL/0.9.8b zlib/1.2.3 libidn/0.6.8"))))
     (let ((connection (http-invoke 'GET uri headers #f)))
