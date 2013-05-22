@@ -12,4 +12,4 @@
 (struct: Dim ([rows : Index]
               [cols : Index])
 ;;	 #:methods gen:custom-write [(define write-proc writer-Dim)]
-	 )
+	 #:transparent)

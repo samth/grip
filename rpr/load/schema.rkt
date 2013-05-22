@@ -22,7 +22,7 @@
 ;; OR
 ;; Dynamically determined by sampling the data files.
 
-(define-type SeriesTypes (U 'CATEGORICAL 'NUMERIC))
+(define-type SeriesTypes (U 'CATEGORICAL 'NUMERIC 'INTEGER))
 
 (struct: ColumnInfo ([name : Symbol]
                      [type : SeriesTypes]))
@@ -56,9 +56,14 @@
 (define (guess-if-headers fields)
   (andmap string? (canonicalize-to-string-or-num fields)))
 
-(: guess-if-numeric ((Listof String) -> Boolean))
-(define (guess-if-numeric col)
-  (andmap number? (canonicalize-to-string-or-num col)))          
+(: guess-series-type ((Listof String) -> SeriesTypes))
+(define (guess-series-type col)
+  (cond
+   ((andmap exact-integer? (canonicalize-to-string-or-num col))
+    'INTEGER)
+   ((andmap number? (canonicalize-to-string-or-num col))
+    'NUMERIC)
+   (else 'CATEGORICAL)))
 
 (: transpose-rows-to-cols ((Listof (Listof String)) -> (Listof (Listof String))))
 (define (transpose-rows-to-cols rows)
@@ -106,12 +111,6 @@
   (define base "x")
   (for/list ([x (in-range n)])
     (string-append base (number->string x))))
-
-(: guess-series-type ((Listof String) -> SeriesTypes))
-(define (guess-series-type col)
-  (if (guess-if-numeric col)
-      'NUMERIC
-      'CATEGORICAL))
 
 (: guess-series-meta ((Listof String) (Listof (Listof String)) -> (Listof ColumnInfo)))
 (define (guess-series-meta headers cols)

@@ -23,6 +23,7 @@
  [column-series (Column -> Series)]
  [frame-rename (Frame Label Label -> Frame)]
  [frame-drop (Frame Label -> Frame)]
+ [frame-remove (Frame LabelProjection -> Frame)]
  [frame-explode (Frame [#:project LabelProjection] -> Columns)]
  [frame-replace (Frame Column -> Frame)]
  [frame-extend  (Frame (U Column Columns Frame) -> Frame)]
@@ -42,7 +43,7 @@
  (only-in racket/vector
 	  vector-copy)
  (only-in racket/set
-	  set-empty? set-member?
+	  set-empty? set-member? set-subtract
 	  list->set)
  (only-in "types.rkt"
           Dim Dim-rows Dim-cols)
@@ -165,17 +166,19 @@
                       (series-count series))))                      
           (Dim rows cols)))))
 
-(: projection-filter (All (A) (Listof A) (A -> Symbol) LabelProjection -> (Listof A)))
-(define (projection-filter lst sym-fn project)
-  
-  (: projection-set (LabelProjection -> (Setof Label)))
-  (define (projection-set labels)
+(: projection-set (LabelProjection -> (Setof Label)))
+  (define (projection-set project)
     (if (list? project) 
 	(list->set project) 
 	project))
+
+(: frame-all-labels-projection-set (Frame -> (Setof Label)))
+(define (frame-all-labels-projection-set frame)
+  (projection-set (map (inst car Symbol Any) (label-sort-positional frame))))
   
-  (define projection (projection-set project))
-  
+(: projection-filter (All (A) (Listof A) (A -> Symbol) LabelProjection -> (Listof A)))
+(define (projection-filter lst sym-fn project)  
+  (define projection (projection-set project))  
   (if (set-empty? projection)
       lst
       (filter (λ: ((a : A))
@@ -219,17 +222,23 @@
     (for-each print-series-description (FrameDescription-series fdesc))))
 
 (: frame-explode (Frame [#:project LabelProjection] -> Columns))
-(define (frame-explode frame #:project [project '()])
-  
+(define (frame-explode frame #:project [project '()])  
   (let ((labeling (label-sort-positional frame))
 	(series (Frame-series frame)))
     (projection-filter (for/list: : Columns
 				  ([label labeling])
 				  (cons (car label)
 					(vector-ref series (cdr label))))
-		       (λ: ((l-s : Column)) ;; need to assist TR here.
+		       (λ: ((l-s : Column))
 			   (car l-s))
 		       project)))
+
+(: frame-remove (Frame LabelProjection -> Frame))
+(define (frame-remove frame drop-projection)
+  (define all-labels (frame-all-labels-projection-set frame))
+  (define drop-labels (projection-set drop-projection))
+  (define keep-labels (set-subtract all-labels drop-labels))
+  (new-frame (frame-explode frame #:project keep-labels)))
 
 (: frame-replace (Frame Column -> Frame))
 (define (frame-replace frame new-col)

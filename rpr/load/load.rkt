@@ -1,18 +1,25 @@
 #lang typed/racket/base
 
 (provide:
- [load-tab-delimited-file (Path [#:schema (Option Schema)] -> Frame)])
+ [load-tab-delimited-file (FilePath [#:schema (Option Schema)] -> Frame)])
 
 (require
- racket/match
+ racket/match 
+ (only-in type/list
+          zip)
+ (only-in system/filepath
+	  FilePath FilePath->string)
  (only-in "schema.rkt"
           generate-anon-series-names
           Schema SeriesTypes Schema-has-headers 
           Schema-SeriesTypes Schema-headers)
- (only-in type/list
-          zip)
  (only-in "../frame/series-builder.rkt"
           SeriesBuilder)
+ (only-in "../frame/integer-series-builder.rkt"
+	  new-ISeriesBuilder
+	  ISeriesBuilder
+	  ISeriesBuilder?
+	  complete-ISeriesBuilder)
  (only-in "../frame/numeric-series-builder.rkt"
           new-NSeriesBuilder
           NSeriesBuilder 
@@ -42,6 +49,7 @@
   (define (determine-SeriesBuilder stypes)    
     (match stypes
 	   ['CATEGORICAL (new-CSeriesBuilder)]
+	   ['INTEGER     (new-ISeriesBuilder)]
 	   ['NUMERIC     (new-NSeriesBuilder)]))
   
   (FrameBuilder ((inst map SeriesBuilder SeriesTypes) 
@@ -54,6 +62,8 @@
 	   (cond
 	    [(CSeriesBuilder? builder)
 	     (complete-CSeriesBuilder builder)]
+	    [(ISeriesBuilder? builder)
+	     (complete-ISeriesBuilder builder)]
 	    [(NSeriesBuilder? builder)
 	     (complete-NSeriesBuilder builder)]
 	    [else (error "Inconsistent FrameBuilder")]))
@@ -71,7 +81,7 @@
                        (anon-headers (length cols)))))
       (new-frame ((inst zip Symbol Series) headers cols)))))
 
-(: load-tab-delimited-file (Path [#:schema (Option Schema)] -> Frame))
+(: load-tab-delimited-file (FilePath [#:schema (Option Schema)] -> Frame))
 (define (load-tab-delimited-file fpath #:schema [schema #f])
   (define SAMPLE-SIZE 20)
   (let ((schema (if schema schema (sample-tab-delimited-file fpath SAMPLE-SIZE))))

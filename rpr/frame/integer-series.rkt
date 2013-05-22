@@ -6,9 +6,10 @@
 (provide:
  [new-ISeries ((Vectorof Fixnum) (Option (U (Listof Label) SIndex)) -> ISeries)]
  [iseries-ref (ISeries Index -> Fixnum)]
- [iseries-count (ISeries -> Index)])
+ [iseries-count (ISeries -> Index)]
+ [iseries-referencer (ISeries -> (Index -> Integer))])
 
-(require 
+(require
  (only-in "indexed-series.rkt"
 	  build-index-from-labels
 	  Label SIndex LabelIndex))
@@ -18,14 +19,14 @@
 (: new-ISeries ((Vectorof Fixnum) (Option (U (Listof Label) SIndex)) -> ISeries))
 
 (define (new-ISeries data labels)
-  
+
   (: check-mismatch (SIndex -> Void))
   (define (check-mismatch index)
     (unless (eq? (vector-length data) (hash-count index))
       (let ((k (current-continuation-marks)))
 	(raise (make-exn:fail:contract "Cardinality of a Series' data and labels must be equal" k))))
     (void))
-  
+
   (if (hash? labels)
       (begin
 	(check-mismatch labels)
@@ -35,6 +36,12 @@
 	    (check-mismatch index)
 	    (ISeries index data))
 	  (ISeries #f data))))
+
+(: iseries-referencer (ISeries -> (Index -> Integer)))
+(define (iseries-referencer cseries)
+  (let ((data (ISeries-data cseries)))
+    (λ: ((idx : Index))
+	(vector-ref data idx))))
 
 (: iseries-ref (ISeries Index -> Fixnum))
 (define (iseries-ref series idx)
