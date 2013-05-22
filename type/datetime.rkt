@@ -1,5 +1,8 @@
 #lang typed/racket/base
 
+(provide 
+ encode-julian-day-number)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Knozama's Amazon API Library
 ;; Copyright (C) 2007,2008,2009,2010,2011  Raymond Paul Racine

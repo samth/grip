@@ -4,8 +4,8 @@
  opt-undefined?
  opt-defined?
  opt-exists
- opt-getorelse
- opt-getorelse-value
+ opt-get-orelse
+ opt-get-orelse-value
  opt-orelse
  opt-map
  opt-map-orelse
@@ -39,12 +39,12 @@
   (and opt (pred? opt)))
 
 ;; The Option's value if defined otherwise the default expression's value
-(: opt-getorelse (All (a) (Option a) (-> a) -> a))
-(define (opt-getorelse opt exp)
+(: opt-get-orelse (All (a) (Option a) (-> a) -> a))
+(define (opt-get-orelse opt exp)
   (if opt opt (exp)))
 
-(: opt-getorelse-value (All (a) (Option a) a -> a))
-(define (opt-getorelse-value opt v)
+(: opt-get-orelse-value (All (a) (Option a) a -> a))
+(define (opt-get-orelse-value opt v)
   (if opt opt v))
 
 ;; The Option value if defined otherwise the given alternative

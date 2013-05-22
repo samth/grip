@@ -19,23 +19,23 @@
 #lang typed/racket/base
 
 (provide
- Header Headers Header-value Header-key
- make-headers make-header make-header-string header->string  
+ Header Headers Header-name Header-value
+ make-headers make-header make-header-string header->string
  empty-headers empty-header?
  add-header get-header get-header-value opt-header-value
- agent-header host-header
+ agent-header host-header header-lowercase-name
  date-header content-type content-length content-md5)
 
 (require/typed racket
-  [string-trim (String -> String)])
+	       [string-trim (String -> String)])
 
 (define-type Header (Pairof String String))
 (define-type Headers (Listof Header))
 
 (define-predicate Header? Header)
 
-(: Header-key (Header -> String))
-(define (Header-key header)
+(: Header-name (Header -> String))
+(define (Header-name header)
   (car header))
 
 (: Header-value (Header -> String))
@@ -61,14 +61,19 @@
 ;; Get the Header value from given Headers
 (: get-header-value (String Headers -> (Option String)))
 (define (get-header-value header headers)
-    (let ((header (get-header header headers)))
-      (if header (cdr header) #f)))
+  (let ((header (get-header header headers)))
+    (if header (cdr header) #f)))
 
 (: opt-header-value ((Option Header) -> (Option String)))
 (define (opt-header-value hdr)
   (if (pair? hdr)
-     (cdr hdr)
-     #f))
+      (cdr hdr)
+      #f))
+
+(: header-lowercase-name (Header -> Header))
+(define (header-lowercase-name header)
+  (make-header (string-downcase (car header))
+	       (cdr header)))
 
 (: make-header-string (String String -> String))
 (define (make-header-string key value)
@@ -84,14 +89,14 @@
 
 (: make-headers ((Listof (Pairof String String)) -> Headers))
 (define (make-headers kvs)
-  (filter 
+  (filter
    (λ: ((kv : (Pairof String String)))
-     (not (empty-header? kv)))
+       (not (empty-header? kv)))
    (map (λ: ((kv : (Pairof String String)))
-          (cons (car kv)
-                (string-trim (cdr kv))))
-        kvs)))
-                  
+	    (cons (car kv)
+		  (string-trim (cdr kv))))
+	kvs)))
+
 (: host-header (String -> Header))
 (define (host-header host)
   (make-header "Host" host))
