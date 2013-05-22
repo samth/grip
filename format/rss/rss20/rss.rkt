@@ -1,28 +1,28 @@
 #| Parse routines for RSS |#
 
 #lang typed/racket/base
- 
- (provide
-  fetch-rss 
-  sx-items sx-title sx-description sx-link sx-pubdate sx-content:encoded
-  sx-media-content sx-media-content-url sx-media-content-medium
-  sx-media-content-width sx-media-content-height)
 
- (require
-  racket/pretty
+(provide
+ fetch-rss
+ sx-items sx-title sx-description sx-link sx-pubdate sx-content:encoded
+ sx-media-content sx-media-content-url sx-media-content-medium
+ sx-media-content-width sx-media-content-height)
+
+(require
+ racket/pretty
  (only-in net/uri/url/url
-          Url-authority Authority-host
-          Url url->string) 
- (only-in httpclient/http11
-          http-invoke http-close-connection
-          HTTPConnection-in)
- (only-in httpclient/header
-          make-header
-          agent-header
-          host-header)
+	  Url-authority Authority-host
+	  Url url->string)
+ (only-in net/http/http11
+	  http-invoke http-close-connection
+	  HTTPConnection-in)
+ (only-in net/http/header
+	  make-header
+	  agent-header
+	  host-header)
  (only-in format/xml/sxml
-          Sxml SXPath 
-          sxpath xml->sxml select-single-node-text))
+	  Sxml SXPath
+	  sxpath xml->sxml select-single-node-text))
 
 (: content-ns (Pair Symbol String))
 (define content-ns
@@ -91,17 +91,17 @@
 (define sx-media-content-width
   (select-single-node-text "/media:width" base-nss))
 
- ;; fetch RSS2.0 content and parse to SXML
- ;; on parse error returns a '()
+;; fetch RSS2.0 content and parse to SXML
+;; on parse error returns a '()
 (: fetch-rss (Url -> (Listof Any)))
 (define (fetch-rss uri)
   (let ((headers  `(,(agent-header "curl/7.16.4 (x86_64-redhat-linux-gnu) libcurl/7.16.4 OpenSSL/0.9.8b zlib/1.2.3 libidn/0.6.8"))))
     (let ((connection (http-invoke 'GET uri headers #f)))
       (with-handlers [(exn:fail? (lambda (ex)
 				   ((error-display-handler) "ERROR in S3 invocation." ex)
-				   (displayln ex) 
+				   (displayln ex)
 				   (http-close-connection connection)
 				   (raise ex #t)))]
-	(let ((results (xml->sxml (HTTPConnection-in connection) '())))
-	  (http-close-connection connection)
-	  results)))))   
+		     (let ((results (xml->sxml (HTTPConnection-in connection) '())))
+		       (http-close-connection connection)
+		       results)))))
