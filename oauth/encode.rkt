@@ -8,9 +8,7 @@
 	  alphabet-char?
 	  digit-char?))
 
-
-;; Except for (ALPHA, DIGIT, "-", ".", "_", "~") everything is encode in OAuth
-
+;; Do not encode these symbol chars.
 (: clear-sym-char? (Char -> Boolean))
 (define (clear-sym-char? ch)
   (case ch
