@@ -23,7 +23,7 @@
 (provide weave-string-separator
 	 for-lines)
 
-(require (only-in "../type/list.rkt"
+(require (only-in "list.rkt"
 		  weave))
 
 ;; weave a separator string strictly between every pair of strings in a list

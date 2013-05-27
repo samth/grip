@@ -51,7 +51,7 @@
 
 (require
  racket/match
- (only-in type/string
+ (only-in "../data/string.rkt"
           starts-with?
           starts-with-char?
           ends-with-char?
