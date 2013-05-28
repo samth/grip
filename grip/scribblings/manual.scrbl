@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@title[#:tag "top"]{@bold{Grip} a core Typed Racket library.}
+@title[#:tag "top"]{@bold{Grip} a core TR library.}
 
 @table-of-contents[]
 

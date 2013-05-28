@@ -1,14 +1,10 @@
 #lang scribble/manual
 
-@(require scribble/eval
-	  racket/sandbox
-	  (for-label grip/system/filepath)
+@(require (for-label grip/system/filepath)
 	  (for-label (only-meta-in 0 typed/racket)))
 
 @title{Paths}
 @section{FilePath}
-
-Unfortunately I cannot seem to get a useful set of example usages to work.
 
 @defmodule[grip/system/filepath]{
 
@@ -56,6 +52,7 @@ Unfortunately I cannot seem to get a useful set of example usages to work.
   Creates an @racket[Extension] from the provided string.  Currently
   no validation is performed.
 
+@;{
   @interaction[
   #:eval (begin (parameterize ([sandbox-path-permissions 
                                  (list (list 'read "/usr/local/racket/bin"))]
@@ -66,7 +63,7 @@ Unfortunately I cannot seem to get a useful set of example usages to work.
 
   (make-Extension "txt")
   ]
-
+}
 }
 
 

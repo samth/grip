@@ -1,7 +1,7 @@
 #lang scribble/manual
 
-@begin[(require (for-label grip/system/interface)
-		(for-label (only-meta-in 0 typed/racket)))]
+@(require (for-label grip/system/interface)
+  	  (for-label (only-meta-in 0 typed/racket)))
 
 @title{Network}
 
