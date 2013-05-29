@@ -34,7 +34,7 @@
 (require
  racket/match
  (only-in "types.rkt"
-	  irun
+	  drain
 	  Hose
 	  Tank Stream Done Continue))
 
@@ -49,10 +49,10 @@
 	     [(eq? elem 'Nothing)
 	      (Continue (step inner))]
 	     [(eq? elem 'EOS)
-	      (Done 'EOS (irun inner))]
+	      (Done 'EOS (drain inner))]
 	     [else (match inner
 			  [(Done _ _)
-			   (Done elem (irun inner))]
+			   (Done elem (drain inner))]
 			  [(Continue istep)
 			   (begin
 			     (for-fn elem)
@@ -69,9 +69,9 @@
 	(λ: ((elem : (Stream O)))
 	    (cond
 	     ((eq? elem 'Nothing) (Continue (step inner)))
-	     ((eq? elem 'EOS)     (Done 'EOS (irun inner)))
+	     ((eq? elem 'EOS)     (Done 'EOS (drain inner)))
 	     (else                (match inner
-					 [(Done _ _ ) (Done elem (irun inner))]
+					 [(Done _ _ ) (Done elem (drain inner))]
 					 [(Continue istep)
 					  (let ((new-elem (filter/map elem)))
 					    (if new-elem
@@ -90,10 +90,10 @@
 	(λ: ((elem : (Stream O)))
 	    (cond
 	     ((eq? elem 'Nothing) (Continue (step inner)))
-	     ((eq? elem 'EOS)     (Done 'EOS (irun inner)))
+	     ((eq? elem 'EOS)     (Done 'EOS (drain inner)))
 	     (else                (match inner
 					 [(Done _ _ )
-					  (Done elem (irun inner))]
+					  (Done elem (drain inner))]
 					 [(Continue istep)
 					  (let ((iota (map-fn elem)))
 					    (if iota
@@ -114,7 +114,7 @@
 	     ((eq? datum 'Nothing)
 	      (Continue (step inner)))
 	     ((eq? datum 'EOS)
-	      (Done 'EOS (irun inner)))
+	      (Done 'EOS (drain inner)))
 	     (else
 	      (let: loop : (Tank (Listof O) A)
 		    ([data : (Listof O) datum]
@@ -122,7 +122,7 @@
 		    (if (null? data)
 			(Continue (step inner))
 			(match inner
-			       [(Done _ _) (Done data (irun inner))]
+			       [(Done _ _) (Done data (drain inner))]
 			       [(Continue istep)
 				(let: ((d : (Option I) (reducer (car data))))
 				      (if d
@@ -143,10 +143,10 @@
 	     [(eq? datum 'Nothing)
 	      (Continue (step inner last-datum))]
 	     [(eq? datum 'EOS)
-	      (Done 'EOS (irun inner))]
+	      (Done 'EOS (drain inner))]
 	     [else (match inner
 			  [(Done _ _)
-			   (Done datum (irun inner))]
+			   (Done datum (drain inner))]
 			  [(Continue istep)
 			   (if (equal? datum last-datum)
 			       (Continue (step inner last-datum))
@@ -166,10 +166,10 @@
 	     [(eq? elem 'Nothing)
 	      (Continue (step inner))]
 	     [(eq? elem 'EOS)
-	      (Done 'EOS (irun inner))]
+	      (Done 'EOS (drain inner))]
 	     [else (match inner
 			  [(Done _ _)
-			   (Done elem (irun inner))]
+			   (Done elem (drain inner))]
 			  [(Continue istep)
 			   (if (filter-fn elem)
 			       (Continue (step (istep elem)))
@@ -190,11 +190,11 @@
 	      (Continue (step accum inner)))
 	     ((eq? datum 'EOS)
 	      (match inner
-		     [(Done _ _ ) (Done 'EOS (irun inner))]
+		     [(Done _ _ ) (Done 'EOS (drain inner))]
 		     [(Continue inner-step)
-		      (Done 'EOS (irun (inner-step accum)))]))
+		      (Done 'EOS (drain (inner-step accum)))]))
 	     (else (match inner
-			  [(Done _ _) (Done datum (irun inner))]
+			  [(Done _ _) (Done datum (drain inner))]
 			  [(Continue inner-step)
 			   (if (null? accum)
 			       (Continue (step (list datum) inner))
@@ -216,10 +216,10 @@
 	     ((eq? datum 'Nothing)
 	      (Continue (step inner)))
 	     ((eq? datum 'EOS)
-	      (Done 'EOS (irun inner)))
+	      (Done 'EOS (drain inner)))
 	     (else
 	      (match inner
-		     [(Done _ _) (Done datum (irun inner))]
+		     [(Done _ _) (Done datum (drain inner))]
 		     [(Continue inner-step)
 		      (if (null? datum)
 			  (Continue (step inner))
@@ -250,10 +250,10 @@
 	     ((eq? datum 'Nothing)
 	      (Continue (step inner)))
 	     ((eq? datum 'EOS)
-	      (Done 'EOS (irun inner)))
+	      (Done 'EOS (drain inner)))
 	     (else
 	      (match inner
-		     [(Done _ _) (Done datum (irun inner))]
+		     [(Done _ _) (Done datum (drain inner))]
 		     [(Continue inner-step)
 		      (let: ((datum-counts : (CntL D) (list-count datum)))
 			    (Continue (step (inner-step datum-counts))))])))))
@@ -307,10 +307,10 @@
 	     ((eq? datum 'Nothing)
 	      (Continue (step inner)))
 	     ((eq? datum 'EOS)
-	      (Done 'EOS (irun inner)))
+	      (Done 'EOS (drain inner)))
 	     (else
 	      (match inner
-		     [(Done _ _) (Done datum (irun inner))]
+		     [(Done _ _) (Done datum (drain inner))]
 		     [(Continue inner-step)
 		      (let: ((reduced-datum : (Option I) (reduce datum)))
 			    (if reduced-datum
@@ -330,10 +330,10 @@
 	     ((eq? datum 'Nothing)
 	      (Continue (step idx inner)))
 	     ((eq? datum 'EOS)
-	      (Done 'EOS (irun inner)))
+	      (Done 'EOS (drain inner)))
 	     (else
 	      (match inner
-		     [(Done _ _) (Done datum (irun inner))]
+		     [(Done _ _) (Done datum (drain inner))]
 		     [(Continue inner-step)
 		      (Continue (step (assert (add1 idx) index?)
 				      (inner-step (cons datum idx))))])))))

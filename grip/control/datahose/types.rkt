@@ -19,8 +19,8 @@
 #lang typed/racket ;; Fixme RPR - no typed/racket/base as syntax-case
 
 (provide
- i~ irun irun~ 
- iseq icomplete 
+ dp~ drain drain~ 
+ iseq 
  Pump Hose Tank Stream
  (struct-out Continue)
  (struct-out Done)
@@ -37,26 +37,23 @@
 
 (struct: (D A) Continue ([step : ((Stream D) -> (Tank D A))]))	 
 
-(: icomplete (All (D A) (Tank D A) -> A))
-(define (icomplete iter)
-  (match iter
+(: drain (All (D A) (Tank D A) -> A))
+(define (drain tank)
+  (match tank
     [(Done _ accum)  accum]
-    [(Continue step) (icomplete (step 'EOS))]))
+    [(Continue step) (drain (step 'EOS))]))
 
-(: irun (All (D A) (Tank D A) -> A))
-(define irun icomplete)
-
-(define-syntax (i~ stx)
+(define-syntax (dp~ stx)
   (syntax-case stx ()
     ((i~ e1 e2)
      #'(e1 e2))    
     ((i~ e1 e2 ...)
      #'(e1 (i~ e2 ...)))))
 
-(define-syntax (irun~ stx)
+(define-syntax (drain~ stx)
 (syntax-case stx ()
-  ((irun~ e1 ...)
-   #'(irun (i~ e1 ...)))))
+  ((drain~ e1 ...)
+   #'(drain (dp~ e1 ...)))))
 
 (: iseq (All (D A B) ((Tank D A) (A -> (Tank D B)) -> (Tank D B))))
 (define (iseq iter fn)

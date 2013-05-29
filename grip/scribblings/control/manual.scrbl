@@ -1,4 +1,4 @@
 #lang scribble/base
 
 @title{Control}
-@include-section["iteratee/manual.scrbl"]
+@include-section["datahose/manual.scrbl"]
