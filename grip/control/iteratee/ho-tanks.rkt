@@ -19,11 +19,11 @@
 #lang typed/racket/base
 
 (require
- (only-in "iteratee.rkt"
+ (only-in "types.rkt"
 	  Hose Tank)
- (only-in "enumeratees.rkt"
+ (only-in "hoses.rkt"
 	  hose-groupby hose-flatmap)
- (only-in "iteratees.rkt"
+ (only-in "tanks.rkt"
 	  list-tank))
 
 (provide:

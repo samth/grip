@@ -13,7 +13,7 @@
  (struct-out IOFailure))
 
 (require
- (only-in "iteratee.rkt"
+ (only-in "types.rkt"
 	  Tank Stream Continue Done))
 
 #| Tank for File output. |#

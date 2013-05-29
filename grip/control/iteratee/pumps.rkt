@@ -29,7 +29,7 @@
  racket/match
  (only-in racket/unsafe/ops
 	  unsafe-vector-ref)
- (only-in "iteratee.rkt"
+ (only-in "types.rkt"
 	  Done Continue Tank Pump))
 
 (: pump/eos (All (D A) (Pump D A)))

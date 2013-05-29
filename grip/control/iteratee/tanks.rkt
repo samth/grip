@@ -40,7 +40,7 @@
  racket/match
  (only-in racket/set
 	  set set-add)
- (only-in "iteratee.rkt"
+ (only-in "types.rkt"
 	  Tank Stream Continue Done))
 
 (: counter (All (D) (-> (Tank D Integer))))

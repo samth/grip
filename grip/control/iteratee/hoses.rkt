@@ -33,7 +33,7 @@
 
 (require
  racket/match
- (only-in "iteratee.rkt"
+ (only-in "types.rkt"
 	  irun
 	  Hose
 	  Tank Stream Done Continue))
