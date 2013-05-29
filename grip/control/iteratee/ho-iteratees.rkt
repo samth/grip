@@ -20,23 +20,23 @@
 
 (require
  (only-in "iteratee.rkt"
-	  EnumerateeC Iteratee)
+	  Hose Tank)
  (only-in "enumeratees.rkt"
-	  enumeratee/c-groupby enumeratee/c-flatmap)
+	  hose-groupby hose-flatmap)
  (only-in "iteratees.rkt"
-	  list-sink))
+	  list-tank))
 
 (provide:
- [reduce (All (D E) ((D D -> Boolean) (D -> (Option E)) -> (Iteratee D (Listof E))))])
+ [reduce (All (D E) ((D D -> Boolean) (D -> (Option E)) -> (Tank D (Listof E))))])
 
-(: reduce (All (D E) ((D D -> Boolean) (D -> (Option E)) -> (Iteratee D (Listof E)))))
-(define (reduce is-same? reduce-fn)  
-  (define: groupbyT : (EnumerateeC D (Listof D) (Listof E))
-    (enumeratee/c-groupby is-same?))  
-  (define: mergeT : (EnumerateeC (Listof D) E (Listof E))
-    (enumeratee/c-flatmap reduce-fn))  
-  (define: sink : (Iteratee E (Listof E))
-    (list-sink))
-  (define: list-iteratee : (Iteratee D (Listof E))
-    (groupbyT (mergeT sink)))  
-  list-iteratee)
+(: reduce (All (D E) ((D D -> Boolean) (D -> (Option E)) -> (Tank D (Listof E)))))
+(define (reduce is-same? reduce-fn)
+  (define: groupbyT : (Hose D (Listof D) (Listof E))
+    (hose-groupby is-same?))
+  (define: mergeT : (Hose (Listof D) E (Listof E))
+    (hose-flatmap reduce-fn))
+  (define: sink : (Tank E (Listof E))
+    (list-tank))
+  (define: listtank : (Tank D (Listof E))
+    (groupbyT (mergeT sink)))
+  listtank)

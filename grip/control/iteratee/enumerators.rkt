@@ -19,115 +19,115 @@
 #lang typed/racket/base
 
 (provide:
- [enumerator/eos    (All (D A) (Enumerator D A))]
- [enumerator/list   (All (D A) (Listof D) -> (Enumerator D A))]
- [enumerator/vector (All (D A) (Vectorof D) -> (Enumerator D A))]
- [enumerator/text-input-port     (All (A) (Input-Port -> (Enumerator String A)))]
- [enumerator/select-from-n-lists (All (D A) (Listof (Listof D)) (D D -> Boolean) -> (Enumerator D A))])
+ [pump/eos    (All (D A) (Pump D A))]
+ [pump/list   (All (D A) (Listof D) -> (Pump D A))]
+ [pump/vector (All (D A) (Vectorof D) -> (Pump D A))]
+ [pump/text-input-port     (All (A) (Input-Port -> (Pump String A)))]
+ [pump/select-from-n-lists (All (D A) (Listof (Listof D)) (D D -> Boolean) -> (Pump D A))])
 
 (require
  racket/match
  (only-in racket/unsafe/ops
 	  unsafe-vector-ref)
  (only-in "iteratee.rkt"
-          Done Continue Iteratee Enumerator))
+	  Done Continue Tank Pump))
 
-(: enumerator/eos (All (D A) (Enumerator D A)))
-(define (enumerator/eos iter)
+(: pump/eos (All (D A) (Pump D A)))
+(define (pump/eos iter)
   (match iter
-    [(Done _ _) iter]
-    [(Continue step) (step 'EOS)]))
+	 [(Done _ _) iter]
+	 [(Continue step) (step 'EOS)]))
 
 ;; Useful for testing, i.e. simulate an IO read of a string
-(: enumerator/string (All (A) String -> (Enumerator String A)))
-(define (enumerator/string str)
-  (λ: ((iter : (Iteratee String A)))
-    (match iter
-      [(Done _ _) iter]
-      [(Continue k) (k str)])))
+(: pump/string (All (A) String -> (Pump String A)))
+(define (pump/string str)
+  (λ: ((iter : (Tank String A)))
+      (match iter
+	     [(Done _ _) iter]
+	     [(Continue k) (k str)])))
 
-(: enumerator/list (All (D A) (Listof D) -> (Enumerator D A)))
-(define (enumerator/list lst)
-  (λ: ((iter : (Iteratee D A)))
-    (let: loop : (Iteratee D A) ((lst : (Listof D) lst) 
-                                 (iter : (Iteratee D A) iter))
-      (match (cons lst iter)
-        [(cons '() i)           i]
-        [(cons _ (Done _ _))    iter]
-        [(cons (list-rest x xs) (Continue k)) (loop xs (k x))]))))
+(: pump/list (All (D A) (Listof D) -> (Pump D A)))
+(define (pump/list lst)
+  (λ: ((iter : (Tank D A)))
+      (let: loop : (Tank D A) ((lst : (Listof D) lst)
+			       (iter : (Tank D A) iter))
+	    (match (cons lst iter)
+		   [(cons '() i)           i]
+		   [(cons _ (Done _ _))    iter]
+		   [(cons (list-rest x xs) (Continue k)) (loop xs (k x))]))))
 
-(: enumerator/vector (All (D A) (Vectorof D) -> (Enumerator D A)))
-(define (enumerator/vector vect)
+(: pump/vector (All (D A) (Vectorof D) -> (Pump D A)))
+(define (pump/vector vect)
   (define: len : Index (vector-length vect))
-  (λ: ((iter : (Iteratee D A)))
-      (let: loop : (Iteratee D A) 
+  (λ: ((iter : (Tank D A)))
+      (let: loop : (Tank D A)
 	    ((idx : Natural 0)
-	     (iter : (Iteratee D A) iter))
+	     (iter : (Tank D A) iter))
 	    (if (>= idx len)
 		iter
 		(match iter
 		       [(Done _ _) iter]
-		       [(Continue k) (loop (add1 idx) 
+		       [(Continue k) (loop (add1 idx)
 					   (k (unsafe-vector-ref vect idx)))])))))
 
-(: enumerator/text-input-port (All (A) (Input-Port -> (Enumerator String A))))
-(define (enumerator/text-input-port inp)
-  (λ: ((iter : (Iteratee String A)))
-    (let loop ((iter iter))
-      (match iter
-        [(Done _ _) iter]
-        [(Continue step)
-         (let ((line (read-line inp)))
-           (if (eof-object? line)
-               iter
-               (loop (step line))))]))))
+(: pump/text-input-port (All (A) (Input-Port -> (Pump String A))))
+(define (pump/text-input-port inp)
+  (λ: ((iter : (Tank String A)))
+      (let loop ((iter iter))
+	(match iter
+	       [(Done _ _) iter]
+	       [(Continue step)
+		(let ((line (read-line inp)))
+		  (if (eof-object? line)
+		      iter
+		      (loop (step line))))]))))
 
 ;; Given multiple lists select the next element from one of the lists using the selector until all lists are exhausted.
 ;; selector - when true the first arg is selected else the second
 ;; e.g, if selector is a less-than? comparison function the enumerator feeds the least head item from the lists.
 ;;      and if the lists themselves were sorted, the enumerator feed is sorted.
-(: enumerator/select-from-n-lists (All (D A) (Listof (Listof D)) (D D -> Boolean) -> (Enumerator D A)))
-(define (enumerator/select-from-n-lists data-lsts select-first?)
-  
+(: pump/select-from-n-lists (All (D A) (Listof (Listof D)) (D D -> Boolean) -> (Pump D A)))
+(define (pump/select-from-n-lists data-lsts select-first?)
+
   (define: lsts : (Vectorof (Listof D)) (list->vector data-lsts))
   (define: lsts-cnt : Index (vector-length lsts))
-  
+
   (: head (Natural -> (Option D)))
   (define (head idx)
     (let ((from-lst (vector-ref lsts idx)))
       (if (null? from-lst)
-          #f
-          (car from-lst))))
-  
+	  #f
+	  (car from-lst))))
+
   (: pop (Natural -> (Option D)))
   (define (pop idx)
     (let ((datum (head idx)))
-      (when datum          
-        (vector-set! lsts idx (cdr (vector-ref lsts idx))))
+      (when datum
+	    (vector-set! lsts idx (cdr (vector-ref lsts idx))))
       datum))
-  
+
   (: next-selected (-> (Option D)))
   (define (next-selected)
     (let: loop : (Option D) ((idx : Natural 0)
-                             (widx : Natural 0)
-                             (winner : (Option D) (head 0)))
-      (if (>= idx lsts-cnt)          
-          (pop widx)
-          (let: ((next : (Option D) (head idx)))
-            (if next
-                (if winner
-                    (if (select-first? winner next)
-                        (loop (add1 idx) widx winner)
-                        (loop (add1 idx) idx next))
-                    (loop (add1 idx) idx next))
-                (loop (add1 idx) widx winner))))))
-  
-  (λ: ((iter : (Iteratee D A)))
-    (let: loop : (Iteratee D A) ((iter : (Iteratee D A) iter))      
-      (match iter
-        [(and done (Done _ _)) done]
-        [(Continue k)
-         (let ((selected (next-selected)))
-           (if selected
-               (loop (k selected))               
-               (k 'EOS)))]))))
+			     (widx : Natural 0)
+			     (winner : (Option D) (head 0)))
+	  (if (>= idx lsts-cnt)
+	      (pop widx)
+	      (let: ((next : (Option D) (head idx)))
+		    (if next
+			(if winner
+			    (if (select-first? winner next)
+				(loop (add1 idx) widx winner)
+				(loop (add1 idx) idx next))
+			    (loop (add1 idx) idx next))
+			(loop (add1 idx) widx winner))))))
+
+  (λ: ((iter : (Tank D A)))
+      (let: loop : (Tank D A) ((iter : (Tank D A) iter))
+	    (match iter
+		   [(and done (Done _ _)) done]
+		   [(Continue k)
+		    (let ((selected (next-selected)))
+		      (if selected
+			  (loop (k selected))
+			  (k 'EOS)))]))))
