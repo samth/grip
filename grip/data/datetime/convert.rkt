@@ -2,28 +2,32 @@
 
 (provide:
  [local-tz-offset Integer]
- [current-date (case-> 
-		 (-> Datetime)
-		 (Integer -> Datetime))]
+ [current-date (case->
+		(-> Datetime)
+		(Integer -> Datetime))]
+ [julian-day-number (Integer Integer Integer -> Integer)]
+ [julian-day-number->date (Exact-Rational -> Date)]
+ [decode-julian-day-number (Exact-Rational -> (Values Integer Date))]
+ [date->julian-day-number (Date -> Integer)]
  [Datetime->InstantUTC (Datetime -> InstantUTC)])
 
 (require
-  racket/match
-  (only-in "const.rkt"
-	   sid sihd tai-epoch-in-jd)
-  (only-in "instant.rkt"
-	   now-utc instant-seconds instant-millis
-	   instant-tai->utc)
-  (only-in "leapsecond.rkt"
-	   LeapMilliSecondTable
-	   leap-millisecond-table)
-  (only-in "types.rkt"
-	   Tic
-	   Instant-tics InstantUTC InstantTAI
-	   JulianDay ModifiedJulianDay
-	   Datetime Datetime-date Datetime-time
-	   Date Date-year Date-month Date-day
-	   Time Time-hour Time-minute Time-second Time-milli))
+ racket/match
+ (only-in "const.rkt"
+	  sid sihd tai-epoch-in-jd)
+ (only-in "instant.rkt"
+	  now-utc instant-seconds instant-millis
+	  instant-tai->utc)
+ (only-in "leapsecond.rkt"
+	  LeapMilliSecondTable
+	  leap-millisecond-table)
+ (only-in "types.rkt"
+	  Tic
+	  Instant-tics InstantUTC InstantTAI
+	  JulianDay ModifiedJulianDay
+	  Datetime Datetime-date Datetime-time
+	  Date Date-year Date-month Date-day
+	  Time Time-hour Time-minute Time-second Time-milli))
 
 ;; in Seconds, NOT millis
 ;; Uses built-in Racket calls here.
@@ -31,7 +35,7 @@
 (define local-tz-offset
   (date-time-zone-offset (seconds->date (current-seconds))))
 
-(: current-date (case-> 
+(: current-date (case->
 		 (-> Datetime)
 		 ( Integer -> Datetime)))
 (define (current-date [offset local-tz-offset])
@@ -50,6 +54,17 @@
        (- (quotient y 100))
        (quotient y 400)
        -32045)))
+
+(: date->julian-day-number (Date -> Integer))
+(define (date->julian-day-number date)
+  (match date
+	 ((Date y m d)
+	  (julian-day-number d m y))))
+
+(: julian-day-number->date (Exact-Rational -> Date))
+(define (julian-day-number->date jd)
+  (let-values (((t d) (decode-julian-day-number jd)))
+    d))
 
 (: dt->jd (Datetime -> Exact-Rational))
 (define (dt->jd datetime)
