@@ -20,6 +20,7 @@
       (zero? (string-length s))
       #f))
 
+(: default-string (String String -> String))
 (define (default-string str default)
   (if (null-string? str)
       default

@@ -25,7 +25,7 @@
 (define-type SignTable (List SignString SignString SignString))
 
 (require/typed racket/format
- (~a (String *
+ (~a (String 
       [#:separator String]
       [#:width Natural]
       [#:max-width Natural]

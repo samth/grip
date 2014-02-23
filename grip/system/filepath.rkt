@@ -45,7 +45,6 @@
  ;; Normalize paths and comparison
  [normalize (FilePath -> FilePath)]
  [identically-structured? (FilePath FilePath -> Boolean)]
- [normalize (FilePath -> FilePath)]
  [make-relative (FilePath FilePath -> RelFilePath)]
  [relative? (FilePath RelFilePath -> Boolean)])
 
