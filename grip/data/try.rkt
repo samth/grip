@@ -130,7 +130,7 @@
 ;; Should my-hero be a PartialFunction as opposed to one which returns Option.
 (: rescue (All (T) (Try T) ((Failure T) -> (Option (Try T))) -> (Try T)))
 (define (rescue try my-hero)
-  (with-handlers ([exn:fail? (λ (ex)
+  (with-handlers ([exn:fail? (λ ([ex : exn])
   				(Failure ex))])
     (cond
       ((Failure? try)
@@ -142,7 +142,7 @@
 
 (: recover (All (T) (Try T) ((Failure T) -> (Option T)) -> (Try T)))
 (define (recover try my-heroine)
-  (with-handlers ([exn:fail? (λ (ex)
+  (with-handlers ([exn:fail? (λ ([ex : exn])
 				(Failure ex))])
     (cond
      ((Failure? try)
@@ -154,7 +154,7 @@
 
 (: try (All (T) (-> T) -> (Try T)))
 (define (try thunk)
-  (with-handlers ([exn:fail? (λ (ex)
+  (with-handlers ([exn:fail? (λ ([ex : exn])
 				(Failure ex))])
     (Success (thunk))))
 
